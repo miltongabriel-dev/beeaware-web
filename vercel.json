@@ -1,0 +1,7 @@
+{
+  "framework": null,
+  "outputDirectory": "build/web",
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
