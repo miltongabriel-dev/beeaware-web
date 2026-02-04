@@ -33,7 +33,33 @@
   <link rel="manifest" href="manifest.json?v=2">
   <meta name="theme-color" content="#F59E0B">
   <script src="https://unpkg.com/@khmyznikov/pwa-install@0.3.12/dist/pwa-install.bundle.js"></script>
-  
+  <script>
+  window.deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Impede o Chrome de mostrar o banner automático
+    e.preventDefault();
+    // Guarda o evento para o Flutter usar depois
+    window.deferredPrompt = e;
+    console.log('✅ PWA: Evento capturado e pronto para instalação!');
+  });
+
+  // Função que o Flutter vai chamar
+  window.isPwaInstallable = function() {
+    return window.deferredPrompt !== null;
+  };
+
+  window.triggerPwaInstall = function() {
+    if (window.deferredPrompt) {
+      window.deferredPrompt.prompt();
+      window.deferredPrompt.userChoice.then((choice) => {
+        if (choice.outcome === 'accepted') {
+          console.log('Usuário aceitou a instalação');
+        }
+        window.deferredPrompt = null;
+      });
+    }
+  };
+</script>
   <script>
     // Esse pequeno trecho garante que o pacote pwa_install do Flutter 
     // não quebre se não encontrar a função exatamente onde ele quer.

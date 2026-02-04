@@ -16,6 +16,7 @@ import '../theme/beeaware_theme.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:pwa_install/pwa_install.dart' as pwa;
+import 'dart:js' as js;
 
 enum IncidentTimeFilter {
   lastHour,
@@ -915,7 +916,11 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool canInstall = pwa.PWAInstall().installPromptEnabled;
+    // Adicione este import para falar com o JS
+
+    // Dentro do seu build, onde você define o canInstall:
+    bool canInstall = pwa.PWAInstall().installPromptEnabled ||
+        (js.context.callMethod('isPwaInstallable') == true);
 
     return SizedBox(
       height: 92,
@@ -953,10 +958,16 @@ class _BottomBar extends StatelessWidget {
                   Tooltip(
                     message: 'Install App',
                     child: IconButton(
-                      icon: const Icon(Icons.install_mobile),
-                      color: const Color(0xFFF59E0B),
-                      onPressed: () => pwa.PWAInstall().promptInstall_(),
-                    ),
+                        icon: const Icon(Icons.install_mobile),
+                        color: const Color(0xFFF59E0B),
+                        onPressed: () {
+                          if (js.context.callMethod('isPwaInstallable') ==
+                              true) {
+                            js.context.callMethod('triggerPwaInstall');
+                          } else {
+                            pwa.PWAInstall().promptInstall_();
+                          }
+                        }),
                   ),
                 const SizedBox(width: 66),
                 Tooltip(
