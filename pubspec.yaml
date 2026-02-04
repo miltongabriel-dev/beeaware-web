@@ -40,7 +40,8 @@ dependencies:
   url_launcher: ^6.2.5
   http: ^1.2.0
   geolocator: ^10.1.0
-
+  pwa_install: ^0.0.6
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

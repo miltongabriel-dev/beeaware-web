@@ -30,8 +30,15 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>aware</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json?v=2">
   <meta name="theme-color" content="#F59E0B">
+  <script src="https://unpkg.com/@khmyznikov/pwa-install@0.3.12/dist/pwa-install.bundle.js"></script>
+  
+  <script>
+    // Esse pequeno trecho garante que o pacote pwa_install do Flutter 
+    // não quebre se não encontrar a função exatamente onde ele quer.
+    window.getLaunchMode = window.getLaunchMode || function() { return 'browser'; };
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

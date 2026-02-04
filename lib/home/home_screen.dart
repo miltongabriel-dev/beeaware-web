@@ -15,6 +15,8 @@ import '../report/report_category_screen.dart';
 import '../theme/beeaware_theme.dart';
 import 'package:geolocator/geolocator.dart';
 
+import 'package:pwa_install/pwa_install.dart' as pwa;
+
 enum IncidentTimeFilter {
   lastHour,
   last6Hours,
@@ -913,6 +915,8 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool canInstall = pwa.PWAInstall().installPromptEnabled;
+
     return SizedBox(
       height: 92,
       child: Stack(
@@ -945,6 +949,15 @@ class _BottomBar extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (canInstall)
+                  Tooltip(
+                    message: 'Install App',
+                    child: IconButton(
+                      icon: const Icon(Icons.install_mobile),
+                      color: const Color(0xFFF59E0B),
+                      onPressed: () => pwa.PWAInstall().promptInstall_(),
+                    ),
+                  ),
                 const SizedBox(width: 66),
                 Tooltip(
                   message: 'Filter incidents',
