@@ -2,31 +2,20 @@
 <html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Stay aware. BeeAware">
-
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="BeeAware">
-
-  <link rel="apple-touch-icon" href="icons/Icon-192.png?v=4" style="background-color: white;">
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
   <title>BeeAware</title>
-  <link rel="manifest" href="manifest.json?v=3">
+  <meta name="description" content="Stay aware. BeeAware">
   <meta name="theme-color" content="#F6F2E5">
+
+  <link rel="apple-touch-icon" href="icons/Icon-192.png?v=4">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="manifest" href="manifest.json?v=3">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
 
   <style>
-    /* 1. O fundo mestre que NUNCA muda */
-    html {
-      background-color: #F6F2E5 !important;
-    }
-
-    body {
+    /* Estilo Mestre para evitar o branco */
+    html, body {
       background-color: #F6F2E5 !important;
       margin: 0;
       padding: 0;
@@ -38,74 +27,22 @@
       overflow: hidden;
     }
 
-    /* 2. Força invisibilidade em todos os containers do Flutter até o primeiro frame */
-    #flutter_app, flt-glass-pane, flt-scene-host, canvas {
-      background-color: transparent !important;
-      background: transparent !important;
-    }
-
     #lottie-loader {
       position: fixed;
-      top: 0;
-      left: 0;
+      z-index: 9999;
       width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #F6F2E5; /* Garante que o loader cubra tudo com a cor certa */
-      z-index: 999999;
+      max-width: 400px; /* Ajustado para não estourar em telas grandes */
       transition: opacity 0.5s ease-out;
-      pointer-events: none;
     }
 
-    #lottie-content {
-      width: 100%;
-      max-width: 500px;
-      padding: 30px;
-    }
-
-    @media (max-width: 480px) {
-      #lottie-content {
-        max-width: 300px;
-      }
+    /* Força transparência no Flutter enquanto carrega */
+    flt-glass-pane, flt-scene-host, canvas {
+      background: transparent !important;
     }
   </style>
 
-  <script src="https://unpkg.com/@khmyznikov/pwa-install@0.3.12/dist/pwa-install.bundle.js"></script>
-</head>
-<body>
-  
-  <div id="lottie-loader">
-    <div id="lottie-content"></div>
-  </div>
-
   <script>
-    // Inicia Lottie
-    var animation = lottie.loadAnimation({
-      container: document.getElementById('lottie-content'),
-      path: 'assets/lottie/beeaware_intro.json', 
-      renderer: 'svg',
-      loop: true,
-      autoplay: true
-    });
-
-    // Função que será chamada via Flutter para remover o splash
-    window.removeSplashScreen = function() {
-      var loader = document.getElementById('lottie-loader');
-      if (loader) {
-        loader.style.opacity = '0';
-        setTimeout(function() {
-          loader.remove();
-        }, 500);
-      }
-    };
-  </script>
-
-  <script src="flutter_bootstrap.js" async></script>
-
-  <script>
-    // Lógica de Instalação PWA
+    // Lógica do PWA
     window.deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -120,6 +57,31 @@
         });
       }
     };
+    
+    // Função para remover o splash chamada pelo Flutter
+    window.removeSplashScreen = function() {
+      var loader = document.getElementById('lottie-loader');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.remove(), 500);
+      }
+    };
   </script>
+</head>
+<body>
+  <div id="lottie-loader"></div>
+
+  <script>
+    // Carrega a animação
+    lottie.loadAnimation({
+      container: document.getElementById('lottie-loader'),
+      path: 'assets/lottie/beeaware_intro.json', 
+      renderer: 'svg',
+      loop: true,
+      autoplay: true
+    });
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
