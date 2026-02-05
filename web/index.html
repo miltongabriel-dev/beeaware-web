@@ -21,56 +21,91 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
 
   <style>
-    /* 1. Forçamos o fundo em TODOS os elementos possíveis */
-    :root, html, body {
+    /* 1. O fundo mestre que NUNCA muda */
+    html {
+      background-color: #F6F2E5 !important;
+    }
+
+    body {
       background-color: #F6F2E5 !important;
       margin: 0;
       padding: 0;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
     }
 
-    /* 2. Remove o contorno e o fundo do elemento onde o Flutter é injetado */
-    flt-glass-pane, flt-scene-host, flt-canvas-container, canvas {
-      background-color: #F6F2E5 !important;
-      background: #F6F2E5 !important;
-      outline: none !important;
-      border: none !important;
+    /* 2. Força invisibilidade em todos os containers do Flutter até o primeiro frame */
+    #flutter_app, flt-glass-pane, flt-scene-host, canvas {
+      background-color: transparent !important;
+      background: transparent !important;
     }
 
     #lottie-loader {
-      position: fixed; /* Fixed garante que ele ignore o scroll ou elementos do Flutter */
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      max-width: 500px;
-      height: auto;
-      padding: 30px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #F6F2E5; /* Garante que o loader cubra tudo com a cor certa */
+      z-index: 999999;
       transition: opacity 0.5s ease-out;
-      z-index: 999999; /* Fica acima de TUDO */
-      background-color: transparent !important;
-      pointer-events: none; /* Deixa os cliques passarem para o app por baixo */
+      pointer-events: none;
     }
 
-    #lottie-loader svg {
-      background-color: transparent !important;
+    #lottie-content {
+      width: 100%;
+      max-width: 500px;
+      padding: 30px;
     }
 
     @media (max-width: 480px) {
-      #lottie-loader {
+      #lottie-content {
         max-width: 300px;
       }
     }
   </style>
 
   <script src="https://unpkg.com/@khmyznikov/pwa-install@0.3.12/dist/pwa-install.bundle.js"></script>
+</head>
+<body>
   
+  <div id="lottie-loader">
+    <div id="lottie-content"></div>
+  </div>
+
   <script>
+    // Inicia Lottie
+    var animation = lottie.loadAnimation({
+      container: document.getElementById('lottie-content'),
+      path: 'assets/lottie/beeaware_intro.json', 
+      renderer: 'svg',
+      loop: true,
+      autoplay: true
+    });
+
+    // Função que será chamada via Flutter para remover o splash
+    window.removeSplashScreen = function() {
+      var loader = document.getElementById('lottie-loader');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(function() {
+          loader.remove();
+        }, 500);
+      }
+    };
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+
+  <script>
+    // Lógica de Instalação PWA
     window.deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -85,62 +120,6 @@
         });
       }
     };
-    window.getLaunchMode = window.getLaunchMode || function() { return 'browser'; };
   </script>
-</head>
-<body>
-  
-  <div id="lottie-loader"></div>
-
-  <script>
-    // Configuração do Lottie
-    var animation = lottie.loadAnimation({
-      container: document.getElementById('lottie-loader'),
-      path: 'assets/lottie/beeaware_intro.json', 
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      rendererSettings: {
-        preserveAspectRatio: 'xMidYMid meet',
-        clearCanvas: true,
-        hideOnTransparent: true
-      }
-    });
-
-    // 🚀 A "MARRETA" PARA O FLUTTER WEB
-    // Esse script intercepta a criação do Canvas do Flutter e força a cor de fundo
-    (function() {
-      var targetColor = "#F6F2E5";
-      
-      // Monitora a criação do Canvas
-      var observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          mutation.addedNodes.forEach(function(node) {
-            if (node.tagName === 'CANVAS' || node.tagName === 'FLT-GLASS-PANE') {
-              node.style.backgroundColor = targetColor;
-            }
-          });
-        });
-      });
-
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      // Evento de transição
-      window.addEventListener('load', function() {
-        window._flutter_onFirstFrame = function() {
-          var loader = document.getElementById('lottie-loader');
-          if (loader) {
-            loader.style.opacity = '0'; 
-            setTimeout(function() {
-              loader.remove(); 
-              observer.disconnect(); // Para de vigiar após o carregamento
-            }, 500);
-          }
-        };
-      });
-    })();
-  </script>
-
-  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
