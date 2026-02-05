@@ -24,3 +24,5 @@ Thumbs.db
 # Allow Flutter web build for deployment
 !build/web/
 !build/web/**
+.vercel
+.env*.local

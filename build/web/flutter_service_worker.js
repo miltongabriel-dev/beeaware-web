@@ -3,7 +3,9 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"assets/AssetManifest.bin": "377389de05dd75fd03f154885f6fcc48",
+const RESOURCES = {".vercel/project.json": "1a0a3be65a750fed7448623d5a3e1013",
+".vercel/README.txt": "2b13c79d37d6ed82a3255b83b6815034",
+"assets/AssetManifest.bin": "377389de05dd75fd03f154885f6fcc48",
 "assets/AssetManifest.bin.json": "177d2ee371ff84f49dc6c6c1395ad03e",
 "assets/assets/logo/beeaware_logo.png": "a372c6902d455cacbac96cb2d516c9ac",
 "assets/assets/logo/beeaware_logo.svg": "186ab0555318eb1b597ab5d84f231fac",
@@ -44,15 +46,17 @@ const RESOURCES = {"assets/AssetManifest.bin": "377389de05dd75fd03f154885f6fcc48
 "canvaskit/skwasm_heavy.wasm": "b0be7910760d205ea4e011458df6ee01",
 "favicon.png": "4efb8285e496b2b676b0234882e91214",
 "flutter.js": "24bc71911b75b5f8135c949e27a2984e",
-"flutter_bootstrap.js": "e5bb2cdce486f7f7157084a3b01de831",
-"icons/Icon-192.png": "93147c825ab331ba60f22752677edf67",
-"icons/Icon-512.png": "22f6d4cddb569e55e49df4fb261fad72",
+"flutter_bootstrap.js": "c7b56cb9bf0b80e620dd4b880d285421",
+"icons/Icon-192.png": "acd2217900018e356eef14fd41d5f8af",
+"icons/Icon-512.png": "4d4353d48bfd6e8fa50c9fdeb3fd4ac8",
 "icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
-"index.html": "6d37cb95788e0eb61776250fbc896ec2",
-"/": "6d37cb95788e0eb61776250fbc896ec2",
-"main.dart.js": "b82519db48add9e661ef6825621019e9",
-"manifest.json": "4748ec4bf5391bfd83413cdd2e7f6121",
+"index.html": "8f27f79a31874589cc895bbeb98e2a9f",
+"/": "8f27f79a31874589cc895bbeb98e2a9f",
+"main.dart.js": "83c98743f7cc960b00f329acc5752d62",
+"manifest.json": "9ae91d1c9e5ec94dd0d0dff604bbb449",
+"privacy.html": "41fb19710f13e9266a85b444a380a897",
+"terms.html": "fbc9467187018c323d7c21ddead6b8bb",
 "version.json": "d8896e14dd7b87135331041809fc711c"};
 // The application shell files that are downloaded before a service worker can
 // start.

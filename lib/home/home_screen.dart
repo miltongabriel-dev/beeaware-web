@@ -903,7 +903,7 @@ class _HexagonPainter extends CustomPainter {
 
 // ================= BOTTOM BAR =================
 
-class _BottomBar extends StatelessWidget {
+class _BottomBar extends StatefulWidget {
   final VoidCallback onReport;
   final VoidCallback onPolice;
   final VoidCallback onFilters;
@@ -915,13 +915,38 @@ class _BottomBar extends StatelessWidget {
   });
 
   @override
+  State<_BottomBar> createState() => _BottomBarState();
+}
+
+class _BottomBarState extends State<_BottomBar> {
+  bool canInstall = false;
+  Timer? _pwaTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // 🕵️ Monitora o status do PWA a cada 1 segundo
+    _pwaTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      bool currentStatus = pwa.PWAInstall().installPromptEnabled ||
+          (js.context.callMethod('isPwaInstallable') == true);
+
+      if (currentStatus != canInstall) {
+        if (mounted) {
+          setState(() => canInstall = currentStatus);
+        }
+        if (canInstall) timer.cancel(); // Para de monitorar se já liberou
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pwaTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Adicione este import para falar com o JS
-
-    // Dentro do seu build, onde você define o canInstall:
-    bool canInstall = pwa.PWAInstall().installPromptEnabled ||
-        (js.context.callMethod('isPwaInstallable') == true);
-
     return SizedBox(
       height: 92,
       child: Stack(
@@ -950,10 +975,11 @@ class _BottomBar extends StatelessWidget {
                     child: IconButton(
                       icon: const Icon(Icons.emergency),
                       color: const Color(0xFFF59E0B),
-                      onPressed: onPolice,
+                      onPressed: widget.onPolice, // Note o widget.
                     ),
                   ),
                 ),
+                // 🚀 O botão agora reage ao Timer!
                 if (canInstall)
                   Tooltip(
                     message: 'Install App',
@@ -977,7 +1003,7 @@ class _BottomBar extends StatelessWidget {
                     child: IconButton(
                       icon: const Icon(Icons.filter_list_alt),
                       color: const Color(0xFF2F3A4A),
-                      onPressed: onFilters,
+                      onPressed: widget.onFilters, // Note o widget.
                     ),
                   ),
                 ),
@@ -988,7 +1014,8 @@ class _BottomBar extends StatelessWidget {
             bottom: 16,
             child: Tooltip(
               message: 'Share a local safetly report',
-              child: _AnimatedCentralButton(onTap: onReport),
+              child: _AnimatedCentralButton(
+                  onTap: widget.onReport), // Note o widget.
             ),
           ),
         ],

@@ -1,25 +1,31 @@
 {
-  "name": "BeeAware",
-  "short_name": "BeeAware",
-  "description": "Community safety awareness map",
-  "start_url": "/index.html",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#F7F8FA",
-  "theme_color": "#F59E0B",
-  "icons": [
-    {
-      "src": "icons/Icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/Icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
-  ]
+    "name": "BeeAware",
+    "short_name": "BeeAware",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FFFFFF",
+    "theme_color": "#F59E0B",
+    "description": "Community safety awareness platform.",
+    "orientation": "portrait-any",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
 }

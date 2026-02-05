@@ -12,7 +12,7 @@
     * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
 
     This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    the `--base-href` argument provided to "flutter build".
   -->
   <base href="/">
 
@@ -24,16 +24,43 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="BeeAware">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
+  <link rel="apple-touch-icon" href="icons/Icon-192.png" style="background-color: white;">
+  
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>aware</title>
-  <link rel="manifest" href="manifest.json?v=2">
+  <link rel="manifest" href="manifest.json?v=3">
   <meta name="theme-color" content="#F59E0B">
   <script src="https://unpkg.com/@khmyznikov/pwa-install@0.3.12/dist/pwa-install.bundle.js"></script>
-  
+  <script>
+  window.deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Impede o Chrome de mostrar o banner automático
+    e.preventDefault();
+    // Guarda o evento para o Flutter usar depois
+    window.deferredPrompt = e;
+    console.log('✅ PWA: Evento capturado e pronto para instalação!');
+  });
+
+  // Função que o Flutter vai chamar
+  window.isPwaInstallable = function() {
+    return window.deferredPrompt !== null;
+  };
+
+  window.triggerPwaInstall = function() {
+    if (window.deferredPrompt) {
+      window.deferredPrompt.prompt();
+      window.deferredPrompt.userChoice.then((choice) => {
+        if (choice.outcome === 'accepted') {
+          console.log('Usuário aceitou a instalação');
+        }
+        window.deferredPrompt = null;
+      });
+    }
+  };
+</script>
   <script>
     // Esse pequeno trecho garante que o pacote pwa_install do Flutter 
     // não quebre se não encontrar a função exatamente onde ele quer.

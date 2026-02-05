@@ -1,6 +1,6 @@
-# aware
+# Beeaware
 
-A new Flutter project.
+Situational awareness: Because safety starts with information.
 
 ## Getting Started
 
