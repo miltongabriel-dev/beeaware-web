@@ -702,7 +702,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           launchUrl(
                             Uri.parse(
-                              'https://miltongabriel-dev.github.io/beeaware/privacy.html',
+                              'https://www.getbeeaware.com/privacy.html',
                             ),
                             mode: LaunchMode.externalApplication,
                           );
@@ -713,7 +713,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           launchUrl(
                             Uri.parse(
-                              'https://miltongabriel-dev.github.io/beeaware/terms.html',
+                              'https://www.getbeeaware.com/terms.html',
                             ),
                             mode: LaunchMode.externalApplication,
                           );
