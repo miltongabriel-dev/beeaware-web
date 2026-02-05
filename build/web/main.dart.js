@@ -53381,10 +53381,10 @@ $1(a){var s=null,r=A.bQ(this.a,s,t.w).w,q=t.p
 return A.X8(!0,A.em(A.iX(A.b([B.cX,A.jN(s,B.D,new A.dD(B.IJ,s,s,A.e_(2),s,s,B.as),4,s,s,36),B.eA,A.E0(new A.XU(B.KP,A.iX(B.OC,B.by,B.ab,B.aW),s)),new A.c2(B.KQ,A.iX(A.b([A.axs(!1,B.a1y,s,s,s,s,s,s,new A.aEz(),s,s),A.axs(!1,B.a1U,s,s,s,s,s,s,new A.aEA(),s,s),B.cX,B.a1C],q),B.au,B.ab,B.aW),s)],q),B.au,B.ab,B.aW),r.a.b*0.75,s),B.aU,!0)},
 $S:336}
 A.aEz.prototype={
-$0(){A.OO(A.dg("https://miltongabriel-dev.github.io/beeaware/privacy.html",0,null),B.qL)},
+$0(){A.OO(A.dg("https://www.getbeeaware.com/privacy.html",0,null),B.qL)},
 $S:0}
 A.aEA.prototype={
-$0(){A.OO(A.dg("https://miltongabriel-dev.github.io/beeaware/terms.html",0,null),B.qL)},
+$0(){A.OO(A.dg("https://www.getbeeaware.com/terms.html",0,null),B.qL)},
 $S:0}
 A.aEN.prototype={
 $1(a){return new A.c2(B.id,A.iX(B.Ok,B.by,B.ab,B.c9),null)},

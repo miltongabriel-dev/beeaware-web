@@ -1,73 +1,146 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to "flutter build".
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Stay aware. BeeAware">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="BeeAware">
 
-  <link rel="apple-touch-icon" href="icons/Icon-192.png" style="background-color: white;">
-  
-  <!-- Favicon -->
+  <link rel="apple-touch-icon" href="icons/Icon-192.png?v=4" style="background-color: white;">
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>aware</title>
+  <title>BeeAware</title>
   <link rel="manifest" href="manifest.json?v=3">
-  <meta name="theme-color" content="#F59E0B">
-  <script src="https://unpkg.com/@khmyznikov/pwa-install@0.3.12/dist/pwa-install.bundle.js"></script>
-  <script>
-  window.deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    // Impede o Chrome de mostrar o banner automático
-    e.preventDefault();
-    // Guarda o evento para o Flutter usar depois
-    window.deferredPrompt = e;
-    console.log('✅ PWA: Evento capturado e pronto para instalação!');
-  });
+  <meta name="theme-color" content="#F6F2E5">
 
-  // Função que o Flutter vai chamar
-  window.isPwaInstallable = function() {
-    return window.deferredPrompt !== null;
-  };
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
 
-  window.triggerPwaInstall = function() {
-    if (window.deferredPrompt) {
-      window.deferredPrompt.prompt();
-      window.deferredPrompt.userChoice.then((choice) => {
-        if (choice.outcome === 'accepted') {
-          console.log('Usuário aceitou a instalação');
-        }
-        window.deferredPrompt = null;
-      });
+  <style>
+    /* 1. Forçamos o fundo em TODOS os elementos possíveis */
+    :root, html, body {
+      background-color: #F6F2E5 !important;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
     }
-  };
-</script>
+
+    /* 2. Remove o contorno e o fundo do elemento onde o Flutter é injetado */
+    flt-glass-pane, flt-scene-host, flt-canvas-container, canvas {
+      background-color: #F6F2E5 !important;
+      background: #F6F2E5 !important;
+      outline: none !important;
+      border: none !important;
+    }
+
+    #lottie-loader {
+      position: fixed; /* Fixed garante que ele ignore o scroll ou elementos do Flutter */
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      padding: 30px;
+      transition: opacity 0.5s ease-out;
+      z-index: 999999; /* Fica acima de TUDO */
+      background-color: transparent !important;
+      pointer-events: none; /* Deixa os cliques passarem para o app por baixo */
+    }
+
+    #lottie-loader svg {
+      background-color: transparent !important;
+    }
+
+    @media (max-width: 480px) {
+      #lottie-loader {
+        max-width: 300px;
+      }
+    }
+  </style>
+
+  <script src="https://unpkg.com/@khmyznikov/pwa-install@0.3.12/dist/pwa-install.bundle.js"></script>
+  
   <script>
-    // Esse pequeno trecho garante que o pacote pwa_install do Flutter 
-    // não quebre se não encontrar a função exatamente onde ele quer.
+    window.deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredPrompt = e;
+    });
+
+    window.triggerPwaInstall = function() {
+      if (window.deferredPrompt) {
+        window.deferredPrompt.prompt();
+        window.deferredPrompt.userChoice.then(() => {
+          window.deferredPrompt = null;
+        });
+      }
+    };
     window.getLaunchMode = window.getLaunchMode || function() { return 'browser'; };
   </script>
 </head>
 <body>
+  
+  <div id="lottie-loader"></div>
+
+  <script>
+    // Configuração do Lottie
+    var animation = lottie.loadAnimation({
+      container: document.getElementById('lottie-loader'),
+      path: 'assets/lottie/beeaware_intro.json', 
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      rendererSettings: {
+        preserveAspectRatio: 'xMidYMid meet',
+        clearCanvas: true,
+        hideOnTransparent: true
+      }
+    });
+
+    // 🚀 A "MARRETA" PARA O FLUTTER WEB
+    // Esse script intercepta a criação do Canvas do Flutter e força a cor de fundo
+    (function() {
+      var targetColor = "#F6F2E5";
+      
+      // Monitora a criação do Canvas
+      var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.tagName === 'CANVAS' || node.tagName === 'FLT-GLASS-PANE') {
+              node.style.backgroundColor = targetColor;
+            }
+          });
+        });
+      });
+
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Evento de transição
+      window.addEventListener('load', function() {
+        window._flutter_onFirstFrame = function() {
+          var loader = document.getElementById('lottie-loader');
+          if (loader) {
+            loader.style.opacity = '0'; 
+            setTimeout(function() {
+              loader.remove(); 
+              observer.disconnect(); // Para de vigiar após o carregamento
+            }, 500);
+          }
+        };
+      });
+    })();
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
