@@ -1,31 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'package:pwa_install/pwa_install.dart' as pwa; // Import do PWA
 
 import 'root/root_screen.dart';
 import 'map/incident_store.dart';
 
 Future<void> main() async {
-  // 1. Garante a inicialização dos widgets
+  // 1. Configuração básica (essencial ser await)
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Configura o prompt de instalação do PWA (essencial para o banner)
-  pwa.PWAInstall().setup();
-
-  // 3. Remove o '#' da URL para um visual profissional
+  // 2. Remove o '#' da URL (estratégia de navegação web)
   usePathUrlStrategy();
 
-  // 4. Inicializa o Backend
-  await Supabase.initialize(
-    url: 'https://brjzkdtkmewbodpqjhkj.supabase.co',
-    anonKey: 'sb_publishable_2__zBOoc8qdvJfRz8ejagw_2vT8Ji3P',
-  );
+  // 3. Inicialização Assíncrona (Sem travar o runApp)
+  // Removemos os 'await' para que o Flutter desenhe a interface
+  // enquanto a conexão com o banco acontece em paralelo.
+  try {
+    Supabase.initialize(
+      url: 'https://brjzkdtkmewbodpqjhkj.supabase.co',
+      anonKey: 'sb_publishable_2__zBOoc8qdvJfRz8ejagw_2vT8Ji3P',
+    ).catchError((e) => debugPrint("Supabase error: $e"));
 
-  // 5. Carrega os dados locais
-  await IncidentStore.init();
+    // Chamamos o init sem o await
+    IncidentStore.init();
+  } catch (e) {
+    debugPrint("Backend init error: $e");
+  }
 
-  // 6. Roda o App (apenas uma vez)
+  // 4. Lança o app imediatamente
   runApp(const BeeAwareApp());
 }
 
@@ -39,22 +41,13 @@ class BeeAwareApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF6F2E5),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFF59E0B),
           primary: const Color(0xFFF59E0B),
-          surface: Colors.white,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFF59E0B),
-            foregroundColor: Colors.black,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
         ),
       ),
+      // AQUI: Troca RootScreen() por BeeAwareSplashScreen()
       home: const RootScreen(),
     );
   }

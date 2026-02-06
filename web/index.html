@@ -4,84 +4,47 @@
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <title>BeeAware</title>
-  <meta name="description" content="Stay aware. BeeAware">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#F6F2E5">
-
-  <link rel="apple-touch-icon" href="icons/Icon-192.png?v=4">
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="manifest" href="manifest.json?v=3">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
-
   <style>
-    /* Estilo Mestre para evitar o branco */
-    html, body {
-      background-color: #F6F2E5 !important;
-      margin: 0;
-      padding: 0;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
+  html, body {
+    background-color: #F6F2E5;
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    #lottie-loader {
-      position: fixed;
-      z-index: 9999;
-      width: 100%;
-      max-width: 400px; /* Ajustado para não estourar em telas grandes */
-      transition: opacity 0.5s ease-out;
-    }
+  /* Este container segura a logo enquanto o Flutter não carrega */
+  #loading-logo {
+    transition: opacity 0.5s ease-out;
+  }
 
-    /* Força transparência no Flutter enquanto carrega */
-    flt-glass-pane, flt-scene-host, canvas {
-      background: transparent !important;
-    }
-  </style>
+  .logo-img {
+    width: 200px; /* Mesma largura que usávamos no Flutter */
+    height: auto;
+  }
+</style>
+
+<body>
+  <div id="loading-logo">
+    <img src="assets/logo/beeaware_watermark.png" class="logo-img" alt="BeeAware Logo">
+  </div>
 
   <script>
-    // Lógica do PWA
-    window.deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      window.deferredPrompt = e;
-    });
-
-    window.triggerPwaInstall = function() {
-      if (window.deferredPrompt) {
-        window.deferredPrompt.prompt();
-        window.deferredPrompt.userChoice.then(() => {
-          window.deferredPrompt = null;
-        });
-      }
-    };
-    
-    // Função para remover o splash chamada pelo Flutter
-    window.removeSplashScreen = function() {
-      var loader = document.getElementById('lottie-loader');
+    // Quando o Flutter estiver pronto, ele avisa o navegador
+    window.addEventListener('flutter-first-frame', function() {
+      var loader = document.getElementById('loading-logo');
       if (loader) {
         loader.style.opacity = '0';
         setTimeout(() => loader.remove(), 500);
       }
-    };
-  </script>
-</head>
-<body>
-  <div id="lottie-loader"></div>
-
-  <script>
-    // Carrega a animação
-    lottie.loadAnimation({
-      container: document.getElementById('lottie-loader'),
-      path: 'assets/lottie/beeaware_intro.json', 
-      renderer: 'svg',
-      loop: true,
-      autoplay: true
     });
   </script>
-
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

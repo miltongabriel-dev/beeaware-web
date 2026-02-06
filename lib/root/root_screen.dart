@@ -1,4 +1,3 @@
-import 'package:aware/intro/intro_overlay.dart';
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 
@@ -10,23 +9,11 @@ class RootScreen extends StatefulWidget {
 }
 
 class _RootScreenState extends State<RootScreen> {
-  bool _showIntro = true;
-
-  void _handleIntroFinished() {
-    setState(() => _showIntro = false);
-  }
+  // Removemos a lógica do _showIntro daqui
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const HomeScreen(), // mapa já ativo
-
-        if (_showIntro)
-          IntroScreen(
-            onFinished: _handleIntroFinished,
-          ),
-      ],
-    );
+    // Agora retornamos apenas a HomeScreen diretamente
+    return const HomeScreen();
   }
 }

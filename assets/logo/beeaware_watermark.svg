@@ -1,81 +1,19 @@
-
-      <svg width="400" height="520" viewBox="0 0 120 156" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="beeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
-          </linearGradient>
-          <linearGradient id="orangeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#FB923C;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#F97316;stop-opacity:1" />
-          </linearGradient>
-          <linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#334155;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#1E293B;stop-opacity:1" />
-          </linearGradient>
-          <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
-          </linearGradient>
-          <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" style="stop-color:#FCD34D;stop-opacity:0.3" />
-            <stop offset="100%" style="stop-color:#FCD34D;stop-opacity:0" />
-          </radialGradient>
-        </defs>
-        
-        <!-- Logo Icon -->
-        <g>
-          <circle cx="60" cy="60" r="50" fill="url(#glowGradient)" />
-          
-          <g opacity="0.15">
-            <path d="M60 25 L70 31 L70 43 L60 49 L50 43 L50 31 Z" fill="#F59E0B" />
-            <path d="M40 37 L50 43 L50 55 L40 61 L30 55 L30 43 Z" fill="#F59E0B" />
-            <path d="M80 37 L90 43 L90 55 L80 61 L70 55 L70 43 Z" fill="#F59E0B" />
-            <path d="M40 67 L50 73 L50 85 L40 91 L30 85 L30 73 Z" fill="#F59E0B" />
-            <path d="M80 67 L90 73 L90 85 L80 91 L70 85 L70 73 Z" fill="#F59E0B" />
-          </g>
-          
-          <path d="M60 30 C48 30 38 40 38 52 C38 58 41 66 60 88 C79 66 82 58 82 52 C82 40 72 30 60 30 Z" fill="url(#beeGradient)" stroke="#B45309" stroke-width="2" />
-          
-          <path d="M60 45 L68 50 L68 60 L60 65 L52 60 L52 50 Z" fill="white" stroke="#FCD34D" stroke-width="1.5" />
-          
-          <g>
-            <ellipse cx="60" cy="54" rx="6" ry="8" fill="url(#darkGradient)" />
-            <rect x="54" y="51" width="12" height="1.5" fill="#F59E0B" rx="0.5" />
-            <rect x="54" y="54.5" width="12" height="1.5" fill="#F59E0B" rx="0.5" />
-            <rect x="54" y="58" width="12" height="1.5" fill="#F59E0B" rx="0.5" />
-            <circle cx="60" cy="48" r="3" fill="url(#darkGradient)" />
-            <line x1="58" y1="47" x2="57" y2="44" stroke="#1E293B" stroke-width="1" stroke-linecap="round" />
-            <line x1="62" y1="47" x2="63" y2="44" stroke="#1E293B" stroke-width="1" stroke-linecap="round" />
-            <circle cx="57" cy="44" r="1" fill="#F59E0B" />
-            <circle cx="63" cy="44" r="1" fill="#F59E0B" />
-            <ellipse cx="56" cy="52" rx="4" ry="5" fill="white" opacity="0.7" transform="rotate(-25 56 52)" />
-            <ellipse cx="64" cy="52" rx="4" ry="5" fill="white" opacity="0.7" transform="rotate(25 64 52)" />
-            <ellipse cx="56" cy="52" rx="4" ry="5" fill="none" stroke="#D97706" stroke-width="0.5" opacity="0.5" transform="rotate(-25 56 52)" />
-            <ellipse cx="64" cy="52" rx="4" ry="5" fill="none" stroke="#D97706" stroke-width="0.5" opacity="0.5" transform="rotate(25 64 52)" />
-          </g>
-          
-          <g opacity="0.6">
-            <line x1="60" y1="20" x2="60" y2="26" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" />
-            <line x1="78" y1="28" x2="74" y2="32" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" />
-            <line x1="42" y1="28" x2="46" y2="32" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" />
-            <line x1="86" y1="52" x2="80" y2="52" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" />
-            <line x1="34" y1="52" x2="40" y2="52" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" />
-          </g>
-          
-          <g opacity="0.5">
-            <circle cx="45" cy="95" r="2.5" fill="#F59E0B" />
-            <circle cx="60" cy="98" r="2.5" fill="#F59E0B" />
-            <circle cx="75" cy="95" r="2.5" fill="#F59E0B" />
-            <line x1="45" y1="95" x2="60" y2="98" stroke="#F59E0B" stroke-width="1" stroke-dasharray="2,2" />
-            <line x1="60" y1="98" x2="75" y2="95" stroke="#F59E0B" stroke-width="1" stroke-dasharray="2,2" />
-          </g>
-        </g>
-        
-        <!-- Text -->
-        <g>
-          <text x="60" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="url(#textGradient)" letter-spacing="0.5">BeeAware</text>
-          <text x="60" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="6.3" font-weight="500" fill="#475569" letter-spacing="0.8">Local awareness, together</text>
-        </g>
-      </svg>
-    
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="420" height="488" viewBox="0 0 420 488" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon SVG content scaled properly with padding -->
+  <g transform="translate(40, 40) scale(2.8333333333333335)">
+    <defs data-fg-9eg5=":0:/src/app/components/BeeAwareLogo.tsx:29:11:772:1149:e:defs"><linearGradient id="beeGradient" x1="0%" y1="0%" x2="100%" y2="100%" data-fg-9eg6=":0:/src/app/components/BeeAwareLogo.tsx:30:13:791:269:e:linearGradient"><stop offset="0%" data-fg-9eg7=":0:/src/app/components/BeeAwareLogo.tsx:31:15:875:69:e:stop" style="stop-color: rgb(245, 158, 11); stop-opacity: 1;"></stop><stop offset="100%" data-fg-9eg8=":0:/src/app/components/BeeAwareLogo.tsx:32:15:959:71:e:stop" style="stop-color: rgb(217, 119, 6); stop-opacity: 1;"></stop></linearGradient><linearGradient id="orangeGradient" x1="0%" y1="0%" x2="100%" y2="100%" data-fg-9eg9=":0:/src/app/components/BeeAwareLogo.tsx:34:13:1073:272:e:linearGradient"><stop offset="0%" data-fg-9eg10=":0:/src/app/components/BeeAwareLogo.tsx:35:15:1160:69:e:stop" style="stop-color: rgb(251, 146, 60); stop-opacity: 1;"></stop><stop offset="100%" data-fg-9eg11=":0:/src/app/components/BeeAwareLogo.tsx:36:15:1244:71:e:stop" style="stop-color: rgb(249, 115, 22); stop-opacity: 1;"></stop></linearGradient><linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%" data-fg-9eg12=":0:/src/app/components/BeeAwareLogo.tsx:38:13:1358:270:e:linearGradient"><stop offset="0%" data-fg-9eg13=":0:/src/app/components/BeeAwareLogo.tsx:39:15:1443:69:e:stop" style="stop-color: rgb(51, 65, 85); stop-opacity: 1;"></stop><stop offset="100%" data-fg-9eg14=":0:/src/app/components/BeeAwareLogo.tsx:40:15:1527:71:e:stop" style="stop-color: rgb(30, 41, 59); stop-opacity: 1;"></stop></linearGradient><radialGradient id="glowGradient" cx="50%" cy="50%" r="50%" data-fg-9eg15=":0:/src/app/components/BeeAwareLogo.tsx:42:13:1641:262:e:radialGradient"><stop offset="0%" data-fg-9eg16=":0:/src/app/components/BeeAwareLogo.tsx:43:15:1716:71:e:stop" style="stop-color: rgb(252, 211, 77); stop-opacity: 0.3;"></stop><stop offset="100%" data-fg-9eg17=":0:/src/app/components/BeeAwareLogo.tsx:44:15:1802:71:e:stop" style="stop-color: rgb(252, 211, 77); stop-opacity: 0;"></stop></radialGradient></defs><circle cx="60" cy="60" r="50" fill="url(#glowGradient)" data-fg-9eg19=":0:/src/app/components/BeeAwareLogo.tsx:49:11:1963:59:e:circle"></circle><g opacity="0.15" data-fg-9eg21=":0:/src/app/components/BeeAwareLogo.tsx:52:11:2118:453:e:g"><path d="M60 25 L70 31 L70 43 L60 49 L50 43 L50 31 Z" fill="#F59E0B" data-fg-9eg22=":0:/src/app/components/BeeAwareLogo.tsx:53:13:2149:71:e:path"></path><path d="M40 37 L50 43 L50 55 L40 61 L30 55 L30 43 Z" fill="#F59E0B" data-fg-9eg23=":0:/src/app/components/BeeAwareLogo.tsx:54:13:2233:71:e:path"></path><path d="M80 37 L90 43 L90 55 L80 61 L70 55 L70 43 Z" fill="#F59E0B" data-fg-9eg24=":0:/src/app/components/BeeAwareLogo.tsx:55:13:2317:71:e:path"></path><path d="M40 67 L50 73 L50 85 L40 91 L30 85 L30 73 Z" fill="#F59E0B" data-fg-9eg25=":0:/src/app/components/BeeAwareLogo.tsx:56:13:2401:71:e:path"></path><path d="M80 67 L90 73 L90 85 L80 91 L70 85 L70 73 Z" fill="#F59E0B" data-fg-9eg26=":0:/src/app/components/BeeAwareLogo.tsx:57:13:2485:71:e:path"></path></g><path d="M60 30 C48 30 38 40 38 52 C38 58 41 66 60 88 C79 66 82 58 82 52 C82 40 72 30 60 30 Z" fill="url(#beeGradient)" stroke="#B45309" stroke-width="2" data-fg-9eg28=":0:/src/app/components/BeeAwareLogo.tsx:61:11:2620:213:e:path"></path><path d="M60 45 L68 50 L68 60 L60 65 L52 60 L52 50 Z" fill="white" stroke="#FCD34D" stroke-width="1.5" data-fg-9eg30=":0:/src/app/components/BeeAwareLogo.tsx:69:11:2902:162:e:path"></path><g data-fg-9eg32=":0:/src/app/components/BeeAwareLogo.tsx:77:11:3118:1505:e:g"><ellipse cx="60" cy="54" rx="6" ry="8" fill="url(#darkGradient)" data-fg-9eg34=":0:/src/app/components/BeeAwareLogo.tsx:79:13:3192:67:e:ellipse"></ellipse><rect x="54" y="51" width="12" height="1.5" fill="#F59E0B" rx="0.5" data-fg-9eg36=":0:/src/app/components/BeeAwareLogo.tsx:82:13:3317:70:e:rect"></rect><rect x="54" y="54.5" width="12" height="1.5" fill="#F59E0B" rx="0.5" data-fg-9eg37=":0:/src/app/components/BeeAwareLogo.tsx:83:13:3400:72:e:rect"></rect><rect x="54" y="58" width="12" height="1.5" fill="#F59E0B" rx="0.5" data-fg-9eg38=":0:/src/app/components/BeeAwareLogo.tsx:84:13:3485:70:e:rect"></rect><circle cx="60" cy="48" r="3" fill="url(#darkGradient)" data-fg-9eg40=":0:/src/app/components/BeeAwareLogo.tsx:87:13:3610:58:e:circle"></circle><line x1="58" y1="47" x2="57" y2="44" stroke="#1E293B" stroke-width="1" stroke-linecap="round" data-fg-9eg42=":0:/src/app/components/BeeAwareLogo.tsx:90:13:3723:95:e:line"></line><line x1="62" y1="47" x2="63" y2="44" stroke="#1E293B" stroke-width="1" stroke-linecap="round" data-fg-9eg43=":0:/src/app/components/BeeAwareLogo.tsx:91:13:3831:95:e:line"></line><circle cx="57" cy="44" r="1" fill="#F59E0B" data-fg-9eg44=":0:/src/app/components/BeeAwareLogo.tsx:92:13:3939:47:e:circle"></circle><circle cx="63" cy="44" r="1" fill="#F59E0B" data-fg-9eg45=":0:/src/app/components/BeeAwareLogo.tsx:93:13:3999:47:e:circle"></circle><ellipse cx="56" cy="52" rx="4" ry="5" fill="white" opacity="0.7" transform="rotate(-25 56 52)" data-fg-9eg47=":0:/src/app/components/BeeAwareLogo.tsx:96:13:4111:98:e:ellipse"></ellipse><ellipse cx="64" cy="52" rx="4" ry="5" fill="white" opacity="0.7" transform="rotate(25 64 52)" data-fg-9eg48=":0:/src/app/components/BeeAwareLogo.tsx:97:13:4222:97:e:ellipse"></ellipse><ellipse cx="56" cy="52" rx="4" ry="5" fill="none" stroke="#D97706" stroke-width="0.5" opacity="0.5" transform="rotate(-25 56 52)" data-fg-9eg49=":0:/src/app/components/BeeAwareLogo.tsx:98:13:4332:132:e:ellipse"></ellipse><ellipse cx="64" cy="52" rx="4" ry="5" fill="none" stroke="#D97706" stroke-width="0.5" opacity="0.5" transform="rotate(25 64 52)" data-fg-9eg50=":0:/src/app/components/BeeAwareLogo.tsx:99:13:4477:131:e:ellipse"></ellipse></g><g opacity="0.6" data-fg-9eg52=":0:/src/app/components/BeeAwareLogo.tsx:103:11:4689:637:e:g"><line x1="60" y1="20" x2="60" y2="26" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" data-fg-9eg53=":0:/src/app/components/BeeAwareLogo.tsx:104:13:4719:108:e:line"></line><line x1="78" y1="28" x2="74" y2="32" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" data-fg-9eg54=":0:/src/app/components/BeeAwareLogo.tsx:105:13:4840:108:e:line"></line><line x1="42" y1="28" x2="46" y2="32" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" data-fg-9eg55=":0:/src/app/components/BeeAwareLogo.tsx:106:13:4961:108:e:line"></line><line x1="86" y1="52" x2="80" y2="52" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" data-fg-9eg56=":0:/src/app/components/BeeAwareLogo.tsx:107:13:5082:108:e:line"></line><line x1="34" y1="52" x2="40" y2="52" stroke="url(#orangeGradient)" stroke-width="2" stroke-linecap="round" data-fg-9eg57=":0:/src/app/components/BeeAwareLogo.tsx:108:13:5203:108:e:line"></line></g><g opacity="0.5" data-fg-9eg59=":0:/src/app/components/BeeAwareLogo.tsx:112:11:5392:434:e:g"><circle cx="45" cy="95" r="2.5" fill="#F59E0B" data-fg-9eg60=":0:/src/app/components/BeeAwareLogo.tsx:113:13:5422:49:e:circle"></circle><circle cx="60" cy="98" r="2.5" fill="#F59E0B" data-fg-9eg61=":0:/src/app/components/BeeAwareLogo.tsx:114:13:5484:49:e:circle"></circle><circle cx="75" cy="95" r="2.5" fill="#F59E0B" data-fg-9eg62=":0:/src/app/components/BeeAwareLogo.tsx:115:13:5546:49:e:circle"></circle><line x1="45" y1="95" x2="60" y2="98" stroke="#F59E0B" stroke-width="1" stroke-dasharray="2,2" data-fg-9eg63=":0:/src/app/components/BeeAwareLogo.tsx:116:13:5608:95:e:line"></line><line x1="60" y1="98" x2="75" y2="95" stroke="#F59E0B" stroke-width="1" stroke-dasharray="2,2" data-fg-9eg64=":0:/src/app/components/BeeAwareLogo.tsx:117:13:5716:95:e:line"></line></g>
+  </g>
+  
+  <!-- Text elements -->
+  <g transform="translate(40, 380)">
+    <defs>
+      <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <text x="170" y="64" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="80" font-weight="bold" fill="url(#textGradient)">BeeAware</text>
+    <text x="170" y="100" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="500" fill="#475569">Local awareness, together</text>
+  </g>
+</svg>

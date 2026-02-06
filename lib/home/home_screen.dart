@@ -7,6 +7,7 @@ import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:aware/config/rounded_hexagon_painter.dart';
 
 import '../map/map_incident.dart';
 import '../map/incident_store.dart';
@@ -50,6 +51,34 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<MapIncident> _incidents = [];
+
+  Marker _buildMarker(MapIncident incident) {
+    double opacity = 1.0;
+    if (incident.isOfficial) {
+      final now = DateTime.now();
+      final monthDiff = (now.year - incident.dateTime.year) * 12 +
+          now.month -
+          incident.dateTime.month;
+
+      if (monthDiff == 1) opacity = 0.8;
+      if (monthDiff >= 2) opacity = 0.5;
+    }
+
+    return Marker(
+      key: ValueKey(incident.id),
+      width: 42,
+      height: 42,
+      point: incident.location,
+      child: Opacity(
+        opacity: opacity,
+        child: BeeIncidentPin(
+          incident: incident,
+          onTap: () => _showIncidentDetails(context, incident),
+        ),
+      ),
+    );
+  }
+
   StreamSubscription<List<MapIncident>>? _subscription;
   Timer? _syncTimer;
   Timer? _boundsDebounce;
@@ -64,6 +93,107 @@ class _HomeScreenState extends State<HomeScreen> {
   };
 
   final MapController _mapController = MapController();
+
+  OverlayEntry? _hintOverlay; // Variável para o balãozinho
+
+  // 📍 Função que tira de Epsom e vai para sua rua
+  Future<void> _centerMapOnUser() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse) {
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        _mapController.move(
+          LatLng(position.latitude, position.longitude),
+          15.0, // Zoom de rua
+        );
+      }
+    } catch (_) {
+      // Se falhar, o mapa apenas fica onde está (Londres/Epsom)
+    }
+  }
+
+  // 🐝 Função que cria o balãozinho amarelo
+  void _showReportingHint() {
+    if (!mounted || _hintOverlay != null) return;
+
+    _hintOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 115,
+        left: 24,
+        right: 24,
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration:
+                  const Duration(milliseconds: 800), // Surgimento mais suave
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 15 * (1 - value)),
+                    child: child,
+                  ),
+                );
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B), // Amarelo BeeAware
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Text("🐝 ", style: TextStyle(fontSize: 16)),
+                    Flexible(
+                      child: Text(
+                        "Spot something? Help others stay aware.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_hintOverlay!);
+
+    // Aumentamos para 12 segundos para uma leitura mais tranquila
+    Future.delayed(const Duration(seconds: 12), () {
+      if (mounted) {
+        _hintOverlay?.remove();
+        _hintOverlay = null;
+      }
+    });
+  }
 
   // 📍 centro inicial
   LatLng? _initialCenter;
@@ -125,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _hintOverlay?.remove(); // Adicione esta linha
     _subscription?.cancel();
     _syncTimer?.cancel();
     _boundsDebounce?.cancel();
@@ -194,9 +325,15 @@ class _HomeScreenState extends State<HomeScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _initialCenter ?? _mapCenter,
+              initialCenter:
+                  const LatLng(51.509865, -0.118092), // Começa em Londres
               initialZoom: 14,
               onMapReady: () {
+                //EXECUTAR ASSIM QUE ABRIR
+                _centerMapOnUser(); // Vai para sua localização
+                Future.delayed(const Duration(seconds: 3),
+                    _showReportingHint); // Mostra balão após 3 seg
+
                 final bounds = _mapController.camera.visibleBounds;
                 if (_mapController.camera.zoom >= 13) {
                   IncidentStore.syncOfficialForBounds(bounds);
@@ -230,11 +367,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     spiderfyCircleRadius: 80,
                     markers: visibleIncidents.map(_buildMarker).toList(),
                     builder: (context, markers) {
-                      final severity = _worstSeverity(markers);
-                      final hasOfficial = _hasOfficialIncident(markers);
+                      // Criamos a lista tipada explicitamente para o Dart não ter dúvida
+                      final List<Marker> markerList =
+                          markers.whereType<Marker>().toList();
+
+                      final severity = _worstSeverity(markerList);
+                      final hasOfficial = _hasOfficialIncident(markerList);
 
                       return _AnimatedCluster(
-                        count: markers.length,
+                        count: markerList.length,
                         color: _severityColor(severity),
                         hasOfficial: hasOfficial,
                       );
@@ -244,20 +385,67 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
 
-          // 🐝 watermark
+          // 🐝 Lado Esquerdo: Identidade (Marca d'água + About)
           Positioned(
             top: 16,
             left: 16,
-            child: Opacity(
-              opacity: 0.45,
-              child: SvgPicture.asset(
-                'assets/logo/beeaware_watermark.svg',
-                width: 120,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Logo Watermark: Sem Container de fundo, apenas a logo com transparência
+                Opacity(
+                  opacity: 0.7, // Um pouco mais forte como você pediu
+                  child: SvgPicture.asset(
+                    'assets/logo/beeaware_texto.svg',
+                    width:
+                        120, // Aumentei um pouco para compensar a falta do fundo
+                    fit: BoxFit.contain,
+                    alignment: Alignment.centerLeft,
+                  ),
+                ),
+
+                const SizedBox(height: 12), // Espaço entre a logo e o botão
+
+                // About BeeAware: Mantém o fundo estilo pílula
+                GestureDetector(
+                  onTap: () => _showAboutSheet(context),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.info_outline,
+                            size: 14, color: Color(0xFF6B7280)),
+                        SizedBox(width: 6),
+                        Text(
+                          'About BeeAware',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // 🕒 latest update + about
+          // 🕒 Lado Direito: Status e Alertas
           if (_lastUpdate != null)
             Positioned(
               top: 16,
@@ -265,6 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  // Última Atualização
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -273,75 +462,52 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      'Latest community update · '
-                      '${_lastUpdate!.hour.toString().padLeft(2, '0')}:${_lastUpdate!.minute.toString().padLeft(2, '0')}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Opacity(
-                    opacity: 0.45,
-                    child: Text(
-                      'Not an emergency service',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF6B7280),
-                      ),
+                      'Latest community update · ${_lastUpdate!.hour.toString().padLeft(2, '0')}:${_lastUpdate!.minute.toString().padLeft(2, '0')}',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: const Color(0xFF6B7280)),
                     ),
                   ),
                   const SizedBox(height: 6),
+                  // Aviso de Emergência (agora com fundo para padronizar)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Not an emergency service',
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Dados Oficiais
                   GestureDetector(
-                    onTap: () => _showAboutSheet(context),
-                    child: Opacity(
-                      opacity: 0.55,
+                    onTap: () => _showOfficialLegendSheet(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: const [
-                          Icon(Icons.info_outline,
+                          Icon(Icons.verified_outlined,
                               size: 14, color: Color(0xFF6B7280)),
-                          SizedBox(width: 4),
+                          SizedBox(width: 6),
                           Text(
-                            'About BeeAware',
+                            'Official police data',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6B7280),
-                            ),
+                                fontSize: 11, color: Color(0xFF6B7280)),
                           ),
                         ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: () => _showOfficialLegendSheet(context),
-                    child: Opacity(
-                      opacity: 0.55,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.85),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE5E7EB)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(
-                              Icons.verified_outlined,
-                              size: 14,
-                              color: Color(0xFF6B7280),
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Includes official police data',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6B7280),
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
@@ -382,23 +548,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return false;
   }
 
-  Marker _buildMarker(MapIncident incident) {
-    return Marker(
-      key: ValueKey(incident.id),
-      width: 42,
-      height: 42,
-      point: incident.location,
-      child: BeeIncidentPin(
-        incident: incident,
-        onTap: () => _showIncidentDetails(context, incident),
-      ),
-    );
-  }
-
   IncidentSeverity _worstSeverity(List<Marker> markers) {
     IncidentSeverity worst = IncidentSeverity.low;
+
     for (final m in markers) {
-      final child = m.child;
+      Widget? child = m.child;
+
+      // Se o widget for um Opacity, pegamos o "filho do filho"
+      if (child is Opacity) {
+        child = child.child;
+      }
+
+      // Agora sim, verificamos se é o Pin
       if (child is BeeIncidentPin) {
         if (child.incident.severity == IncidentSeverity.high)
           return IncidentSeverity.high;
@@ -406,28 +567,15 @@ class _HomeScreenState extends State<HomeScreen> {
           worst = IncidentSeverity.medium;
       }
     }
-    bool _hasOfficialIncident(List<Marker> markers) {
-      for (final marker in markers) {
-        final child = marker.child;
-        if (child is BeeIncidentPin && child.incident.isOfficial) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     return worst;
   }
 
-  Color _severityColor(IncidentSeverity s) {
-    switch (s) {
-      case IncidentSeverity.low:
-        return BeeAwareTheme.severityLow;
-      case IncidentSeverity.medium:
-        return BeeAwareTheme.severityMedium;
-      case IncidentSeverity.high:
-        return BeeAwareTheme.severityHigh;
-    }
+  Color _severityColor(IncidentSeverity? s) {
+    if (s == IncidentSeverity.high) return const Color(0xFFEF4444); // Vermelho
+    if (s == IncidentSeverity.medium) return const Color(0xFFF59E0B); // Âmbar
+
+    // Se for low ou nulo, retorna Amarelo
+    return const Color(0xFFFDE047);
   }
 
   // ===== bottom sheets =====
@@ -458,8 +606,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              _relativeTime(incident.dateTime),
-              style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+              incident.isOfficial
+                  ? "Official Police Record · ${incident.dateTime.month}/${incident.dateTime.year}"
+                  : "Community Report · ${_relativeTime(incident.dateTime)}",
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600], // Cinza discreto para não poluir
+                  fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -800,18 +953,13 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
     with TickerProviderStateMixin {
   late final AnimationController _intro = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 220),
+    duration: const Duration(milliseconds: 300),
   )..forward();
 
   late final AnimationController _breath = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 2600),
+    duration: const Duration(milliseconds: 2400),
   )..repeat(reverse: true);
-
-  late final Animation<double> _introScale = CurvedAnimation(
-    parent: _intro,
-    curve: Curves.easeOutBack,
-  );
 
   @override
   void dispose() {
@@ -821,31 +969,45 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
   }
 
   @override
+  void didUpdateWidget(_AnimatedCluster oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Se a cor mudar ou o número mudar, podemos reiniciar a animação de "pop"
+    if (oldWidget.color != widget.color || oldWidget.count != widget.count) {
+      _intro.reset();
+      _intro.forward();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: SizedBox.square(
-        dimension: 54,
-        child: ClipRect(
-          child: ScaleTransition(
-            scale: _introScale,
-            child: AnimatedBuilder(
-              animation: _breath,
-              builder: (context, child) {
-                final s = 1.0 + (_breath.value * 0.03);
-                return Transform.scale(
-                  scale: s,
-                  alignment: Alignment.center,
-                  child: child,
-                );
-              },
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  CustomPaint(
-                    painter: _HexagonPainter(widget.color),
-                    child: const Center(child: _ClusterText()),
+    return ScaleTransition(
+      scale: CurvedAnimation(parent: _intro, curve: Curves.easeOutBack),
+      child: AnimatedBuilder(
+        animation: _breath,
+        builder: (context, child) => Transform.scale(
+          scale: 1.0 + (_breath.value * 0.04),
+          child: child,
+        ),
+        child: UnconstrainedBox(
+          child: CustomPaint(
+            size: const Size(45, 52),
+            painter: RoundedHexagonPainter(
+              color: widget.color,
+            ),
+            child: SizedBox(
+              width: 45,
+              height: 52,
+              child: Center(
+                child: Text(
+                  widget.count.toString(),
+                  style: TextStyle(
+                    color: widget.color == const Color(0xFFFDE047)
+                        ? Colors.black
+                        : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -853,53 +1015,7 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
       ),
     );
   }
-}
-
-class _ClusterText extends StatelessWidget {
-  const _ClusterText();
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.findAncestorStateOfType<_AnimatedClusterState>();
-    final count = state?.widget.count ?? 0;
-
-    return Text(
-      count.toString(),
-      style: const TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
-        fontSize: 18, // levemente maior, fica mais elegante
-        height: 1.0,
-      ),
-    );
-  }
-}
-
-class _HexagonPainter extends CustomPainter {
-  final Color color;
-  _HexagonPainter(this.color);
-
-  @override
-  void paint(ui.Canvas canvas, ui.Size size) {
-    final paint = Paint()..color = color;
-    final w = size.width;
-    final h = size.height;
-
-    final path = ui.Path()
-      ..moveTo(w * 0.5, 0)
-      ..lineTo(w, h * 0.25)
-      ..lineTo(w, h * 0.75)
-      ..lineTo(w * 0.5, h)
-      ..lineTo(0, h * 0.75)
-      ..lineTo(0, h * 0.25)
-      ..close();
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
-}
+} // <--- FECHAMENTO DA CLASSE CLUSTER
 
 // ================= BOTTOM BAR =================
 
