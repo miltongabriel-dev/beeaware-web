@@ -18,6 +18,7 @@ import 'package:geolocator/geolocator.dart';
 
 import 'package:pwa_install/pwa_install.dart' as pwa;
 import 'dart:js' as js;
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -51,11 +52,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<MapIncident> _incidents = [];
+  LatLng? _userCurrentLocation;
 
   Marker _buildMarker(MapIncident incident) {
     double opacity = 1.0;
     if (incident.isOfficial) {
       final now = DateTime.now();
+
       final monthDiff = (now.year - incident.dateTime.year) * 12 +
           now.month -
           incident.dateTime.month;
@@ -79,6 +82,32 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.8),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.black.withOpacity(0.1)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF4B5563),
+          ),
+        ),
+      ],
+    );
+  }
+
   StreamSubscription<List<MapIncident>>? _subscription;
   Timer? _syncTimer;
   Timer? _boundsDebounce;
@@ -94,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final MapController _mapController = MapController();
 
-  OverlayEntry? _hintOverlay; // Variável para o balãozinho
+  OverlayEntry? _hintOverlay;
 
   // 📍 Função que tira de Epsom e vai para sua rua
   Future<void> _centerMapOnUser() async {
@@ -112,17 +141,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
         _mapController.move(
           LatLng(position.latitude, position.longitude),
-          15.0, // Zoom de rua
+          15.0,
         );
       }
-    } catch (_) {
-      // Se falhar, o mapa apenas fica onde está (Londres/Epsom)
+    } catch (_) {}
+  }
+
+  Future<void> _loadUserLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 5),
+        );
+
+        final userLatLng = LatLng(position.latitude, position.longitude);
+
+        if (mounted) {
+          setState(() {
+            _userCurrentLocation = userLatLng;
+          });
+          _mapController.move(userLatLng, 15);
+        }
+      }
+    } catch (e) {
+      debugPrint("Fail to find (Home): $e");
     }
   }
 
-  // 🐝 Função que cria o balãozinho amarelo
   void _showReportingHint() {
-    if (!mounted || _hintOverlay != null) return;
+    if (!mounted ||
+        _hintOverlay != null ||
+        ModalRoute.of(context)?.isCurrent == false) return;
 
     _hintOverlay = OverlayEntry(
       builder: (context) => Positioned(
@@ -134,8 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.transparent,
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
-              duration:
-                  const Duration(milliseconds: 800), // Surgimento mais suave
+              duration: const Duration(milliseconds: 800),
               builder: (context, value, child) {
                 return Opacity(
                   opacity: value,
@@ -149,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B), // Amarelo BeeAware
+                  color: const Color(0xFFF59E0B),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
@@ -165,11 +220,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text("🐝 ", style: TextStyle(fontSize: 16)),
                     Flexible(
                       child: Text(
-                        "Spot something? Help others stay aware.",
+                        "Spot something? Tap the Bee.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.black,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w800,
                           fontSize: 14,
                           letterSpacing: -0.2,
                         ),
@@ -186,13 +241,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Overlay.of(context).insert(_hintOverlay!);
 
-    // Aumentamos para 12 segundos para uma leitura mais tranquila
-    Future.delayed(const Duration(seconds: 12), () {
-      if (mounted) {
-        _hintOverlay?.remove();
-        _hintOverlay = null;
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted && _hintOverlay != null) {
+        _clearHint();
       }
     });
+  }
+
+  void _clearHint() {
+    _hintOverlay?.remove();
+    _hintOverlay = null;
   }
 
   // 📍 centro inicial
@@ -223,14 +281,12 @@ class _HomeScreenState extends State<HomeScreen> {
         desiredAccuracy: LocationAccuracy.low,
       );
 
+      final latLng = LatLng(position.latitude, position.longitude);
+
       setState(() {
-        _initialCenter = LatLng(
-          position.latitude,
-          position.longitude,
-        );
+        _initialCenter = latLng;
       });
     } catch (_) {
-      // fail-safe absoluto
       setState(() => _initialCenter = _mapCenter);
     }
   }
@@ -249,13 +305,13 @@ class _HomeScreenState extends State<HomeScreen> {
       (_) => IncidentStore.syncFromBackend(),
     );
 
-    // 📍 resolve localização inicial
+    _loadUserLocation();
     _resolveInitialCenter();
   }
 
   @override
   void dispose() {
-    _hintOverlay?.remove(); // Adicione esta linha
+    _hintOverlay?.remove();
     _subscription?.cancel();
     _syncTimer?.cancel();
     _boundsDebounce?.cancel();
@@ -273,31 +329,43 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final now = DateTime.now();
+    debugPrint(
+      'INCIDENTS total=${_incidents.length} official=${_incidents.where((i) => i.isOfficial).length} community=${_incidents.where((i) => !i.isOfficial).length}',
+    );
+
+    // ✅ FIX: Use user location / initial center for distance reference
+    final LatLng distanceFrom =
+        _userCurrentLocation ?? _initialCenter ?? _mapCenter;
 
     final visibleIncidents = _incidents.where((i) {
       if (!_activeFilters.contains(i.severity)) return false;
 
+      // time filter applies to ALL incidents (as you requested)
       switch (_timeFilter) {
         case IncidentTimeFilter.lastHour:
-          if (!i.dateTime.isAfter(now.subtract(const Duration(hours: 1))))
+          if (!i.dateTime.isAfter(now.subtract(const Duration(hours: 1)))) {
             return false;
+          }
           break;
         case IncidentTimeFilter.last6Hours:
-          if (!i.dateTime.isAfter(now.subtract(const Duration(hours: 6))))
+          if (!i.dateTime.isAfter(now.subtract(const Duration(hours: 6)))) {
             return false;
+          }
           break;
         case IncidentTimeFilter.last24Hours:
-          if (!i.dateTime.isAfter(now.subtract(const Duration(hours: 24))))
+          if (!i.dateTime.isAfter(now.subtract(const Duration(hours: 24)))) {
             return false;
+          }
           break;
         case IncidentTimeFilter.all:
           break;
       }
 
       if (_distanceFilter != IncidentDistanceFilter.all) {
+        // ✅ FIX: was _mapCenter (Epsom fixed) -> now uses distanceFrom
         final meters = _distanceCalc.as(
           LengthUnit.Meter,
-          _mapCenter,
+          distanceFrom,
           i.location,
         );
 
@@ -325,28 +393,18 @@ class _HomeScreenState extends State<HomeScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter:
-                  const LatLng(51.509865, -0.118092), // Começa em Londres
-              initialZoom: 14,
+              // ✅ FIX: initial center uses _initialCenter (not only user or Epsom)
+              initialCenter: _initialCenter ?? _mapCenter,
+              initialZoom: 15,
               onMapReady: () {
-                //EXECUTAR ASSIM QUE ABRIR
-                _centerMapOnUser(); // Vai para sua localização
-                Future.delayed(const Duration(seconds: 3),
-                    _showReportingHint); // Mostra balão após 3 seg
-
-                final bounds = _mapController.camera.visibleBounds;
-                if (_mapController.camera.zoom >= 13) {
-                  IncidentStore.syncOfficialForBounds(bounds);
-                }
+                _loadUserLocation(); // keep (helps web/PWA)
+                Future.delayed(const Duration(seconds: 3), _showReportingHint);
               },
               onPositionChanged: (position, hasGesture) {
-                if (!hasGesture) return;
-                if (position.zoom < 13) return;
+                if (_boundsDebounce?.isActive ?? false) return;
 
-                final bounds = _mapController.camera.visibleBounds;
-
-                _boundsDebounce?.cancel();
                 _boundsDebounce = Timer(const Duration(milliseconds: 600), () {
+                  final bounds = _mapController.camera.visibleBounds;
                   IncidentStore.syncOfficialForBounds(bounds);
                 });
               },
@@ -356,7 +414,39 @@ class _HomeScreenState extends State<HomeScreen> {
                 urlTemplate:
                     'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                 subdomains: const ['a', 'b', 'c', 'd'],
+                tileProvider: CancellableNetworkTileProvider(),
               ),
+
+              // BLUE DOT
+              if (_userCurrentLocation != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _userCurrentLocation!,
+                      width: 30,
+                      height: 30,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+              // CLUSTERS
               if (visibleIncidents.isNotEmpty)
                 MarkerClusterLayerWidget(
                   options: MarkerClusterLayerOptions(
@@ -367,10 +457,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     spiderfyCircleRadius: 80,
                     markers: visibleIncidents.map(_buildMarker).toList(),
                     builder: (context, markers) {
-                      // Criamos a lista tipada explicitamente para o Dart não ter dúvida
                       final List<Marker> markerList =
                           markers.whereType<Marker>().toList();
-
                       final severity = _worstSeverity(markerList);
                       final hasOfficial = _hasOfficialIncident(markerList);
 
@@ -385,28 +473,54 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
 
-          // 🐝 Lado Esquerdo: Identidade (Marca d'água + About)
+          // SEVERITY LEGEND
+          Positioned(
+            bottom: 110,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildLegendItem(Colors.red, 'High Severity'),
+                  const SizedBox(height: 4),
+                  _buildLegendItem(Colors.orange, 'Medium Severity'),
+                  const SizedBox(height: 4),
+                  _buildLegendItem(Colors.yellow, 'Low Severity'),
+                ],
+              ),
+            ),
+          ),
+
+          // LEFT: watermark + about
           Positioned(
             top: 16,
             left: 16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Logo Watermark: Sem Container de fundo, apenas a logo com transparência
                 Opacity(
-                  opacity: 0.7, // Um pouco mais forte como você pediu
+                  opacity: 0.7,
                   child: SvgPicture.asset(
                     'assets/logo/beeaware_texto.svg',
-                    width:
-                        120, // Aumentei um pouco para compensar a falta do fundo
+                    width: 120,
                     fit: BoxFit.contain,
                     alignment: Alignment.centerLeft,
                   ),
                 ),
-
-                const SizedBox(height: 12), // Espaço entre a logo e o botão
-
-                // About BeeAware: Mantém o fundo estilo pílula
+                const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () => _showAboutSheet(context),
                   child: Container(
@@ -445,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // 🕒 Lado Direito: Status e Alertas
+          // RIGHT: status + disclaimer + official legend
           if (_lastUpdate != null)
             Positioned(
               top: 16,
@@ -453,7 +567,6 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // Última Atualização
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -468,7 +581,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Aviso de Emergência (agora com fundo para padronizar)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -485,7 +597,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Dados Oficiais
                   GestureDetector(
                     onTap: () => _showOfficialLegendSheet(context),
                     child: Container(
@@ -514,14 +625,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+// 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
+          Positioned(
+            right: 16,
+            bottom: 120, // acima da bottom bar
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: Colors.white,
+              onPressed: _centerMapOnUser,
+              child: const Icon(
+                Icons.my_location,
+                color: Colors.blue,
+              ),
+            ),
+          ),
 
-          // ⬇️ bottom bar
+          // BOTTOM BAR (unchanged)
           Positioned(
             bottom: 20,
             left: 16,
             right: 16,
             child: _BottomBar(
               onReport: () {
+                _clearHint();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -540,7 +666,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _hasOfficialIncident(List<Marker> markers) {
     for (final marker in markers) {
-      final child = marker.child;
+      Widget? child = marker.child;
+      if (child is Opacity) child = child.child;
+
       if (child is BeeIncidentPin && child.incident.isOfficial) {
         return true;
       }
@@ -554,27 +682,25 @@ class _HomeScreenState extends State<HomeScreen> {
     for (final m in markers) {
       Widget? child = m.child;
 
-      // Se o widget for um Opacity, pegamos o "filho do filho"
       if (child is Opacity) {
         child = child.child;
       }
 
-      // Agora sim, verificamos se é o Pin
       if (child is BeeIncidentPin) {
-        if (child.incident.severity == IncidentSeverity.high)
+        if (child.incident.severity == IncidentSeverity.high) {
           return IncidentSeverity.high;
-        if (child.incident.severity == IncidentSeverity.medium)
+        }
+        if (child.incident.severity == IncidentSeverity.medium) {
           worst = IncidentSeverity.medium;
+        }
       }
     }
     return worst;
   }
 
   Color _severityColor(IncidentSeverity? s) {
-    if (s == IncidentSeverity.high) return const Color(0xFFEF4444); // Vermelho
-    if (s == IncidentSeverity.medium) return const Color(0xFFF59E0B); // Âmbar
-
-    // Se for low ou nulo, retorna Amarelo
+    if (s == IncidentSeverity.high) return const Color(0xFFEF4444);
+    if (s == IncidentSeverity.medium) return const Color(0xFFF59E0B);
     return const Color(0xFFFDE047);
   }
 
@@ -610,9 +736,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? "Official Police Record · ${incident.dateTime.month}/${incident.dateTime.year}"
                   : "Community Report · ${_relativeTime(incident.dateTime)}",
               style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600], // Cinza discreto para não poluir
-                  fontWeight: FontWeight.w500),
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -641,10 +768,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontSize: 16,
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // 🚨 EMERGÊNCIA — 999
               ElevatedButton.icon(
                 icon: const Icon(Icons.emergency),
                 label: const Text('Call emergency (999)'),
@@ -659,10 +783,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
               ),
-
               const SizedBox(height: 8),
-
-              // ☎️ NÃO EMERGÊNCIA — 101
               TextButton.icon(
                 icon: const Icon(Icons.phone),
                 label: const Text('Call non-emergency (101)'),
@@ -673,10 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
               ),
-
               const SizedBox(height: 12),
-
-              // ⚠️ DISCLAIMER
               const Text(
                 'BeeAware is not an emergency service.\n'
                 'If you are in immediate danger, contact emergency services directly.',
@@ -708,13 +826,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListView(
                 shrinkWrap: true,
                 children: [
-                  // ── TIME FILTER ──
-                  const Text(
-                    'Time',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  const Text('Time',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-
                   ...IncidentTimeFilter.values.map((f) {
                     final label = {
                       IncidentTimeFilter.lastHour: 'Last hour',
@@ -722,27 +836,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       IncidentTimeFilter.last24Hours: 'Last 24 hours',
                       IncidentTimeFilter.all: 'All time',
                     }[f]!;
-
                     return RadioListTile<IncidentTimeFilter>(
                       title: Text(label),
                       value: f,
                       groupValue: _timeFilter,
                       onChanged: (v) {
                         setModalState(() => _timeFilter = v!);
-                        setState(() {}); // 🔁 atualiza o mapa
+                        setState(() {});
                       },
                     );
                   }),
-
                   const Divider(height: 32),
-
-                  // ── DISTANCE FILTER ──
-                  const Text(
-                    'Distance',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  const Text('Distance',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-
                   ...IncidentDistanceFilter.values.map((f) {
                     final label = {
                       IncidentDistanceFilter.m250: 'Within 250 m',
@@ -750,14 +857,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       IncidentDistanceFilter.km1: 'Within 1 km',
                       IncidentDistanceFilter.all: 'Any distance',
                     }[f]!;
-
                     return RadioListTile<IncidentDistanceFilter>(
                       title: Text(label),
                       value: f,
                       groupValue: _distanceFilter,
                       onChanged: (v) {
                         setModalState(() => _distanceFilter = v!);
-                        setState(() {}); // 🔁 atualiza o mapa
+                        setState(() {});
                       },
                     );
                   }),
@@ -783,7 +889,6 @@ class _HomeScreenState extends State<HomeScreen> {
             height: MediaQuery.of(context).size.height * 0.75,
             child: Column(
               children: [
-                // ── drag handle ──
                 const SizedBox(height: 8),
                 Container(
                   width: 36,
@@ -794,8 +899,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // ── conteúdo scrollável ──
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -845,36 +948,34 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-
-                // ── footer fixo ──
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
                   child: Column(
                     children: [
                       TextButton(
-                        onPressed: () {
-                          launchUrl(
-                            Uri.parse(
-                              'https://www.getbeeaware.com/privacy.html',
-                            ),
-                            mode: LaunchMode.externalApplication,
-                          );
+                        onPressed: () async {
+                          final uri =
+                              Uri.parse('https://www.getbeeaware.com/privacy');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri,
+                                mode: LaunchMode.externalApplication);
+                          }
                         },
-                        child: const Text('Privacy Policy'),
+                        child: Text('Privacy Policy'),
                       ),
                       TextButton(
-                        onPressed: () {
-                          launchUrl(
-                            Uri.parse(
-                              'https://www.getbeeaware.com/terms.html',
-                            ),
-                            mode: LaunchMode.externalApplication,
-                          );
+                        onPressed: () async {
+                          final uri =
+                              Uri.parse('https://www.getbeeaware.com/terms');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri,
+                                mode: LaunchMode.externalApplication);
+                          }
                         },
-                        child: const Text('Terms of Service'),
+                        child: Text('Terms of Service'),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
+                      SizedBox(height: 8),
+                      Text(
                         '© BeeAware',
                         style: TextStyle(
                           fontSize: 12,
@@ -971,7 +1072,6 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
   @override
   void didUpdateWidget(_AnimatedCluster oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Se a cor mudar ou o número mudar, podemos reiniciar a animação de "pop"
     if (oldWidget.color != widget.color || oldWidget.count != widget.count) {
       _intro.reset();
       _intro.forward();
@@ -991,9 +1091,7 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
         child: UnconstrainedBox(
           child: CustomPaint(
             size: const Size(45, 52),
-            painter: RoundedHexagonPainter(
-              color: widget.color,
-            ),
+            painter: RoundedHexagonPainter(color: widget.color),
             child: SizedBox(
               width: 45,
               height: 52,
@@ -1015,7 +1113,7 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
       ),
     );
   }
-} // <--- FECHAMENTO DA CLASSE CLUSTER
+}
 
 // ================= BOTTOM BAR =================
 
@@ -1041,16 +1139,23 @@ class _BottomBarState extends State<_BottomBar> {
   @override
   void initState() {
     super.initState();
-    // 🕵️ Monitora o status do PWA a cada 1 segundo
-    _pwaTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      bool currentStatus = pwa.PWAInstall().installPromptEnabled ||
-          (js.context.callMethod('isPwaInstallable') == true);
+    canInstall = false;
 
-      if (currentStatus != canInstall) {
-        if (mounted) {
-          setState(() => canInstall = currentStatus);
+    // optional: detect installability periodically
+    _pwaTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      bool ok = false;
+
+      try {
+        final hasMethod = js.context.hasProperty('isPwaInstallable');
+        if (hasMethod == true) {
+          ok = js.context.callMethod('isPwaInstallable') == true;
         }
-        if (canInstall) timer.cancel(); // Para de monitorar se já liberou
+      } catch (_) {
+        ok = false;
+      }
+
+      if (mounted && ok != canInstall) {
+        setState(() => canInstall = ok);
       }
     });
   }
@@ -1091,25 +1196,24 @@ class _BottomBarState extends State<_BottomBar> {
                     child: IconButton(
                       icon: const Icon(Icons.emergency),
                       color: const Color(0xFFF59E0B),
-                      onPressed: widget.onPolice, // Note o widget.
+                      onPressed: widget.onPolice,
                     ),
                   ),
                 ),
-                // 🚀 O botão agora reage ao Timer!
                 if (canInstall)
                   Tooltip(
                     message: 'Install App',
                     child: IconButton(
-                        icon: const Icon(Icons.install_mobile),
-                        color: const Color(0xFFF59E0B),
-                        onPressed: () {
-                          if (js.context.callMethod('isPwaInstallable') ==
-                              true) {
-                            js.context.callMethod('triggerPwaInstall');
-                          } else {
-                            pwa.PWAInstall().promptInstall_();
-                          }
-                        }),
+                      icon: const Icon(Icons.install_mobile),
+                      color: const Color(0xFFF59E0B),
+                      onPressed: () {
+                        if (js.context.callMethod('isPwaInstallable') == true) {
+                          js.context.callMethod('triggerPwaInstall');
+                        } else {
+                          pwa.PWAInstall().promptInstall_();
+                        }
+                      },
+                    ),
                   ),
                 const SizedBox(width: 66),
                 Tooltip(
@@ -1119,7 +1223,7 @@ class _BottomBarState extends State<_BottomBar> {
                     child: IconButton(
                       icon: const Icon(Icons.filter_list_alt),
                       color: const Color(0xFF2F3A4A),
-                      onPressed: widget.onFilters, // Note o widget.
+                      onPressed: widget.onFilters,
                     ),
                   ),
                 ),
@@ -1130,8 +1234,7 @@ class _BottomBarState extends State<_BottomBar> {
             bottom: 16,
             child: Tooltip(
               message: 'Share a local safetly report',
-              child: _AnimatedCentralButton(
-                  onTap: widget.onReport), // Note o widget.
+              child: _AnimatedCentralButton(onTap: widget.onReport),
             ),
           ),
         ],

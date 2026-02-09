@@ -1,19 +1,18 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+// Adicione este import para a performance do mapa
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 
 import '../map/map_incident.dart';
 import '../map/incident_store.dart';
 import '../backend/incident_api.dart';
 import 'report_draft.dart';
-
 import '../utils/report_rate_limiter.dart';
 
 class ReportSummaryScreen extends StatefulWidget {
   final ReportDraft draft;
-
   const ReportSummaryScreen({super.key, required this.draft});
 
   @override
@@ -24,19 +23,17 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
   late DateTime _visibleAt;
   Timer? _timer;
   Duration _remaining = Duration.zero;
-
   bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-
     _visibleAt = DateTime.now().add(const Duration(minutes: 1));
     _remaining = _visibleAt.difference(DateTime.now());
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final diff = _visibleAt.difference(DateTime.now());
       if (!mounted) return;
+      final diff = _visibleAt.difference(DateTime.now());
       setState(() {
         _remaining = diff.isNegative ? Duration.zero : diff;
       });
@@ -59,7 +56,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
   Future<void> _submitReport() async {
     if (_submitting) return;
 
-    // ✅ validação explícita (evita “nada acontece” por null)
+    // 1. Validação de dados
     final lat = widget.draft.latitude;
     final lng = widget.draft.longitude;
     final cat = widget.draft.category;
@@ -67,41 +64,26 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
     final sub = widget.draft.subcategory;
 
     if (sub == null || sub.trim().isEmpty) {
-      _toast('Missing subcategory. Please go back and choose one.');
+      _toast('Missing subcategory. Please go back.');
       return;
     }
-
     if (lat == null || lng == null) {
-      _toast('Missing location. Please go back and select a place on the map.');
-      return;
-    }
-    if (cat == null || cat.trim().isEmpty) {
-      _toast('Missing category. Please go back and choose a category.');
-      return;
-    }
-    if (sev == null || sev.trim().isEmpty) {
-      _toast('Missing severity. Please go back and choose severity.');
+      _toast('Missing location. Please go back.');
       return;
     }
 
     setState(() => _submitting = true);
 
     try {
-      // ✅ LOG para confirmar que está chamando mesmo
-      // ignore: avoid_print
-      print(
-          '[ReportSummary] SUBMIT pressed -> lat=$lat lng=$lng cat=$cat sev=$sev');
-
+      // 2. Verificação de Rate Limit local
       final canSubmit = await ReportRateLimiter.canSubmit();
       if (!canSubmit) {
         final remaining = await ReportRateLimiter.remaining();
         _toast(
-          'Please wait ${remaining.inMinutes + 1} minutes before sending another report.',
-        );
+            'Please wait ${remaining.inMinutes + 1} minutes before sending another report.');
+        if (mounted) setState(() => _submitting = false);
         return;
       }
-
-      setState(() => _submitting = true);
 
       final incident = MapIncident(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -110,35 +92,42 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
           (e) => e.name == sev,
           orElse: () => IncidentSeverity.low,
         ),
-        category: cat,
-        subcategory: widget.draft.subcategory!,
+        category: cat ?? 'Other',
+        subcategory: sub,
         description: widget.draft.description ?? '',
         dateTime: DateTime.now(),
         visibleAt: _visibleAt,
       );
 
-// 1) backend (com anti-abuso)
+      // 3. Envio para o Backend (O dado vai para o mapa)
       await IncidentApi.createIncident(incident);
 
-// 2) feedback local (aparece após delay)
-      await IncidentStore.addWithDelay(
-        incident,
-        const Duration(minutes: 1),
-      );
+      // 4. Feedback local (Otimização de UI)
+      await IncidentStore.addWithDelay(incident, const Duration(minutes: 1));
 
-// 3) ✅ MARCA RATE-LIMIT (AQUI)
-      await ReportRateLimiter.markSubmitted();
+      // 5. MARCA RATE-LIMIT (Blindado contra QuotaExceededError)
+      try {
+        await ReportRateLimiter.markSubmitted();
+      } catch (storageError) {
+        // Se o LocalStorage falhar, apenas logamos. O envio já foi um sucesso!
+        debugPrint(
+            'LocalStorage full: Incident reported but rate-limit not saved.');
+      }
 
       if (!mounted) return;
-      _toast('Thank you. Your report was submitted successfully.');
 
-      Navigator.popUntil(context, (route) => route.isFirst);
+      _toast('Thank you! Your report was submitted successfully.');
+
+      // Delay para o Toast ser lido
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      if (mounted) {
+        // Volta para a Home e limpa a pilha de telas
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
     } catch (e) {
-      // ✅ ERRO visível (antes estava “silencioso”)
-      // ignore: avoid_print
-      print('[ReportSummary] SUBMIT failed: $e');
+      debugPrint('[ReportSummary] SUBMIT failed: $e');
       _toast('Submit failed: $e');
-    } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
@@ -147,7 +136,6 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final date = widget.draft.dateTime ?? DateTime.now();
-
     final lat = widget.draft.latitude;
     final lng = widget.draft.longitude;
 
@@ -162,13 +150,13 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
           ),
           _Section(
             title: 'Severity',
-            content: (widget.draft.severity ?? '-').toUpperCase(),
+            content: (widget.draft.severity ?? 'Low').toUpperCase(),
           ),
           _Section(
             title: 'Description',
             content: (widget.draft.description ?? '').isEmpty
                 ? 'No description provided'
-                : (widget.draft.description ?? ''),
+                : widget.draft.description!,
           ),
           _Section(
             title: 'When',
@@ -177,7 +165,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
           ),
           const SizedBox(height: 12),
 
-          // ================= MAP PREVIEW =================
+          // PREVIEW DO MAPA
           SizedBox(
             height: 180,
             child: ClipRRect(
@@ -194,6 +182,8 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                     urlTemplate:
                         'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                     subdomains: const ['a', 'b', 'c', 'd'],
+                    // Usando o provider performante que instalamos
+                    tileProvider: CancellableNetworkTileProvider(),
                   ),
                   if (lat != null && lng != null)
                     MarkerLayer(
@@ -202,11 +192,8 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                           point: LatLng(lat, lng),
                           width: 40,
                           height: 40,
-                          child: const Icon(
-                            Icons.location_pin,
-                            size: 40,
-                            color: Color(0xFFF44336),
-                          ),
+                          child: const Icon(Icons.location_pin,
+                              size: 40, color: Color(0xFFF44336)),
                         ),
                       ],
                     ),
@@ -214,25 +201,22 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 16),
 
-          // ================= DELAY INFO =================
+          // INFO DE DELAY
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 12,
-                ),
+                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12)
               ],
             ),
             child: Row(
               children: [
-                const Icon(Icons.schedule, size: 18),
+                Icon(Icons.schedule,
+                    size: 18, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -245,36 +229,31 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 24),
 
-          // ================= SUBMIT =================
+          // BOTÃO SUBMETER
           SizedBox(
-            height: 52,
+            height: 56,
             child: ElevatedButton(
               onPressed: _submitting ? null : _submitReport,
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
               ),
               child: _submitting
                   ? const SizedBox(
-                      height: 22,
-                      width: 22,
+                      height: 24,
+                      width: 24,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(Colors.white)),
                     )
-                  : const Text(
-                      'Submit report anonymously',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  : const Text('Submit report anonymously',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -286,19 +265,24 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
 class _Section extends StatelessWidget {
   final String title;
   final String content;
-
   const _Section({required this.title, required this.content});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
-          Text(content),
+          Text(content,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
         ],
       ),
     );

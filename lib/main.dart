@@ -45,6 +45,13 @@ class BeeAwareApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFF59E0B),
           primary: const Color(0xFFF59E0B),
+          onPrimary: Colors.black,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.black, // Cor do texto/ícone
+            backgroundColor: const Color(0xFFF59E0B), // Cor do fundo
+          ),
         ),
       ),
       // AQUI: Troca RootScreen() por BeeAwareSplashScreen()

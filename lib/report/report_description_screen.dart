@@ -135,6 +135,8 @@ class _ReportDescriptionScreenState extends State<ReportDescriptionScreen> {
                   child: ElevatedButton(
                     onPressed: _canContinue ? _continue : null,
                     style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.black,
+                      disabledForegroundColor: Colors.black.withOpacity(0.3),
                       backgroundColor: theme.colorScheme.primary,
                       disabledBackgroundColor:
                           theme.colorScheme.primary.withOpacity(0.3),
