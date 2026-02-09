@@ -1,6 +1,5 @@
 {
   "framework": null,
-  "buildCommand": "flutter build web",
   "outputDirectory": "build/web",
 
   "cleanUrls": true,
