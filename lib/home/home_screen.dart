@@ -955,7 +955,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       TextButton(
                         onPressed: () async {
                           final uri =
-                              Uri.parse('https://www.getbeeaware.com/privacy');
+                              Uri.parse('https://www.beeaware.io/privacy.html');
                           if (await canLaunchUrl(uri)) {
                             await launchUrl(uri,
                                 mode: LaunchMode.externalApplication);
@@ -966,7 +966,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       TextButton(
                         onPressed: () async {
                           final uri =
-                              Uri.parse('https://www.getbeeaware.com/terms');
+                              Uri.parse('https://www.beeaware.io/terms.html');
                           if (await canLaunchUrl(uri)) {
                             await launchUrl(uri,
                                 mode: LaunchMode.externalApplication);
