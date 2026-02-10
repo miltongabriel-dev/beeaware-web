@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-
 import 'map_incident.dart';
+
+/// 🔒 FLAG DE SEGURANÇA
+/// Enquanto true → public pins viram dots
+/// Community pins continuam iguais
+const bool USE_NEW_PUBLIC_PINS = true;
 
 class BeeIncidentPin extends StatefulWidget {
   final MapIncident incident;
@@ -31,14 +35,9 @@ class _BeeIncidentPinState extends State<BeeIncidentPin>
     super.dispose();
   }
 
-  String _pinAsset(MapIncident incident) {
-    // 🏛️ oficial → neutro
-    if (incident.isOfficial) {
-      return 'assets/pins/bee_official.png';
-    }
-
-    // 🐝 comunidade → severidade
-    switch (incident.severity) {
+  // 🐝 COMMUNITY — mantém o comportamento atual (assets por severidade)
+  String _communityBeeAsset() {
+    switch (widget.incident.severity) {
       case IncidentSeverity.high:
         return 'assets/pins/bee_high.png';
       case IncidentSeverity.medium:
@@ -49,8 +48,55 @@ class _BeeIncidentPinState extends State<BeeIncidentPin>
     }
   }
 
+  // ⚪ PUBLIC — cor por severidade (dot)
+  Color _publicColorBySeverity() {
+    switch (widget.incident.severity) {
+      case IncidentSeverity.high:
+        return const Color(0xFFF44336); // vermelho
+      case IncidentSeverity.medium:
+        return const Color(0xFFFF9800); // laranja
+      case IncidentSeverity.low:
+      default:
+        return const Color(0xFFFFC107); // âmbar
+    }
+  }
+
+  Widget _buildCommunityBee() {
+    return SizedBox(
+      width: 42,
+      height: 42,
+      child: Image.asset(
+        _communityBeeAsset(),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+      ),
+    );
+  }
+
+  Widget _buildPublicDot() {
+    return SizedBox(
+      width: 24, // área de toque confortável
+      height: 24,
+      child: Center(
+        child: Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _publicColorBySeverity().withOpacity(0.85),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isCommunity = !widget.incident.isOfficial;
+
+    /// Só aplica o novo visual para PUBLIC se a flag estiver ligada
+    final bool useDot = USE_NEW_PUBLIC_PINS && !isCommunity;
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () async {
@@ -60,15 +106,7 @@ class _BeeIncidentPinState extends State<BeeIncidentPin>
       },
       child: ScaleTransition(
         scale: _controller,
-        child: SizedBox(
-          width: 42,
-          height: 42,
-          child: Image.asset(
-            _pinAsset(widget.incident),
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-          ),
-        ),
+        child: useDot ? _buildPublicDot() : _buildCommunityBee(),
       ),
     );
   }

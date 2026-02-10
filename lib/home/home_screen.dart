@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -13,12 +11,12 @@ import '../map/map_incident.dart';
 import '../map/incident_store.dart';
 import '../map/bee_incident_pin.dart';
 import '../report/report_category_screen.dart';
-import '../theme/beeaware_theme.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:pwa_install/pwa_install.dart' as pwa;
 import 'dart:js' as js;
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import 'widgets/incident_bottom_sheet.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -76,7 +74,14 @@ class _HomeScreenState extends State<HomeScreen> {
         opacity: opacity,
         child: BeeIncidentPin(
           incident: incident,
-          onTap: () => _showIncidentDetails(context, incident),
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => IncidentBottomSheet(incident: incident),
+            );
+          },
         ),
       ),
     );
