@@ -130,7 +130,9 @@ class IncidentBottomSheet extends StatelessWidget {
             // ---------------------------
             // SOURCE (external only)
             // ---------------------------
-            if (incident.isOfficial) ...[
+            if (incident.isOfficial &&
+                incident.source != null &&
+                incident.source!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 'Source: ${incident.source}',
