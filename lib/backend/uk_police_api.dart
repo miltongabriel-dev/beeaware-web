@@ -72,6 +72,8 @@ class UkPoliceApi {
               : 'Police recorded $crimeType near $streetName. '
                   'Reported in $month.';
 
+          debugPrint('🧪 Police description: $description');
+
           allIncidents.add(
             MapIncident(
               id: 'uk-${row['id'] ?? '${crimeLat}_${crimeLng}_$month'}',
