@@ -71,9 +71,12 @@ class UkPoliceApi {
               category: 'Police report',
               subcategory: category.replaceAll('-', ' '),
               // Aqui a descrição fica muito mais rica e profissional:
-              description: 'Occurred on or near: $streetName',
+              description: 'Police reported ${category.replaceAll('-', ' ')} '
+                  'on or near $streetName. '
+                  'Reported in $month.',
               dateTime: _parsePoliceMonth(month),
               isOfficial: true,
+              source: 'UK Police',
             ),
           );
         }

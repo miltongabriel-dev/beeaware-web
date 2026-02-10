@@ -23,6 +23,7 @@ class MapIncident {
 
   // 🆕 origem do dado
   final bool isOfficial;
+  final String? source;
 
   MapIncident({
     required this.id,
@@ -36,6 +37,7 @@ class MapIncident {
     this.visibleAt,
     this.hash,
     this.isOfficial = false, // ✅ default seguro
+    this.source,
   });
 
   Map<String, dynamic> toJson() {
@@ -101,6 +103,7 @@ class MapIncident {
       visibleAt:
           row['visible_at'] != null ? DateTime.parse(row['visible_at']) : null,
       hash: row['hash_fingerprint'],
+      source: row['source'] as String?,
       isOfficial: row['is_official'] == true, // ✅ Supabase manda a verdade
     );
   }

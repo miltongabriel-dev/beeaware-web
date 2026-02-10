@@ -48,6 +48,9 @@ class IncidentBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasExternalDescription =
+        incident.isOfficial && incident.description.trim().isNotEmpty; // NEW
+
     return SafeArea(
       top: false,
       child: Container(
@@ -111,15 +114,31 @@ class IncidentBottomSheet extends StatelessWidget {
                   ),
             ),
 
-            const SizedBox(height: 12),
+            // ---------------------------
+            // DESCRIPTION (conditional)
+            // ---------------------------
+            if (hasExternalDescription) ...[
+              const SizedBox(height: 12),
+              Text(
+                incident.description,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
 
-            // Description
-            Text(
-              incident.description,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            // ---------------------------
+            // SOURCE (external only)
+            // ---------------------------
+            if (incident.isOfficial) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Source: ${incident.source}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+              ),
+            ],
 
             const SizedBox(height: 16),
 
