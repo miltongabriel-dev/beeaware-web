@@ -63,6 +63,15 @@ class UkPoliceApi {
 
           final category = (row['category'] as String?) ?? 'unknown';
 
+          final crimeType = category.replaceAll('-', ' ');
+          final outcome = row['outcome_status']?['category'];
+
+          final description = outcome != null
+              ? 'Police recorded $crimeType near $streetName. '
+                  'Outcome: $outcome. Reported in $month.'
+              : 'Police recorded $crimeType near $streetName. '
+                  'Reported in $month.';
+
           allIncidents.add(
             MapIncident(
               id: 'uk-${row['id'] ?? '${crimeLat}_${crimeLng}_$month'}',
@@ -71,9 +80,7 @@ class UkPoliceApi {
               category: 'Police report',
               subcategory: category.replaceAll('-', ' '),
               // Aqui a descrição fica muito mais rica e profissional:
-              description: 'Police reported ${category.replaceAll('-', ' ')} '
-                  'on or near $streetName. '
-                  'Reported in $month.',
+              description: description,
               dateTime: _parsePoliceMonth(month),
               isOfficial: true,
               source: 'UK Police',
