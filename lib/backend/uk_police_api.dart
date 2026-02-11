@@ -71,8 +71,10 @@ class UkPoliceApi {
                   'Outcome: $outcome. Reported in $month.'
               : 'Police recorded $crimeType near $streetName. '
                   'Reported in $month.';
+          debugPrint(
+              '🚔 UK POLICE API USED - category=$category | street=$streetName');
 
-          debugPrint('🧪 Police description: $description');
+          //debugPrint('🧪 Police description: $description');
 
           allIncidents.add(
             MapIncident(
