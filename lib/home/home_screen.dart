@@ -51,6 +51,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<MapIncident> _incidents = [];
   LatLng? _userCurrentLocation;
+  bool _isLoadingIncidents = true;
 
   Marker _buildMarker(MapIncident incident) {
     double opacity = 1.0;
@@ -303,6 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _subscription = IncidentStore.stream.listen((data) {
       if (!mounted) return;
       setState(() => _incidents = data);
+      _isLoadingIncidents = false;
     });
 
     _syncTimer = Timer.periodic(
@@ -477,6 +479,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
             ],
           ),
+// ================= LOADING OVERLAY =================
+          if (_isLoadingIncidents)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.75),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 12),
+                    Text(
+                      'Loading incidents…',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // SEVERITY LEGEND
           Positioned(
