@@ -86,6 +86,8 @@ class MapIncident {
   }
 
   factory MapIncident.fromSupabase(Map<String, dynamic> row) {
+    print('SUPABASE ROW: $row');
+
     return MapIncident(
       id: row['id'].toString(),
       location: LatLng(

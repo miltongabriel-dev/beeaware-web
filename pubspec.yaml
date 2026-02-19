@@ -42,7 +42,9 @@ dependencies:
   geolocator: ^13.0.1
   pwa_install: ^0.0.6
   flutter_map_cancellable_tile_provider: 3.0.2
-  
+  provider: ^6.0.0
+  fl_chart: ^0.66.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -70,6 +72,7 @@ flutter:
     - assets/logo/
     - assets/pins/
     - assets/lottie/
+    - assets/icons/
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

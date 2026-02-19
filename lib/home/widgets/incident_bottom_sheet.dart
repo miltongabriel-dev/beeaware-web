@@ -48,8 +48,7 @@ class IncidentBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasExternalDescription =
-        incident.isOfficial && incident.description.trim().isNotEmpty; // NEW
+    final hasExternalDescription = incident.description.trim().isNotEmpty;
 
     return SafeArea(
       top: false,

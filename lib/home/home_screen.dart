@@ -12,11 +12,21 @@ import '../map/incident_store.dart';
 import '../map/bee_incident_pin.dart';
 import '../report/report_category_screen.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:aware/auth/login_screen.dart';
 
 import 'package:pwa_install/pwa_install.dart' as pwa;
 import 'dart:js' as js;
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'widgets/incident_bottom_sheet.dart';
+import 'package:provider/provider.dart';
+import 'package:aware/state/token_state.dart';
+import 'package:aware/report/buy_tokens_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:aware/home/widgets/safety_trend_chart.dart';
+import 'package:aware/backend/uk_police_api.dart';
+import 'package:latlong2/latlong.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -52,6 +62,31 @@ class _HomeScreenState extends State<HomeScreen> {
   List<MapIncident> _incidents = [];
   LatLng? _userCurrentLocation;
   bool _isLoadingIncidents = true;
+  LatLng? _searchLocation;
+  bool _isSearching = false;
+  bool _showLowTokenWarning = false;
+  bool _showZeroTokenBanner = false;
+
+  List<Map<String, dynamic>> _suggestions = [];
+  Timer? _debounce;
+
+  final Map<String, List<Map<String, dynamic>>> _searchCache = {};
+
+  String _preferredCountryCode() {
+    if (_userCurrentLocation == null) return 'gb';
+
+    final lat = _userCurrentLocation!.latitude;
+
+    // 🇬🇧 UK approx
+    if (lat > 49 && lat < 61) return 'gb';
+
+    // 🇧🇷 Brazil approx
+    if (lat < 5 && lat > -35) return 'br';
+
+    return 'gb';
+  }
+
+  final List<LatLng> _recentSearches = [];
 
   Marker _buildMarker(MapIncident incident) {
     double opacity = 1.0;
@@ -179,6 +214,13 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint("Fail to find (Home): $e");
     }
+
+    if (_userCurrentLocation != null) {
+      UkPoliceApi.refreshTrendBackground(
+        lat: _userCurrentLocation!.latitude,
+        lng: _userCurrentLocation!.longitude,
+      );
+    }
   }
 
   void _showReportingHint() {
@@ -297,31 +339,95 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _fetchSuggestions(String query) async {
+    if (query.length < 3) {
+      setState(() => _suggestions = []);
+      return;
+    }
+
+    setState(() => _isSearching = true);
+
+    try {
+      final url = Uri.parse(
+        'https://brjzkdtkmewbodpqjhkj.supabase.co/functions/v1/geocode?q=${Uri.encodeComponent(query)}&limit=5',
+      );
+
+      final response = await http.get(url);
+
+      if (response.statusCode != 200) {
+        setState(() => _isSearching = false);
+        return;
+      }
+
+      final results = List<Map<String, dynamic>>.from(
+        json.decode(response.body),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isSearching = false;
+        _suggestions = results;
+      });
+    } catch (e) {
+      debugPrint('Autocomplete error: $e');
+      setState(() => _isSearching = false);
+    }
+  }
+
+  @override
   @override
   void initState() {
     super.initState();
 
+    // 🔥 STREAM de incidentes (real-time)
     _subscription = IncidentStore.stream.listen((data) {
       if (!mounted) return;
       setState(() => _incidents = data);
-      _isLoadingIncidents = false;
     });
 
+    // 🔥 Sync periódico (community)
     _syncTimer = Timer.periodic(
       const Duration(seconds: 30),
-      (_) => IncidentStore.syncFromBackend(),
+      (_) => IncidentStore.syncFromBackend(force: true),
     );
 
+    // 🔥 Primeiro carregamento rápido
+    Future.microtask(() async {
+      await IncidentStore.syncFromBackend(force: true);
+
+      if (mounted) {
+        setState(() => _isLoadingIncidents = false);
+      }
+    });
+
+    // 🔥 Localização do usuário
     _loadUserLocation();
+
+    // 🔥 Centro inicial do mapa
     _resolveInitialCenter();
+
+    // 🔥 TREND carregado em background (UX premium)
+    Future.microtask(() async {
+      await _loadUserLocation();
+
+      if (_userCurrentLocation != null) {
+        await UkPoliceApi.fetchTrend(
+          lat: _userCurrentLocation!.latitude,
+          lng: _userCurrentLocation!.longitude,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
-    _hintOverlay?.remove();
+    _debounce?.cancel();
+    _clearHint();
     _subscription?.cancel();
     _syncTimer?.cancel();
     _boundsDebounce?.cancel();
+
     super.dispose();
   }
 
@@ -424,6 +530,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 tileProvider: CancellableNetworkTileProvider(),
               ),
 
+              //Pin temporario search
+              if (_searchLocation != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _searchLocation!,
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
               // BLUE DOT
               if (_userCurrentLocation != null)
                 MarkerLayer(
@@ -479,6 +613,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
             ],
           ),
+
 // ================= LOADING OVERLAY =================
           if (_isLoadingIncidents)
             Positioned.fill(
@@ -527,6 +662,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildLegendItem(Colors.orange, 'Medium Severity'),
                   const SizedBox(height: 4),
                   _buildLegendItem(Colors.yellow, 'Low Severity'),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: _showClusterInfo,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.info_outline,
+                            size: 14, color: Color(0xFF6B7280)),
+                        SizedBox(width: 6),
+                        Text(
+                          'Cluster numbers explained',
+                          style:
+                              TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -549,110 +701,248 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () => _showAboutSheet(context),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.info_outline,
-                            size: 14, color: Color(0xFF6B7280)),
-                        SizedBox(width: 6),
-                        Text(
-                          'About BeeAware',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF6B7280),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
 
-          // RIGHT: status + disclaimer + official legend
-          if (_lastUpdate != null)
-            Positioned(
-              top: 16,
-              right: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      'Latest community update · ${_lastUpdate!.hour.toString().padLeft(2, '0')}:${_lastUpdate!.minute.toString().padLeft(2, '0')}',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: const Color(0xFF6B7280)),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Not an emergency service',
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF6B7280),
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: () => _showOfficialLegendSheet(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
+          // Search bar
+          Positioned(
+            top: 60,
+            left: 20,
+            right: 20,
+            child: Builder(
+              builder: (context) {
+                final tokens = context.watch<TokenState>().tokens;
+
+                return Container(
+                  height: 58,
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.verified_outlined,
-                              size: 14, color: Color(0xFF6B7280)),
-                          SizedBox(width: 6),
-                          Text(
-                            'Official police data',
-                            style: TextStyle(
-                                fontSize: 11, color: Color(0xFF6B7280)),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // MENU (☰)
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => _openMenu(context),
+                          child: const Icon(
+                            Icons.menu,
+                            size: 22,
+                            color: Color(0xFF1F2933),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: _isSearching
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.search,
+                                key: ValueKey('search_icon'),
+                                size: 20,
+                                color: Color(0xFF6B7280),
+                              ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      // Placeholder
+                      Expanded(
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            hintText: 'Enter address and press search',
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          textInputAction: TextInputAction.search,
+                          onChanged: (value) {
+                            _debounce?.cancel();
+                            _debounce = Timer(
+                              const Duration(milliseconds: 250),
+                              () => _fetchSuggestions(value),
+                            );
+                          },
+                          onSubmitted: (value) {
+                            _clearHint();
+                            _handleSearch(context, value);
+                          },
+                        ),
+                      ),
+
+                      // Tokens badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '$tokens Search tokens',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2F3A4A),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                );
+              },
+            ),
+          ),
+          if (_suggestions.isNotEmpty)
+            Positioned(
+              top: 120,
+              left: 20,
+              right: 20,
+              child: Material(
+                borderRadius: BorderRadius.circular(20),
+                elevation: 8,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _suggestions.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final item = _suggestions[index];
+                      final display = item['display_name'] ?? '';
+
+                      return ListTile(
+                        leading: const Icon(Icons.location_on_outlined),
+                        title: Text(
+                          display,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () {
+                          setState(() => _suggestions = []);
+                          _clearHint();
+                          _handleSearch(context, display);
+                        },
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
+          if (_showLowTokenWarning)
+            Positioned(
+              top: 125,
+              left: 30,
+              right: 30,
+              child: AnimatedOpacity(
+                opacity: 1,
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'You have 1 search remaining',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2F3A4A),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (_showZeroTokenBanner)
+            Positioned(
+              top: 125,
+              left: 30,
+              right: 30,
+              child: AnimatedOpacity(
+                opacity: 1,
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'You’ve used all your searches',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2F3A4A),
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const BuyTokensScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text('Buy more'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            right: 16,
+            top: 140,
+            child: _TrendButton(onTap: _showSafetyTrend),
+          ),
+          Positioned(
+            right: 16,
+            top: 200,
+            child: _FilterButton(onTap: () => _showFiltersOverlay()),
+          ),
+
 // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
           Positioned(
             right: 16,
@@ -684,7 +974,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
               onPolice: () => _showPoliceSheet(context),
-              onFilters: () => _showFiltersSheet(context),
+              onFilters: () => _showFiltersOverlay(),
             ),
           ),
         ],
@@ -775,6 +1065,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showClusterInfo() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                'Cluster count',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'The number shown inside each cluster represents the total '
+                'number of reported incidents in that area.',
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showPoliceSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -840,65 +1160,133 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showFiltersSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(24),
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  const Text('Time',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  ...IncidentTimeFilter.values.map((f) {
-                    final label = {
-                      IncidentTimeFilter.lastHour: 'Last hour',
-                      IncidentTimeFilter.last6Hours: 'Last 6 hours',
-                      IncidentTimeFilter.last24Hours: 'Last 24 hours',
-                      IncidentTimeFilter.all: 'All time',
-                    }[f]!;
-                    return RadioListTile<IncidentTimeFilter>(
-                      title: Text(label),
-                      value: f,
-                      groupValue: _timeFilter,
-                      onChanged: (v) {
-                        setModalState(() => _timeFilter = v!);
-                        setState(() {});
-                      },
-                    );
-                  }),
-                  const Divider(height: 32),
-                  const Text('Distance',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  ...IncidentDistanceFilter.values.map((f) {
-                    final label = {
-                      IncidentDistanceFilter.m250: 'Within 250 m',
-                      IncidentDistanceFilter.m500: 'Within 500 m',
-                      IncidentDistanceFilter.km1: 'Within 1 km',
-                      IncidentDistanceFilter.all: 'Any distance',
-                    }[f]!;
-                    return RadioListTile<IncidentDistanceFilter>(
-                      title: Text(label),
-                      value: f,
-                      groupValue: _distanceFilter,
-                      onChanged: (v) {
-                        setModalState(() => _distanceFilter = v!);
-                        setState(() {});
-                      },
-                    );
-                  }),
-                ],
-              ),
-            );
+  OverlayEntry? _filterOverlay;
+
+  void _showFiltersOverlay() {
+    if (!mounted) return;
+
+    if (_filterOverlay != null) {
+      _filterOverlay!.remove();
+      _filterOverlay = null;
+    }
+
+    _filterOverlay = OverlayEntry(
+      builder: (context) {
+        return GestureDetector(
+          onTap: () {
+            if (_filterOverlay != null) {
+              _filterOverlay!.remove();
+              _filterOverlay = null;
+            }
           },
+          child: Material(
+            color: Colors.black.withOpacity(0.25),
+            child: Center(
+              child: GestureDetector(
+                onTap: () {}, // evita fechar ao clicar dentro
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 250),
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: 0.95 + (0.05 * value),
+                      child: Opacity(opacity: value, child: child),
+                    );
+                  },
+                  child: Container(
+                    width: 380,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: _buildFiltersContent(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_filterOverlay!);
+  }
+
+  Widget _buildFiltersContent() {
+    return StatefulBuilder(
+      builder: (context, setModalState) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Filters',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 20),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child:
+                  Text('Time', style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(height: 8),
+            ...IncidentTimeFilter.values.map((f) {
+              final label = {
+                IncidentTimeFilter.lastHour: 'Last hour',
+                IncidentTimeFilter.last6Hours: 'Last 6 hours',
+                IncidentTimeFilter.last24Hours: 'Last 24 hours',
+                IncidentTimeFilter.all: 'All time',
+              }[f]!;
+
+              return RadioListTile<IncidentTimeFilter>(
+                dense: true,
+                title: Text(label),
+                value: f,
+                groupValue: _timeFilter,
+                onChanged: (v) {
+                  setModalState(() => _timeFilter = v!);
+                  setState(() {});
+                },
+              );
+            }),
+            const Divider(height: 32),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Distance',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(height: 8),
+            ...IncidentDistanceFilter.values.map((f) {
+              final label = {
+                IncidentDistanceFilter.m250: 'Within 250 m',
+                IncidentDistanceFilter.m500: 'Within 500 m',
+                IncidentDistanceFilter.km1: 'Within 1 km',
+                IncidentDistanceFilter.all: 'Any distance',
+              }[f]!;
+
+              return RadioListTile<IncidentDistanceFilter>(
+                dense: true,
+                title: Text(label),
+                value: f,
+                groupValue: _distanceFilter,
+                onChanged: (v) {
+                  setModalState(() => _distanceFilter = v!);
+                  setState(() {});
+                },
+              );
+            }),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => _filterOverlay?.remove(),
+              child: const Text('Close'),
+            ),
+          ],
         );
       },
     );
@@ -943,19 +1331,37 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         SizedBox(height: 16),
+
                         Text(
-                          'BeeAware is a community safety awareness platform.\n\n'
-                          'It helps people share and view local, non-emergency safety-related '
-                          'information to improve situational awareness and support safer '
-                          'day-to-day decisions.\n\n'
-                          'Reports shown in this app may come from community members or from '
-                          'publicly available official data sources. These reports may be '
-                          'incomplete, delayed, inaccurate, or unverified.\n\n'
-                          'BeeAware does not monitor incidents in real time and is not an '
-                          'emergency service.',
+                          'BeeAware is a community safety awareness platform designed to help people stay informed about non-emergency incidents in their local area.\n\n'
+                          'The app combines community reports and publicly available official data to improve situational awareness and support safer daily decisions.\n\n'
+                          'Information shown may be delayed, incomplete, or unverified and should not be used as a substitute for emergency services.\n\n'
+                          'BeeAware does not provide real-time monitoring and is not an emergency response system.',
                           style: TextStyle(fontSize: 14, height: 1.5),
                         ),
-                        SizedBox(height: 16),
+
+                        SizedBox(height: 20),
+
+                        // 🔥 NOVA SEÇÃO
+                        Text(
+                          'Data sources',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+
+                        Text(
+                          'BeeAware displays safety information from two main sources:\n\n'
+                          '• Anonymous community reports submitted by users\n'
+                          '• Official open public data, including UK Police street-level crime datasets\n\n'
+                          'These sources are used to improve situational awareness and do not represent real-time alerts.',
+                          style: TextStyle(fontSize: 14),
+                        ),
+
+                        SizedBox(height: 20),
+
                         Text(
                           'Privacy & anonymity',
                           style: TextStyle(
@@ -964,6 +1370,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         SizedBox(height: 6),
+
                         Text(
                           'BeeAware is designed with privacy by default.\n'
                           'No personal identifying information is required.\n'
@@ -971,6 +1378,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           'to what is necessary to display incidents on the map.',
                           style: TextStyle(fontSize: 14),
                         ),
+
                         SizedBox(height: 24),
                       ],
                     ),
@@ -1057,6 +1465,889 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _openMenu(BuildContext context) {
+    _clearHint();
+    final rootContext = context; // 👈 importante para evitar erros
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) {
+        final tokens = rootContext.read<TokenState>().tokens;
+        final user = Supabase.instance.client.auth.currentUser;
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ================= HEADER =================
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(rootContext);
+
+                      if (user == null) {
+                        Navigator.push(
+                          rootContext,
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                        );
+                      } else {
+                        // FUTURO: profile
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: user == null
+                            ? null
+                            : const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFF2CC),
+                                  Color(0xFFFDE68A),
+                                ],
+                              ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          // Avatar
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFF59E0B),
+                                  Color(0xFFFBBF24),
+                                ],
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 22,
+                              backgroundColor: Colors.transparent,
+                              child: user == null
+                                  ? const Icon(Icons.person_outline,
+                                      color: Colors.black)
+                                  : const Icon(Icons.verified,
+                                      color: Colors.black),
+                            ),
+                          ),
+
+                          const SizedBox(width: 12),
+
+                          // Text
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user == null
+                                      ? 'Sign in to BeeAware'
+                                      : (user.email ?? 'Signed in'),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                Text(
+                                  user == null
+                                      ? 'Secure login · Google or Email'
+                                      : '$tokens tokens available',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Arrow
+                          const Icon(
+                            Icons.chevron_right,
+                            size: 20,
+                            color: Color(0xFF9CA3AF),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                const Divider(),
+
+                // ================= BUY =================
+                _menuItem(
+                  icon: Icons.credit_card,
+                  label: 'Buy more credits',
+                  onTap: () {
+                    Navigator.pop(rootContext);
+                    Navigator.push(
+                      rootContext,
+                      MaterialPageRoute(
+                        builder: (_) => const BuyTokensScreen(),
+                      ),
+                    );
+                  },
+                ),
+
+                // ================= ALERTS =================
+                _menuItem(
+                  icon: Icons.notifications_active,
+                  label: 'Alerts & monitoring',
+                  onTap: () {
+                    Navigator.pop(rootContext);
+                  },
+                ),
+
+                const Divider(height: 30),
+
+                // ================= DATA =================
+                _menuItem(
+                  icon: Icons.analytics_outlined,
+                  label: 'Data sources',
+                  onTap: () {
+                    Navigator.pop(rootContext);
+                    _showOfficialLegendSheet(rootContext);
+                  },
+                ),
+
+                _menuItem(
+                  icon: Icons.privacy_tip_outlined,
+                  label: 'Privacy',
+                  onTap: () async {
+                    Navigator.pop(rootContext);
+
+                    final uri =
+                        Uri.parse('https://www.beeaware.io/privacy.html');
+
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri,
+                          mode: LaunchMode.externalApplication);
+                    }
+                  },
+                ),
+
+                _menuItem(
+                  icon: Icons.info_outline,
+                  label: 'About BeeAware',
+                  onTap: () {
+                    Navigator.pop(rootContext);
+                    _showAboutSheet(rootContext);
+                  },
+                ),
+
+                // ================= LOGOUT =================
+                if (user != null)
+                  _menuItem(
+                    icon: Icons.logout,
+                    label: 'Sign out',
+                    onTap: () async {
+                      await Supabase.instance.client.auth.signOut();
+                      Navigator.pop(rootContext);
+                      setState(() {}); // ou atualize o state do menu
+                      context.read<TokenState>().clear();
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _menuItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, size: 20),
+      title: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w500),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  void _handleSearch(BuildContext context, String value) async {
+    _clearHint();
+
+    if (value.trim().isEmpty) return;
+
+    final tokenState = context.read<TokenState>();
+
+    // 🔥 bloqueia imediatamente
+    if (!tokenState.hasTokens) {
+      _showNoTokensDialog(context);
+      return;
+    }
+
+    setState(() => _isSearching = true);
+
+    final result = await _geocodeAddress(value);
+
+    //print('GEOCODE RESULT: $result');
+
+    if (result == null) {
+      setState(() => _isSearching = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Address not found')),
+      );
+      return;
+    }
+
+    // 🔥 só consome token se encontrou endereço
+    final success = await tokenState.useToken();
+
+    if (!success) {
+      _showNoTokensDialog(context);
+      return;
+    }
+
+    final remaining = tokenState.tokens;
+
+    if (remaining == 1) {
+      setState(() => _showLowTokenWarning = true);
+
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted) {
+          setState(() => _showLowTokenWarning = false);
+        }
+      });
+    }
+
+    setState(() {
+      _showZeroTokenBanner = remaining == 0;
+      _searchLocation = result;
+      _isSearching = false;
+    });
+
+    _mapController.move(result, 15);
+
+    UkPoliceApi.refreshTrendBackground(
+      lat: result.latitude,
+      lng: result.longitude,
+    );
+
+    // sync oficial
+    final bounds = _mapController.camera.visibleBounds;
+    await IncidentStore.syncOfficialForBounds(bounds);
+
+    _recentSearches.add(result);
+    _detectBuyingIntent(context, result);
+  }
+
+  String _monthShort(int m) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    if (m < 1 || m > 12) return '';
+    return months[m - 1];
+  }
+
+  void _showNoTokensDialog(BuildContext rootContext) {
+    showDialog(
+      context: rootContext,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('No search tokens remaining'),
+          content: const Text(
+            'Unlock unlimited safety insights before you move or visit an area.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // 🔥 fecha o dialog
+                Navigator.pop(dialogContext);
+
+                // 🔥 usa o context ORIGINAL da tela
+                Navigator.pushNamed(rootContext, '/buyTokens');
+              },
+              child: const Text('Buy more'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  OverlayEntry? _trendOverlay;
+
+  void _showSafetyTrend() async {
+    UkPoliceApi.clearTrendCache();
+    if (!mounted) return;
+
+    final center = _searchLocation ??
+        _mapController.camera.center ??
+        _initialCenter ??
+        _mapCenter;
+
+    // 1) tenta cache
+    List<MonthlyTrend>? policeTrend = UkPoliceApi.cachedTrend;
+
+    // 2) fallback se cache vazio
+    policeTrend ??= await UkPoliceApi.fetchTrend(
+      lat: center.latitude,
+      lng: center.longitude,
+    );
+
+    // 🔥 1. ordenar por mês
+    policeTrend.sort((a, b) => a.month.compareTo(b.month));
+
+// 🔥 2. descobrir último mês
+    final last = policeTrend.last.month;
+
+// 🔥 3. criar base correta de 12 meses
+    final months = _getTrendMonths(last);
+
+// 🔥 4. mapear dados da polícia corretamente
+    final policeData = List<double>.filled(months.length, 0);
+
+    final indexByYm = <String, int>{};
+    for (int i = 0; i < months.length; i++) {
+      final m = months[i];
+      final key = '${m.year}-${m.month.toString().padLeft(2, '0')}';
+      indexByYm[key] = i;
+    }
+
+    for (final e in policeTrend) {
+      final key = '${e.month.year}-${e.month.month.toString().padLeft(2, '0')}';
+
+      final idx = indexByYm[key];
+      if (idx != null) {
+        policeData[idx] = e.count.toDouble();
+      }
+    }
+
+    // comunidade alinhada aos mesmos meses da polícia
+    final communityData = _buildTrendDataAligned(center, months);
+
+    // soma final
+    final data = List.generate(
+      months.length,
+      (i) => policeData[i] + communityData[i],
+    );
+
+    _openTrendOverlay(data, months);
+  }
+
+  void _loadTrendInBackground(LatLng center) {
+    UkPoliceApi.refreshTrendBackground(
+      lat: center.latitude,
+      lng: center.longitude,
+    );
+  }
+
+  void _openTrendOverlay(List<double> data, List<DateTime> months) {
+    if (_trendOverlay != null) {
+      _trendOverlay!.remove();
+      _trendOverlay = null;
+    }
+
+    String monthShort(int m) {
+      const names = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
+      return names[m - 1];
+    }
+
+    final subtitle = months.isNotEmpty
+        ? 'Police and community reports · up to ${monthShort(months.last.month)} ${months.last.year}'
+        : 'Police and community reports · last 12 months';
+
+    _trendOverlay = OverlayEntry(
+      builder: (context) {
+        return GestureDetector(
+          onTap: () {
+            _trendOverlay?.remove();
+            _trendOverlay = null;
+          },
+          child: Material(
+            color: Colors.black.withValues(alpha: 0.25),
+            child: Center(
+              child: GestureDetector(
+                onTap: () {},
+                child: Container(
+                  width: 360,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Safety trend in this area',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 14),
+                      SafetyTrendChart(values: data, months: months),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_trendOverlay!);
+  }
+
+  List<DateTime> _getTrendMonths(DateTime lastPoliceMonth) {
+    return List.generate(
+      12,
+      (i) => DateTime(
+        lastPoliceMonth.year,
+        lastPoliceMonth.month - (11 - i),
+        1,
+      ),
+    );
+  }
+
+  List<double> _buildTrendData(LatLng center, DateTime anchorMonth) {
+    final anchor = DateTime(anchorMonth.year, anchorMonth.month, 1);
+    final monthly = List<int>.filled(12, 0);
+
+    for (final incident in _incidents) {
+      final incidentMonth =
+          DateTime(incident.dateTime.year, incident.dateTime.month, 1);
+
+      final diffMonths = (anchor.year - incidentMonth.year) * 12 +
+          (anchor.month - incidentMonth.month);
+
+      if (diffMonths < 0 || diffMonths > 11) continue;
+
+      final index = 11 - diffMonths;
+      monthly[index]++;
+    }
+
+    return monthly.map((e) => e.toDouble()).toList();
+  }
+
+  List<double> _buildTrendDataAligned(LatLng center, List<DateTime> months) {
+    final monthly = List<int>.filled(months.length, 0);
+
+    // índice por mês (YYYY-MM)
+    final indexByYm = <String, int>{};
+    for (int i = 0; i < months.length; i++) {
+      final m = months[i];
+      final key = '${m.year}-${m.month.toString().padLeft(2, '0')}';
+      indexByYm[key] = i;
+    }
+
+    for (final incident in _incidents) {
+      // ✅ só comunidade
+      if (incident.isOfficial) continue;
+
+      final meters = _distanceCalc.as(
+        LengthUnit.Meter,
+        center,
+        incident.location,
+      );
+      if (meters > 1609) continue;
+
+      final dt = incident.dateTime;
+      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+
+      final idx = indexByYm[key];
+      if (idx == null) continue;
+
+      monthly[idx]++;
+    }
+
+    return monthly.map((e) => e.toDouble()).toList();
+  }
+
+  List<double> _buildCommunityTrendForMonths(
+      LatLng center, List<DateTime> months) {
+    // índice rápido: yyyy-mm -> posição
+    final index = <String, int>{};
+    for (int i = 0; i < months.length; i++) {
+      final dt = months[i];
+      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+      index[key] = i;
+    }
+
+    final counts = List<int>.filled(months.length, 0);
+
+    for (final incident in _incidents) {
+      final key =
+          '${incident.dateTime.year}-${incident.dateTime.month.toString().padLeft(2, '0')}';
+
+      final pos = index[key];
+      if (pos == null) continue;
+
+      final meters = _distanceCalc.as(
+        LengthUnit.Meter,
+        center,
+        incident.location,
+      );
+
+      if (meters > 1609) continue; // 1 mile
+
+      counts[pos]++;
+    }
+
+    return counts.map((e) => e.toDouble()).toList();
+  }
+
+  List<double> _buildTrendFromHistorical(
+      List<MapIncident> list, LatLng center) {
+    final now = DateTime.now();
+
+    // 🔥 últimos 12 meses
+    final monthly = List<int>.filled(12, 0);
+
+    for (final i in list) {
+      // 🔥 normaliza o mês
+      final incidentMonth = DateTime(i.dateTime.year, i.dateTime.month, 1);
+
+      // 🔥 calcula diferença de meses (igual ao restante do app)
+      final diffMonths = (now.year - incidentMonth.year) * 12 +
+          (now.month - incidentMonth.month);
+
+      // só últimos 12 meses
+      if (diffMonths < 0 || diffMonths > 11) continue;
+
+      // 🔥 filtro de distância
+      final meters = _distanceCalc.as(
+        LengthUnit.Meter,
+        center,
+        i.location,
+      );
+
+      if (meters > 1609) continue; // 1 mile
+
+      // 🔥 índice cronológico (0 = mais antigo, 11 = mais recente)
+      final index = 11 - diffMonths;
+
+      monthly[index]++;
+    }
+
+    return monthly.map((e) => e.toDouble()).toList();
+  }
+
+  Future<LatLng?> _geocodeAddress(String query) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&limit=1&countrycodes=gb',
+      );
+
+      final response = await http.get(url, headers: {
+        'Accept': 'application/json',
+      });
+
+      if (response.statusCode != 200) return null;
+
+      final decoded = json.decode(response.body);
+
+      if (decoded.isEmpty) return null;
+
+      final lat = double.tryParse(decoded[0]['lat']);
+      final lon = double.tryParse(decoded[0]['lon']);
+
+      if (lat == null || lon == null) return null;
+
+      return LatLng(lat, lon);
+    } catch (e) {
+      debugPrint('Geocode error: $e');
+      return null;
+    }
+  }
+
+  Map<IncidentSeverity, int> _summaryWithin1Mile(LatLng center) {
+    const radiusMeters = 1609.34; // 1 mile
+
+    int low = 0;
+    int medium = 0;
+    int high = 0;
+
+    // Usa a lista já filtrada por time/severity/distance? NÃO.
+    // Aqui a gente quer o volume REAL ao redor do endereço buscado,
+    // então usamos _incidents (todos carregados) e contamos por severidade.
+    for (final i in _incidents) {
+      final meters = _distanceCalc.as(
+        LengthUnit.Meter,
+        center,
+        i.location,
+      );
+
+      if (meters <= radiusMeters) {
+        if (i.severity == IncidentSeverity.high)
+          high++;
+        else if (i.severity == IncidentSeverity.medium)
+          medium++;
+        else
+          low++;
+      }
+    }
+
+    return {
+      IncidentSeverity.low: low,
+      IncidentSeverity.medium: medium,
+      IncidentSeverity.high: high,
+    };
+  }
+
+  void _showSearchSummaryPopup(
+    BuildContext context,
+    Map<IncidentSeverity, int> summary,
+  ) {
+    final low = summary[IncidentSeverity.low] ?? 0;
+    final med = summary[IncidentSeverity.medium] ?? 0;
+    final high = summary[IncidentSeverity.high] ?? 0;
+
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Incidents within 1 mile',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 14),
+              _severityRow('High', high, const Color(0xFFF44336)),
+              _severityRow('Medium', med, const Color(0xFFFF9800)),
+              _severityRow('Low', low, const Color(0xFF607D8B)),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _detectBuyingIntent(BuildContext context, LatLng location) {
+    const radiusMeters = 1200; // ~1 mile
+
+    int nearbySearches = 0;
+
+    for (final s in _recentSearches) {
+      final meters = _distanceCalc.as(
+        LengthUnit.Meter,
+        location,
+        s,
+      );
+
+      if (meters <= radiusMeters) {
+        nearbySearches++;
+      }
+    }
+
+    // Threshold: 3 buscas na mesma área
+    if (nearbySearches >= 3) {
+      _showAlertOffer(context);
+    }
+  }
+
+  void _showAlertOffer(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.notifications_active,
+                  size: 36, color: Color(0xFFF59E0B)),
+              const SizedBox(height: 12),
+              const Text(
+                'Stay updated in this area',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'We noticed you are searching this area. '
+                'Would you like to receive alerts about new incidents nearby?',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // futuramente: ativar assinatura
+                },
+                child: const Text('Yes, notify me'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Not now'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _severityRow(String label, int value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Text(
+            value.toString(),
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _FilterButton({required this.onTap});
+
+  @override
+  State<_FilterButton> createState() => _FilterButtonState();
+}
+
+class _FilterButtonState extends State<_FilterButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(_hover ? 0.95 : 0.85),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: _hover ? 20 : 10,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.filter_list, size: 20),
+              if (_hover)
+                const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Text(
+                    'Filters',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1243,18 +2534,6 @@ class _BottomBarState extends State<_BottomBar> {
                       },
                     ),
                   ),
-                const SizedBox(width: 66),
-                Tooltip(
-                  message: 'Filter incidents',
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: IconButton(
-                      icon: const Icon(Icons.filter_list_alt),
-                      color: const Color(0xFF2F3A4A),
-                      onPressed: widget.onFilters,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -1278,6 +2557,58 @@ class _AnimatedCentralButton extends StatefulWidget {
 
   @override
   State<_AnimatedCentralButton> createState() => _AnimatedCentralButtonState();
+}
+
+class _TrendButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _TrendButton({required this.onTap});
+
+  @override
+  State<_TrendButton> createState() => _TrendButtonState();
+}
+
+class _TrendButtonState extends State<_TrendButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(_hover ? 0.95 : 0.85),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: _hover ? 20 : 10,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.show_chart, size: 20),
+              if (_hover)
+                const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Text(
+                    'Safety trend',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AnimatedCentralButtonState extends State<_AnimatedCentralButton> {

@@ -1,38 +1,100 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:provider/provider.dart';
 
 import 'root/root_screen.dart';
 import 'map/incident_store.dart';
+import 'state/token_state.dart';
+import 'report/buy_tokens_screen.dart';
+import 'report/search_address_screen.dart';
+import 'package:flutter/foundation.dart';
+
+bool _bonusChecked = false;
+
+void setupAuthListener(BuildContext context) {
+  Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+    final session = data.session;
+
+    if (session != null && !_bonusChecked) {
+      _bonusChecked = true;
+
+      try {
+        // 🔥 chama Edge Function
+        await Supabase.instance.client.functions.invoke('onboarding-bonus');
+
+        // 🔥 atualiza tokens
+        await context.read<TokenState>().loadTokens();
+      } catch (e) {
+        debugPrint('Bonus error: $e');
+      }
+    }
+  });
+}
 
 Future<void> main() async {
-  // 1. Configuração básica (essencial ser await)
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Remove o '#' da URL (estratégia de navegação web)
   usePathUrlStrategy();
 
-  // 3. Inicialização Assíncrona (Sem travar o runApp)
-  // Removemos os 'await' para que o Flutter desenhe a interface
-  // enquanto a conexão com o banco acontece em paralelo.
   try {
-    Supabase.initialize(
+    await Supabase.initialize(
       url: 'https://brjzkdtkmewbodpqjhkj.supabase.co',
       anonKey: 'sb_publishable_2__zBOoc8qdvJfRz8ejagw_2vT8Ji3P',
-    ).catchError((e) => debugPrint("Supabase error: $e"));
+    );
 
-    // Chamamos o init sem o await
-    IncidentStore.init();
+// ✅ FINALIZA LOGIN OAUTH NO WEB
+    if (kIsWeb) {
+      final uri = Uri.base;
+
+      if (uri.queryParameters.containsKey('code')) {
+        await Supabase.instance.client.auth
+            .exchangeCodeForSession(uri.toString());
+      }
+    }
+
+    await IncidentStore.init();
   } catch (e) {
     debugPrint("Backend init error: $e");
   }
 
-  // 4. Lança o app imediatamente
-  runApp(const BeeAwareApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => TokenState(),
+      child: const BeeAwareApp(),
+    ),
+  );
 }
 
-class BeeAwareApp extends StatelessWidget {
+class BeeAwareApp extends StatefulWidget {
   const BeeAwareApp({super.key});
+
+  @override
+  State<BeeAwareApp> createState() => _BeeAwareAppState();
+}
+
+class _BeeAwareAppState extends State<BeeAwareApp> {
+  bool _bonusChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+      final session = data.session;
+
+      if (session != null && !_bonusChecked) {
+        _bonusChecked = true;
+
+        try {
+          await Supabase.instance.client.functions.invoke('onboarding-bonus');
+          await context.read<TokenState>().loadTokens();
+        } catch (e) {
+          debugPrint('Bonus error: $e');
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,13 +111,16 @@ class BeeAwareApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.black, // Cor do texto/ícone
-            backgroundColor: const Color(0xFFF59E0B), // Cor do fundo
+            foregroundColor: Colors.black,
+            backgroundColor: const Color(0xFFF59E0B),
           ),
         ),
       ),
-      // AQUI: Troca RootScreen() por BeeAwareSplashScreen()
       home: const RootScreen(),
+      routes: {
+        '/buyTokens': (_) => const BuyTokensScreen(),
+        '/searchAddress': (_) => const SearchAddressScreen(),
+      },
     );
   }
 }

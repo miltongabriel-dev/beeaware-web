@@ -34,15 +34,21 @@ class IncidentStore {
   }
 
   /// 🔄 sincroniza incidentes visíveis do Supabase (community)
-  static Future<void> syncFromBackend() async {
+  static Future<void> syncFromBackend({bool force = false}) async {
     try {
       final remote = await IncidentApi.fetchVisibleIncidents();
       bool changed = false;
 
       for (final r in remote) {
-        final exists = _incidents.any((i) => i.id == r.id);
-        if (!exists) {
+        final index = _incidents.indexWhere((i) => i.id == r.id);
+
+        if (index == -1) {
+          // novo incidente
           _incidents = [..._incidents, r];
+          changed = true;
+        } else {
+          // 🔥 atualizar incidente existente (fix da descrição)
+          _incidents[index] = r;
           changed = true;
         }
       }
