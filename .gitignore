@@ -26,3 +26,7 @@ Thumbs.db
 !build/web/**
 .vercel
 .env*.local
+
+# Secrets
+*.key
+*.pem
