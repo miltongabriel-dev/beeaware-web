@@ -230,7 +230,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _hintOverlay = OverlayEntry(
       builder: (context) => Positioned(
-        bottom: 115,
+        // 220 em vez de 115: a caixa da legenda de severidade (mais abaixo
+        // nesse mesmo Stack) ocupa de bottom:110 até ~bottom:210 — com 115
+        // esse aviso ficava por cima da legenda, cortando a linha "Cluster
+        // numbers explained".
+        bottom: 220,
         left: 24,
         right: 24,
         child: Center(
@@ -768,7 +772,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: TextField(
                           decoration: const InputDecoration(
-                            hintText: 'Enter address and press search',
+                            // Texto mais curto que o original ("Enter
+                            // address and press search") -- o espaço
+                            // disponível ao lado do ícone de busca e do
+                            // badge de tokens é estreito, e a frase
+                            // inteira ficava cortada no meio.
+                            hintText: 'Search an address',
                             border: InputBorder.none,
                             isDense: true,
                           ),
@@ -2540,7 +2549,7 @@ class _BottomBarState extends State<_BottomBar> {
           Positioned(
             bottom: 16,
             child: Tooltip(
-              message: 'Share a local safetly report',
+              message: 'Share a local safety report',
               child: _AnimatedCentralButton(onTap: widget.onReport),
             ),
           ),
