@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
 
+import 'l10n/app_localizations.dart';
+
 import 'root/root_screen.dart';
 import 'map/incident_store.dart';
 import 'state/token_state.dart';
+import 'state/locale_state.dart';
 import 'report/buy_tokens_screen.dart';
 import 'report/search_address_screen.dart';
+import 'theme/beeaware_theme.dart';
 import 'package:flutter/foundation.dart';
 
 bool _bonusChecked = false;
@@ -59,8 +64,11 @@ Future<void> main() async {
   }
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => TokenState(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => TokenState()),
+        ChangeNotifierProvider(create: (_) => LocaleState()..load()),
+      ],
       child: const BeeAwareApp(),
     ),
   );
@@ -98,24 +106,20 @@ class _BeeAwareAppState extends State<BeeAwareApp> {
 
   @override
   Widget build(BuildContext context) {
+    final localeOverride = context.watch<LocaleState>().locale;
+
     return MaterialApp(
       title: 'BeeAware',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF6F2E5),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFF59E0B),
-          primary: const Color(0xFFF59E0B),
-          onPrimary: Colors.black,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.black,
-            backgroundColor: const Color(0xFFF59E0B),
-          ),
-        ),
-      ),
+      theme: BeeAwareTheme.light,
+      locale: localeOverride,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('pt'), Locale('en')],
       home: const RootScreen(),
       routes: {
         '/buyTokens': (_) => const BuyTokensScreen(),

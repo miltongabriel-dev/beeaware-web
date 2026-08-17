@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../state/token_state.dart';
 
 class SearchAddressScreen extends StatefulWidget {
@@ -19,12 +20,13 @@ class _SearchAddressScreenState extends State<SearchAddressScreen> {
   }
 
   void _onSearch() {
+    final loc = AppLocalizations.of(context)!;
     final tokenState = context.read<TokenState>();
     final query = _controller.text.trim();
 
     if (query.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Type an address to search.')),
+        SnackBar(content: Text(loc.typeAddressToSearch)),
       );
       return;
     }
@@ -36,29 +38,28 @@ class _SearchAddressScreenState extends State<SearchAddressScreen> {
 
     // Mock: por enquanto só mostra mensagem
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Searching near: $query (mock)')),
+      SnackBar(content: Text(loc.searchingNearMock(query))),
     );
   }
 
   void _showNoTokensDialog() {
+    final loc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('No tokens left'),
-        content: const Text(
-          'You have no search tokens remaining.\n\nBuy more tokens to continue searching.',
-        ),
+        title: Text(loc.noTokensLeftTitle),
+        content: Text(loc.noTokensLeftContent),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(loc.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/buyTokens');
             },
-            child: const Text('Buy Tokens'),
+            child: Text(loc.buyTokensButton),
           ),
         ],
       ),
@@ -67,24 +68,25 @@ class _SearchAddressScreenState extends State<SearchAddressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     final tokens = context.watch<TokenState>().tokens;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search Address'),
+        title: Text(loc.searchAddressTitle),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Tokens remaining: $tokens'),
+            Text(loc.tokensRemaining(tokens)),
             const SizedBox(height: 12),
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(
-                labelText: 'Address or postcode',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: loc.addressOrPostcodeHint,
+                border: const OutlineInputBorder(),
               ),
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _onSearch(),
@@ -92,7 +94,7 @@ class _SearchAddressScreenState extends State<SearchAddressScreen> {
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _onSearch,
-              child: const Text('Search'),
+              child: Text(loc.searchButton),
             ),
           ],
         ),

@@ -3,7 +3,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../state/token_state.dart';
+import '../theme/beeaware_theme.dart';
+import '../theme/bee_loader.dart';
+import '../theme/fade_in.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,8 +30,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F2E5),
+      backgroundColor: BeeAwareTheme.background,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -38,122 +43,126 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
 
                 // LOGO
-                SvgPicture.asset(
-                  'assets/logo/beeaware_logo.svg',
-                  width: 70,
+                FadeInUp(
+                  child: SvgPicture.asset(
+                    'assets/logo/beeaware_logo.svg',
+                    width: 70,
+                  ),
                 ),
 
                 const SizedBox(height: 20),
 
-                const Text(
-                  'Stay aware.\nStay safe.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2F3A4A),
+                FadeInUp(
+                  delay: const Duration(milliseconds: 150),
+                  child: Text(
+                    loc.loginHeadline,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: BeeAwareTheme.textPrimary,
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSpacing.md),
 
-                const Text(
-                  'Private by design. No personal data required.\nCommunity and official data to help you make safer decisions.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
+                FadeInUp(
+                  delay: const Duration(milliseconds: 300),
+                  child: Text(
+                    loc.loginSubtitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: BeeAwareTheme.textSecondary,
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: AppSpacing.xl),
 
                 // CARD
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // GOOGLE
-                      _socialButton(
-                        label: 'Continue with Google',
-                        icon: 'assets/icons/google_logo.svg',
-                        loading: _loadingGoogle,
-                        onTap: _loginGoogle,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // APPLE
-                      if (!Theme.of(context).platform.name.contains('android'))
+                FadeInUp(
+                  delay: const Duration(milliseconds: 450),
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    decoration: BoxDecoration(
+                      color: BeeAwareTheme.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      boxShadow: BeeAwareTheme.cardShadow,
+                    ),
+                    child: Column(
+                      children: [
+                        // GOOGLE
                         _socialButton(
-                          label: 'Continue with Apple',
-                          icon: 'assets/icons/apple_logo.svg',
-                          loading: false,
-                          onTap: () {},
-                          enabled: false,
+                          label: loc.continueWithGoogle,
+                          icon: 'assets/icons/google_logo.svg',
+                          loading: _loadingGoogle,
+                          onTap: _loginGoogle,
                         ),
 
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Apple sign-in coming soon',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      ),
+                        const SizedBox(height: 12),
 
-                      const Divider(),
-
-                      const SizedBox(height: 20),
-
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your email',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
+                        // APPLE
+                        if (!Theme.of(context)
+                            .platform
+                            .name
+                            .contains('android'))
+                          _socialButton(
+                            label: loc.continueWithApple,
+                            icon: 'assets/icons/apple_logo.svg',
+                            loading: false,
+                            onTap: () {},
+                            enabled: false,
                           ),
-                          prefixIcon: const Icon(Icons.email_outlined),
-                        ),
-                      ),
 
-                      const SizedBox(height: 12),
-
-                      ElevatedButton(
-                        onPressed: _loadingEmail ? null : _magicLink,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
+                        const SizedBox(height: 6),
+                        Text(
+                          loc.appleSignInComingSoon,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF9CA3AF),
+                          ),
                         ),
-                        child: _loadingEmail
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Send magic link'),
-                      ),
-                    ],
+
+                        const Divider(),
+
+                        const SizedBox(height: 20),
+
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            hintText: loc.enterYourEmail,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            prefixIcon: const Icon(Icons.email_outlined),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        ElevatedButton(
+                          onPressed: _loadingEmail ? null : _magicLink,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                          child: _loadingEmail
+                              ? const BeeLoader(size: 18, color: Colors.white)
+                              : Text(loc.sendMagicLink),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                const Text(
-                  'Your privacy is protected. No personal data required.',
+                Text(
+                  loc.privacyProtectedNotice,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF9CA3AF),
                   ),
@@ -207,9 +216,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       await context.read<TokenState>().loadTokens();
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Check your email for the login link'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.checkEmailForLoginLink),
         ),
       );
     } catch (e) {
@@ -244,18 +254,12 @@ class _LoginScreenState extends State<LoginScreen> {
             margin: const EdgeInsets.only(top: 12),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              color: BeeAwareTheme.surface,
+              borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
                 color: const Color(0xFFE5E7EB),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              boxShadow: BeeAwareTheme.cardShadow,
             ),
             child: Row(
               children: [
@@ -275,11 +279,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Expanded(
                   child: Center(
                     child: loading
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                        ? const BeeLoader(size: 18)
                         : Text(
                             label,
                             textAlign: TextAlign.center,

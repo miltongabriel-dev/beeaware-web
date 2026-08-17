@@ -1,8 +1,22 @@
 import 'dart:convert';
+import 'dart:ui' show PlatformDispatcher, Locale;
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart';
+import '../l10n/app_localizations.dart';
 import '../map/map_incident.dart';
+
+/// Loads the strings for the device's current locale without needing a
+/// BuildContext — this runs in the data layer (IncidentStore), outside
+/// the widget tree. Falls back to Portuguese for anything but English,
+/// mirroring MaterialApp's supportedLocales order in main.dart.
+Future<AppLocalizations> _loadLocalizations() {
+  final deviceLocale = PlatformDispatcher.instance.locale;
+  final resolved = deviceLocale.languageCode == 'en'
+      ? const Locale('en')
+      : const Locale('pt');
+  return AppLocalizations.delegate.load(resolved);
+}
 
 class UkPoliceApi {
   /// =========================
@@ -23,6 +37,7 @@ class UkPoliceApi {
     final Set<String> seen = {};
     final distance = const Distance();
     final center = LatLng(lat, lng);
+    final l10n = await _loadLocalizations();
 
     // Pega últimos 4 meses (já assumindo atraso de publicação)
     final monthsToFetch = _getLastMonths(count: 4, backMonths: 2);
@@ -63,7 +78,7 @@ class UkPoliceApi {
             final meters = distance.as(LengthUnit.Meter, center, point);
             if (meters > radiusMeters) continue;
 
-            String streetName = "Location not specified";
+            String streetName = l10n.locationNotSpecified;
             if (loc['street'] is Map) {
               final s = (loc['street']['name'] as String?)?.trim();
               if (s != null && s.isNotEmpty) streetName = s;
@@ -71,10 +86,13 @@ class UkPoliceApi {
 
             final category = (row['category'] as String?) ?? 'unknown';
             final outcome = row['outcome_status']?['category'];
+            final categoryText = category.replaceAll('-', ' ');
 
             final description = outcome != null
-                ? 'Police recorded ${category.replaceAll('-', ' ')} near $streetName. Outcome: $outcome. Reported in $month.'
-                : 'Police recorded ${category.replaceAll('-', ' ')} near $streetName. Reported in $month.';
+                ? l10n.officialDescriptionWithOutcome(
+                    categoryText, streetName, outcome as String, month)
+                : l10n.officialDescriptionNoOutcome(
+                    categoryText, streetName, month);
 
             final dedupeKey =
                 '$crimeLat|$crimeLng|$category|$month|$streetName';

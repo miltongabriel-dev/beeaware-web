@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:aware/config/rounded_hexagon_painter.dart';
@@ -10,7 +11,15 @@ import 'package:aware/config/rounded_hexagon_painter.dart';
 import '../map/map_incident.dart';
 import '../map/incident_store.dart';
 import '../map/bee_incident_pin.dart';
+import '../config/app_config.dart';
+import '../theme/beeaware_theme.dart';
+import '../theme/bee_loader.dart';
 import '../report/report_category_screen.dart';
+import '../report/report_labels.dart';
+import '../l10n/app_localizations.dart';
+import '../state/locale_state.dart';
+import '../theme/fade_in.dart';
+import '../utils/relative_time.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aware/auth/login_screen.dart';
@@ -26,7 +35,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:aware/home/widgets/safety_trend_chart.dart';
 import 'package:aware/backend/uk_police_api.dart';
-import 'package:latlong2/latlong.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -40,15 +48,6 @@ enum IncidentDistanceFilter {
   m500,
   km1,
   all,
-}
-
-String _relativeTime(DateTime date) {
-  final diff = DateTime.now().difference(date);
-
-  if (diff.inMinutes < 1) return 'Just now';
-  if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
-  if (diff.inHours < 24) return '${diff.inHours} hours ago';
-  return '${diff.inDays} days ago';
 }
 
 class HomeScreen extends StatefulWidget {
@@ -268,13 +267,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Text("🐝 ", style: TextStyle(fontSize: 16)),
+                  children: [
+                    const Text("🐝 ", style: TextStyle(fontSize: 16)),
                     Flexible(
                       child: Text(
-                        "Spot something? Tap the Bee.",
+                        AppLocalizations.of(context)!.reportingHintText,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
@@ -622,20 +621,48 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_isLoadingIncidents)
             Positioned.fill(
               child: Container(
-                color: Colors.white.withOpacity(0.75),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 12),
-                    Text(
-                      'Loading incidents…',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                color: Colors.white.withOpacity(0.55),
+                child: BeeLoadingCard(
+                  message: AppLocalizations.of(context)!.loadingIncidents,
+                ),
+              ),
+            ),
+
+          // ================= EMPTY STATE =================
+          if (!_isLoadingIncidents && visibleIncidents.isEmpty)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 48),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                      vertical: AppSpacing.lg,
                     ),
-                  ],
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(color: BeeAwareTheme.border),
+                      boxShadow: BeeAwareTheme.cardShadow,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off_outlined,
+                            size: 28, color: BeeAwareTheme.textAux),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          AppLocalizations.of(context)!.noIncidentsForFilters,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: BeeAwareTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -644,46 +671,60 @@ class _HomeScreenState extends State<HomeScreen> {
           Positioned(
             bottom: 110,
             left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildLegendItem(Colors.red, 'High Severity'),
-                  const SizedBox(height: 4),
-                  _buildLegendItem(Colors.orange, 'Medium Severity'),
-                  const SizedBox(height: 4),
-                  _buildLegendItem(Colors.yellow, 'Low Severity'),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: _showClusterInfo,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.info_outline,
-                            size: 14, color: Color(0xFF6B7280)),
-                        SizedBox(width: 6),
-                        Text(
-                          'Cluster numbers explained',
-                          style:
-                              TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-                        ),
-                      ],
+            child: FadeInUp(
+              delay: const Duration(milliseconds: 200),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildLegendItem(
+                        SeverityColors.high,
+                        SeverityColors.labelSuffixed(
+                            context, IncidentSeverity.high)),
+                    const SizedBox(height: 4),
+                    _buildLegendItem(
+                        SeverityColors.medium,
+                        SeverityColors.labelSuffixed(
+                            context, IncidentSeverity.medium)),
+                    const SizedBox(height: 4),
+                    _buildLegendItem(
+                        SeverityColors.low,
+                        SeverityColors.labelSuffixed(
+                            context, IncidentSeverity.low)),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: _showClusterInfo,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.info_outline,
+                              size: 14, color: Color(0xFF6B7280)),
+                          const SizedBox(width: 6),
+                          Text(
+                            AppLocalizations.of(context)!
+                                .clusterNumbersExplained,
+                            style: const TextStyle(
+                                fontSize: 11, color: Color(0xFF6B7280)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -714,111 +755,116 @@ class _HomeScreenState extends State<HomeScreen> {
             top: 60,
             left: 20,
             right: 20,
-            child: Builder(
-              builder: (context) {
-                final tokens = context.watch<TokenState>().tokens;
+            child: FadeInUp(
+              child: Builder(
+                builder: (context) {
+                  final tokens = context.watch<TokenState>().tokens;
 
-                return Container(
-                  height: 58,
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      // MENU (☰)
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () => _openMenu(context),
-                          child: const Icon(
-                            Icons.menu,
-                            size: 22,
-                            color: Color(0xFF1F2933),
+                  return Container(
+                    height: 58,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // MENU (☰)
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => _openMenu(context),
+                            child: const Icon(
+                              Icons.menu,
+                              size: 22,
+                              color: Color(0xFF1F2933),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
+                        const SizedBox(width: 12),
 
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: _isSearching
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: _isSearching
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.search,
+                                  key: ValueKey('search_icon'),
+                                  size: 20,
+                                  color: Color(0xFF6B7280),
                                 ),
-                              )
-                            : const Icon(
-                                Icons.search,
-                                key: ValueKey('search_icon'),
-                                size: 20,
-                                color: Color(0xFF6B7280),
+                        ),
+
+                        const SizedBox(width: 16),
+
+                        // Placeholder
+                        Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              // Texto mais curto que o original ("Enter
+                              // address and press search") -- o espaço
+                              // disponível ao lado do ícone de busca e do
+                              // badge de tokens é estreito, e a frase
+                              // inteira ficava cortada no meio.
+                              hintText: AppLocalizations.of(context)!
+                                  .searchAnAddressHint,
+                              border: InputBorder.none,
+                              isDense: true,
+                            ),
+                            textInputAction: TextInputAction.search,
+                            onChanged: (value) {
+                              _debounce?.cancel();
+                              _debounce = Timer(
+                                const Duration(milliseconds: 250),
+                                () => _fetchSuggestions(value),
+                              );
+                            },
+                            onSubmitted: (value) {
+                              _clearHint();
+                              _handleSearch(context, value);
+                            },
+                          ),
+                        ),
+
+                        // Tokens badge
+                        if (AppConfig.tokensEnabled)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: BeeAwareTheme.accent.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              AppLocalizations.of(context)!
+                                  .tokensSearchBadge(tokens),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: BeeAwareTheme.textPrimary,
                               ),
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      // Placeholder
-                      Expanded(
-                        child: TextField(
-                          decoration: const InputDecoration(
-                            // Texto mais curto que o original ("Enter
-                            // address and press search") -- o espaço
-                            // disponível ao lado do ícone de busca e do
-                            // badge de tokens é estreito, e a frase
-                            // inteira ficava cortada no meio.
-                            hintText: 'Search an address',
-                            border: InputBorder.none,
-                            isDense: true,
+                            ),
                           ),
-                          textInputAction: TextInputAction.search,
-                          onChanged: (value) {
-                            _debounce?.cancel();
-                            _debounce = Timer(
-                              const Duration(milliseconds: 250),
-                              () => _fetchSuggestions(value),
-                            );
-                          },
-                          onSubmitted: (value) {
-                            _clearHint();
-                            _handleSearch(context, value);
-                          },
-                        ),
-                      ),
-
-                      // Tokens badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '$tokens Search tokens',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2F3A4A),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           if (_suggestions.isNotEmpty)
@@ -874,16 +920,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    color: SemanticColors.alertSoft,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Text(
-                    'You have 1 search remaining',
+                  child: Text(
+                    AppLocalizations.of(context)!.oneSearchRemaining,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2F3A4A),
+                      color: SemanticColors.alertText,
                     ),
                   ),
                 ),
@@ -903,25 +949,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: SemanticColors.errorSoft,
                     borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    boxShadow: BeeAwareTheme.cardShadow,
                   ),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'You’ve used all your searches',
-                          style: TextStyle(
+                          AppLocalizations.of(context)!.allSearchesUsed,
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF2F3A4A),
+                            color: SemanticColors.errorText,
                           ),
                         ),
                       ),
@@ -934,7 +974,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           );
                         },
-                        child: const Text('Buy more'),
+                        child: Text(AppLocalizations.of(context)!.buyMore),
                       ),
                     ],
                   ),
@@ -1025,11 +1065,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return worst;
   }
 
-  Color _severityColor(IncidentSeverity? s) {
-    if (s == IncidentSeverity.high) return const Color(0xFFEF4444);
-    if (s == IncidentSeverity.medium) return const Color(0xFFF59E0B);
-    return const Color(0xFFFDE047);
-  }
+  Color _severityColor(IncidentSeverity? s) =>
+      SeverityColors.of(s ?? IncidentSeverity.low);
 
   // ===== bottom sheets =====
 
@@ -1039,38 +1076,48 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(incident.category,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Text(incident.subcategory,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
-            const SizedBox(height: 12),
-            Text(
-              incident.description.isEmpty
-                  ? 'No description provided.'
-                  : incident.description,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              incident.isOfficial
-                  ? "Official Police Record · ${incident.dateTime.month}/${incident.dateTime.year}"
-                  : "Community Report · ${_relativeTime(incident.dateTime)}",
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
+      builder: (sheetContext) {
+        final loc = AppLocalizations.of(sheetContext)!;
+        final categoryLabel = incident.isOfficial
+            ? loc.policeReportCategory
+            : ReportLabels.category(sheetContext, incident.category);
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(categoryLabel,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text(ReportLabels.subcategory(sheetContext, incident.subcategory),
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
+              const SizedBox(height: 12),
+              Text(
+                incident.description.isEmpty
+                    ? loc.noDescriptionProvided
+                    : incident.description,
               ),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(height: 12),
+              Text(
+                incident.isOfficial
+                    ? loc.officialRecordDate(
+                        incident.dateTime.month, incident.dateTime.year)
+                    : loc.communityReportRelative(
+                        relativeTime(sheetContext, incident.dateTime)),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1080,23 +1127,24 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) {
+      builder: (sheetContext) {
+        final loc = AppLocalizations.of(sheetContext)!;
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Text(
-                'Cluster count',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                loc.clusterCountTitle,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Text(
-                'The number shown inside each cluster represents the total '
-                'number of reported incidents in that area.',
+                loc.clusterCountExplanation,
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
             ],
           ),
         );
@@ -1110,17 +1158,18 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) {
+      builder: (sheetContext) {
+        final loc = AppLocalizations.of(sheetContext)!;
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Emergency services',
+              Text(
+                loc.emergencyServices,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                 ),
@@ -1128,7 +1177,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 icon: const Icon(Icons.emergency),
-                label: const Text('Call emergency (999)'),
+                label: Text(loc.callEmergency999),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF44336),
                   foregroundColor: Colors.white,
@@ -1143,7 +1192,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               TextButton.icon(
                 icon: const Icon(Icons.phone),
-                label: const Text('Call non-emergency (101)'),
+                label: Text(loc.callNonEmergency101),
                 onPressed: () async {
                   final uri = Uri.parse('tel:101');
                   if (await canLaunchUrl(uri)) {
@@ -1152,11 +1201,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              const Text(
-                'BeeAware is not an emergency service.\n'
-                'If you are in immediate danger, contact emergency services directly.',
+              Text(
+                loc.emergencyDisclaimer,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   color: Color(0xFF6B7280),
                   height: 1.4,
@@ -1231,26 +1279,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFiltersContent() {
     return StatefulBuilder(
       builder: (context, setModalState) {
+        final loc = AppLocalizations.of(context)!;
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Filters',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            Text(
+              loc.filters,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 20),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
-              child:
-                  Text('Time', style: TextStyle(fontWeight: FontWeight.w600)),
+              child: Text(loc.filterTimeSectionTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: 8),
             ...IncidentTimeFilter.values.map((f) {
               final label = {
-                IncidentTimeFilter.lastHour: 'Last hour',
-                IncidentTimeFilter.last6Hours: 'Last 6 hours',
-                IncidentTimeFilter.last24Hours: 'Last 24 hours',
-                IncidentTimeFilter.all: 'All time',
+                IncidentTimeFilter.lastHour: loc.timeFilterLastHour,
+                IncidentTimeFilter.last6Hours: loc.timeFilterLast6Hours,
+                IncidentTimeFilter.last24Hours: loc.timeFilterLast24Hours,
+                IncidentTimeFilter.all: loc.timeFilterAllTime,
               }[f]!;
 
               return RadioListTile<IncidentTimeFilter>(
@@ -1265,18 +1314,18 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }),
             const Divider(height: 32),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
-              child: Text('Distance',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              child: Text(loc.distanceLabel,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: 8),
             ...IncidentDistanceFilter.values.map((f) {
               final label = {
-                IncidentDistanceFilter.m250: 'Within 250 m',
-                IncidentDistanceFilter.m500: 'Within 500 m',
-                IncidentDistanceFilter.km1: 'Within 1 km',
-                IncidentDistanceFilter.all: 'Any distance',
+                IncidentDistanceFilter.m250: loc.distanceFilter250m,
+                IncidentDistanceFilter.m500: loc.distanceFilter500m,
+                IncidentDistanceFilter.km1: loc.distanceFilter1km,
+                IncidentDistanceFilter.all: loc.distanceFilterAny,
               }[f]!;
 
               return RadioListTile<IncidentDistanceFilter>(
@@ -1293,7 +1342,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 10),
             TextButton(
               onPressed: () => _filterOverlay?.remove(),
-              child: const Text('Close'),
+              child: Text(loc.close),
             ),
           ],
         );
@@ -1308,7 +1357,8 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) {
+      builder: (sheetContext) {
+        final loc = AppLocalizations.of(sheetContext)!;
         return SafeArea(
           child: SizedBox(
             height: MediaQuery.of(context).size.height * 0.75,
@@ -1329,66 +1379,57 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Center(
                           child: Text(
-                            'About BeeAware',
-                            style: TextStyle(
+                            loc.aboutBeeAware,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
                         Text(
-                          'BeeAware is a community safety awareness platform designed to help people stay informed about non-emergency incidents in their local area.\n\n'
-                          'The app combines community reports and publicly available official data to improve situational awareness and support safer daily decisions.\n\n'
-                          'Information shown may be delayed, incomplete, or unverified and should not be used as a substitute for emergency services.\n\n'
-                          'BeeAware does not provide real-time monitoring and is not an emergency response system.',
-                          style: TextStyle(fontSize: 14, height: 1.5),
+                          loc.aboutBodyText,
+                          style: const TextStyle(fontSize: 14, height: 1.5),
                         ),
 
-                        SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
                         // 🔥 NOVA SEÇÃO
                         Text(
-                          'Data sources',
-                          style: TextStyle(
+                          loc.dataSources,
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 6),
+                        const SizedBox(height: 6),
 
                         Text(
-                          'BeeAware displays safety information from two main sources:\n\n'
-                          '• Anonymous community reports submitted by users\n'
-                          '• Official open public data, including UK Police street-level crime datasets\n\n'
-                          'These sources are used to improve situational awareness and do not represent real-time alerts.',
-                          style: TextStyle(fontSize: 14),
+                          loc.aboutDataSourcesBody,
+                          style: const TextStyle(fontSize: 14),
                         ),
 
-                        SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
                         Text(
-                          'Privacy & anonymity',
-                          style: TextStyle(
+                          loc.privacyAnonymityTitle,
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 6),
+                        const SizedBox(height: 6),
 
                         Text(
-                          'BeeAware is designed with privacy by default.\n'
-                          'No personal identifying information is required.\n'
-                          'Reports are anonymous and location data is limited '
-                          'to what is necessary to display incidents on the map.',
-                          style: TextStyle(fontSize: 14),
+                          loc.privacyAnonymityBody,
+                          style: const TextStyle(fontSize: 14),
                         ),
 
-                        SizedBox(height: 24),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
@@ -1406,7 +1447,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 mode: LaunchMode.externalApplication);
                           }
                         },
-                        child: Text('Privacy Policy'),
+                        child: Text(loc.privacyPolicyButton),
                       ),
                       TextButton(
                         onPressed: () async {
@@ -1417,12 +1458,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 mode: LaunchMode.externalApplication);
                           }
                         },
-                        child: Text('Terms of Service'),
+                        child: Text(loc.termsOfServiceButton),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
-                        '© BeeAware',
-                        style: TextStyle(
+                        loc.copyrightBeeAware,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF6B7280),
                         ),
@@ -1444,32 +1485,29 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) {
+      builder: (sheetContext) {
+        final loc = AppLocalizations.of(sheetContext)!;
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Center(
                 child: Text(
-                  'Data sources',
-                  style: TextStyle(
+                  loc.dataSources,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              SizedBox(height: 14),
+              const SizedBox(height: 14),
               Text(
-                'BeeAware shows two types of reports:\n\n'
-                '• Community reports (anonymous user submissions)\n'
-                '• Official open data (UK Police street-level crime data)\n\n'
-                'Official items are displayed with a distinct pin. '
-                'They are included for situational awareness and are not real-time emergency alerts.',
-                style: TextStyle(fontSize: 14),
+                loc.officialLegendBody,
+                style: const TextStyle(fontSize: 14),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
             ],
           ),
         );
@@ -1486,12 +1524,13 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (_) {
+      builder: (sheetContext) {
+        final loc = AppLocalizations.of(sheetContext)!;
         final tokens = rootContext.read<TokenState>().tokens;
         final user = Supabase.instance.client.auth.currentUser;
 
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1568,23 +1607,24 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Text(
                                   user == null
-                                      ? 'Sign in to BeeAware'
-                                      : (user.email ?? 'Signed in'),
+                                      ? loc.signInToBeeAware
+                                      : (user.email ?? loc.signedIn),
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 15,
                                   ),
                                 ),
-                                Text(
-                                  user == null
-                                      ? 'Secure login · Google or Email'
-                                      : '$tokens tokens available',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF6B7280),
+                                if (user == null || AppConfig.tokensEnabled)
+                                  Text(
+                                    user == null
+                                        ? loc.secureLoginGoogleEmail
+                                        : loc.tokensAvailable(tokens),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6B7280),
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -1604,25 +1644,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 20),
                 const Divider(),
 
+                _menuSectionLabel(loc.menuSectionAccount),
+
                 // ================= BUY =================
-                _menuItem(
-                  icon: Icons.credit_card,
-                  label: 'Buy more credits',
-                  onTap: () {
-                    Navigator.pop(rootContext);
-                    Navigator.push(
-                      rootContext,
-                      MaterialPageRoute(
-                        builder: (_) => const BuyTokensScreen(),
-                      ),
-                    );
-                  },
-                ),
+                if (AppConfig.tokensEnabled)
+                  _menuItem(
+                    icon: Icons.credit_card,
+                    label: loc.buyMoreCredits,
+                    onTap: () {
+                      Navigator.pop(rootContext);
+                      Navigator.push(
+                        rootContext,
+                        MaterialPageRoute(
+                          builder: (_) => const BuyTokensScreen(),
+                        ),
+                      );
+                    },
+                  ),
 
                 // ================= ALERTS =================
                 _menuItem(
                   icon: Icons.notifications_active,
-                  label: 'Alerts & monitoring',
+                  label: loc.alertsMonitoring,
                   onTap: () {
                     Navigator.pop(rootContext);
                   },
@@ -1630,10 +1673,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const Divider(height: 30),
 
+                _menuSectionLabel(loc.menuSectionSupport),
+
                 // ================= DATA =================
                 _menuItem(
                   icon: Icons.analytics_outlined,
-                  label: 'Data sources',
+                  label: loc.dataSources,
                   onTap: () {
                     Navigator.pop(rootContext);
                     _showOfficialLegendSheet(rootContext);
@@ -1641,8 +1686,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 _menuItem(
+                  icon: Icons.language,
+                  label: loc.languageLabel,
+                  onTap: () {
+                    Navigator.pop(rootContext);
+                    _showLanguagePicker(rootContext);
+                  },
+                ),
+
+                _menuItem(
                   icon: Icons.privacy_tip_outlined,
-                  label: 'Privacy',
+                  label: loc.privacyLabel,
                   onTap: () async {
                     Navigator.pop(rootContext);
 
@@ -1658,7 +1712,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 _menuItem(
                   icon: Icons.info_outline,
-                  label: 'About BeeAware',
+                  label: loc.aboutBeeAware,
                   onTap: () {
                     Navigator.pop(rootContext);
                     _showAboutSheet(rootContext);
@@ -1666,10 +1720,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 // ================= LOGOUT =================
-                if (user != null)
+                if (user != null) ...[
+                  const Divider(height: 30),
                   _menuItem(
                     icon: Icons.logout,
-                    label: 'Sign out',
+                    label: loc.signOut,
                     onTap: () async {
                       await Supabase.instance.client.auth.signOut();
                       Navigator.pop(rootContext);
@@ -1677,11 +1732,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       context.read<TokenState>().clear();
                     },
                   ),
+                ],
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _menuSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
+            color: BeeAwareTheme.textAux,
+          ),
+        ),
+      ),
     );
   }
 
@@ -1700,6 +1774,44 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showLanguagePicker(BuildContext rootContext) {
+    final localeState = rootContext.read<LocaleState>();
+
+    showDialog(
+      context: rootContext,
+      builder: (dialogContext) {
+        final loc = AppLocalizations.of(dialogContext)!;
+
+        Widget option(String label, Locale? value) {
+          return RadioListTile<Locale?>(
+            title: Text(label),
+            value: value,
+            groupValue: localeState.locale,
+            onChanged: (selected) {
+              localeState.setLocale(selected);
+              Navigator.pop(dialogContext);
+            },
+          );
+        }
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(loc.languageLabel),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              option(loc.languageAutomatic, null),
+              option(loc.languagePortuguese, const Locale('pt')),
+              option(loc.languageEnglish, const Locale('en')),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _handleSearch(BuildContext context, String value) async {
     _clearHint();
 
@@ -1708,7 +1820,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final tokenState = context.read<TokenState>();
 
     // 🔥 bloqueia imediatamente
-    if (!tokenState.hasTokens) {
+    if (AppConfig.tokensEnabled && !tokenState.hasTokens) {
       _showNoTokensDialog(context);
       return;
     }
@@ -1723,33 +1835,36 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _isSearching = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Address not found')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.addressNotFound)),
       );
       return;
     }
 
-    // 🔥 só consome token se encontrou endereço
-    final success = await tokenState.useToken();
+    if (AppConfig.tokensEnabled) {
+      // 🔥 só consome token se encontrou endereço
+      final success = await tokenState.useToken();
 
-    if (!success) {
-      _showNoTokensDialog(context);
-      return;
-    }
+      if (!success) {
+        _showNoTokensDialog(context);
+        return;
+      }
 
-    final remaining = tokenState.tokens;
+      final remaining = tokenState.tokens;
 
-    if (remaining == 1) {
-      setState(() => _showLowTokenWarning = true);
+      if (remaining == 1) {
+        setState(() => _showLowTokenWarning = true);
 
-      Future.delayed(const Duration(seconds: 5), () {
-        if (mounted) {
-          setState(() => _showLowTokenWarning = false);
-        }
-      });
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted) {
+            setState(() => _showLowTokenWarning = false);
+          }
+        });
+      }
+
+      setState(() => _showZeroTokenBanner = remaining == 0);
     }
 
     setState(() {
-      _showZeroTokenBanner = remaining == 0;
       _searchLocation = result;
       _isSearching = false;
     });
@@ -1769,41 +1884,21 @@ class _HomeScreenState extends State<HomeScreen> {
     _detectBuyingIntent(context, result);
   }
 
-  String _monthShort(int m) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    if (m < 1 || m > 12) return '';
-    return months[m - 1];
-  }
-
   void _showNoTokensDialog(BuildContext rootContext) {
     showDialog(
       context: rootContext,
       builder: (dialogContext) {
+        final loc = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text('No search tokens remaining'),
-          content: const Text(
-            'Unlock unlimited safety insights before you move or visit an area.',
-          ),
+          title: Text(loc.noSearchTokensRemaining),
+          content: Text(loc.unlockUnlimitedInsights),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: Text(loc.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1813,7 +1908,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 🔥 usa o context ORIGINAL da tela
                 Navigator.pushNamed(rootContext, '/buyTokens');
               },
-              child: const Text('Buy more'),
+              child: Text(loc.buyMore),
             ),
           ],
         );
@@ -1894,30 +1989,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _trendOverlay = null;
     }
 
-    String monthShort(int m) {
-      const names = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec'
-      ];
-      return names[m - 1];
-    }
-
+    final loc = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
     final subtitle = months.isNotEmpty
-        ? 'Police and community reports · up to ${monthShort(months.last.month)} ${months.last.year}'
-        : 'Police and community reports · last 12 months';
+        ? loc.trendSubtitleWithMonth(
+            DateFormat.MMM(locale).format(months.last), months.last.year)
+        : loc.trendSubtitleFallback;
 
     _trendOverlay = OverlayEntry(
-      builder: (context) {
+      builder: (overlayContext) {
         return GestureDetector(
           onTap: () {
             _trendOverlay?.remove();
@@ -1944,9 +2024,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Safety trend in this area',
-                        style: TextStyle(
+                      Text(
+                        loc.safetyTrendTitle,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -2181,33 +2261,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showDialog(
       context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Incidents within 1 mile',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 14),
-              _severityRow('High', high, const Color(0xFFF44336)),
-              _severityRow('Medium', med, const Color(0xFFFF9800)),
-              _severityRow('Low', low, const Color(0xFF607D8B)),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close'),
+      builder: (dialogContext) {
+        final loc = AppLocalizations.of(dialogContext)!;
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  loc.incidentsWithin1Mile,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w700),
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                _severityRow(
+                    SeverityColors.label(dialogContext, IncidentSeverity.high),
+                    high,
+                    SeverityColors.high),
+                _severityRow(
+                    SeverityColors.label(
+                        dialogContext, IncidentSeverity.medium),
+                    med,
+                    SeverityColors.medium),
+                _severityRow(
+                    SeverityColors.label(dialogContext, IncidentSeverity.low),
+                    low,
+                    SeverityColors.low),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: Text(loc.close),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -2237,47 +2332,49 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAlertOffer(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.notifications_active,
-                  size: 36, color: Color(0xFFF59E0B)),
-              const SizedBox(height: 12),
-              const Text(
-                'Stay updated in this area',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'We noticed you are searching this area. '
-                'Would you like to receive alerts about new incidents nearby?',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  // futuramente: ativar assinatura
-                },
-                child: const Text('Yes, notify me'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Not now'),
-              ),
-            ],
+      builder: (dialogContext) {
+        final loc = AppLocalizations.of(dialogContext)!;
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        ),
-      ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.notifications_active,
+                    size: 36, color: Color(0xFFF59E0B)),
+                const SizedBox(height: 12),
+                Text(
+                  loc.stayUpdatedInArea,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  loc.alertOfferBody,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    // futuramente: ativar assinatura
+                  },
+                  child: Text(loc.yesNotifyMe),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(loc.notNow),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -2346,11 +2443,11 @@ class _FilterButtonState extends State<_FilterButton> {
             children: [
               const Icon(Icons.filter_list, size: 20),
               if (_hover)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
                   child: Text(
-                    'Filters',
-                    style: TextStyle(fontSize: 13),
+                    AppLocalizations.of(context)!.filters,
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
             ],
@@ -2496,6 +2593,7 @@ class _BottomBarState extends State<_BottomBar> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return SizedBox(
       height: 92,
       child: Stack(
@@ -2518,22 +2616,22 @@ class _BottomBarState extends State<_BottomBar> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Tooltip(
-                  message: 'Emergency services',
+                  message: loc.emergencyServices,
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: IconButton(
                       icon: const Icon(Icons.emergency),
-                      color: const Color(0xFFF59E0B),
+                      color: BeeAwareTheme.primary,
                       onPressed: widget.onPolice,
                     ),
                   ),
                 ),
                 if (canInstall)
                   Tooltip(
-                    message: 'Install App',
+                    message: loc.installAppTooltip,
                     child: IconButton(
                       icon: const Icon(Icons.install_mobile),
-                      color: const Color(0xFFF59E0B),
+                      color: BeeAwareTheme.primary,
                       onPressed: () {
                         if (js.context.callMethod('isPwaInstallable') == true) {
                           js.context.callMethod('triggerPwaInstall');
@@ -2549,7 +2647,7 @@ class _BottomBarState extends State<_BottomBar> {
           Positioned(
             bottom: 16,
             child: Tooltip(
-              message: 'Share a local safety report',
+              message: loc.shareReportTooltip,
               child: _AnimatedCentralButton(onTap: widget.onReport),
             ),
           ),
@@ -2605,11 +2703,11 @@ class _TrendButtonState extends State<_TrendButton> {
             children: [
               const Icon(Icons.show_chart, size: 20),
               if (_hover)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
                   child: Text(
-                    'Safety trend',
-                    style: TextStyle(fontSize: 13),
+                    AppLocalizations.of(context)!.safetyTrendShort,
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
             ],
@@ -2620,8 +2718,14 @@ class _TrendButtonState extends State<_TrendButton> {
   }
 }
 
-class _AnimatedCentralButtonState extends State<_AnimatedCentralButton> {
+class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
+    with SingleTickerProviderStateMixin {
   double _scale = 1.0;
+
+  late final AnimationController _glowController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2500),
+  )..repeat(reverse: true);
 
   void _setScale(double value) {
     if (!mounted) return;
@@ -2629,7 +2733,15 @@ class _AnimatedCentralButtonState extends State<_AnimatedCentralButton> {
   }
 
   @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => _setScale(1.05),
@@ -2645,26 +2757,41 @@ class _AnimatedCentralButtonState extends State<_AnimatedCentralButton> {
           scale: _scale,
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
-          child: Container(
-            width: 66,
-            height: 66,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2F3A4A).withOpacity(0.10),
-                  blurRadius: 18,
-                  spreadRadius: 1,
+          child: AnimatedBuilder(
+            animation: _glowController,
+            builder: (context, child) {
+              final glow = reduceMotion ? 0.0 : _glowController.value;
+              return Container(
+                width: 66,
+                height: 66,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    // Subtle amber pulse — the one spot in the app where
+                    // the accent color calls attention to itself.
+                    BoxShadow(
+                      color:
+                          BeeAwareTheme.accent.withOpacity(0.35 * (1 - glow)),
+                      blurRadius: 6,
+                      spreadRadius: 8 * glow,
+                    ),
+                    BoxShadow(
+                      color: const Color(0xFF1F3A5F).withOpacity(0.10),
+                      blurRadius: 18,
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.22),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.22),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(5),
+                padding: const EdgeInsets.all(5),
+                child: child,
+              );
+            },
             child: SvgPicture.asset(
               'assets/logo/beeaware_logo.svg',
               fit: BoxFit.contain,

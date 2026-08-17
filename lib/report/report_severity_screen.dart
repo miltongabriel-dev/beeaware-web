@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../map/map_incident.dart'; // ✅ AQUI está o IncidentSeverity
+import '../l10n/app_localizations.dart';
 import '../theme/beeaware_theme.dart';
+import '../theme/fade_in.dart';
 import 'report_description_screen.dart';
 import 'report_draft.dart';
+import 'report_step_indicator.dart';
 
 class ReportSeverityScreen extends StatelessWidget {
   final ReportDraft draft;
@@ -16,67 +19,85 @@ class ReportSeverityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     final items = [
       _SeverityItem(
-        label: 'Low',
-        description: 'Uncomfortable but no immediate danger',
-        color: BeeAwareTheme.severityLow,
+        description: loc.severityLowDesc,
+        color: SeverityColors.low,
+        icon: Icons.info_outline,
         value: IncidentSeverity.low,
       ),
       _SeverityItem(
-        label: 'Medium',
-        description: 'Concerning and potentially unsafe',
-        color: BeeAwareTheme.severityMedium,
+        description: loc.severityMediumDesc,
+        color: SeverityColors.medium,
+        icon: Icons.warning_amber_outlined,
         value: IncidentSeverity.medium,
       ),
       _SeverityItem(
-        label: 'High',
-        description: 'Serious risk or immediate danger',
-        color: BeeAwareTheme.severityHigh,
+        description: loc.severityHighDesc,
+        color: SeverityColors.high,
+        icon: Icons.report_problem_outlined,
         value: IncidentSeverity.high,
       ),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('How serious was it?'),
+        title: Text(loc.howSeriousWasItTitle),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // ================= WATERMARK =================
-          Center(
-            child: Opacity(
-              opacity: 0.05,
-              child: SvgPicture.asset(
-                'assets/logo/beeaware_watermark.svg',
-                width: MediaQuery.of(context).size.width * 0.9,
-              ),
-            ),
-          ),
-
-          // ================= CONTENT =================
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: items.map((item) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _SeverityCard(
-                    item: item,
-                    onTap: () {
-                      // ✅ Grava severidade no draft
-                      draft.severity = item.value.name;
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ReportDescriptionScreen(draft: draft),
-                        ),
-                      );
-                    },
+          const ReportStepIndicator(step: 3),
+          Expanded(
+            child: Stack(
+              children: [
+                // ================= WATERMARK =================
+                Center(
+                  child: Opacity(
+                    opacity: 0.05,
+                    child: SvgPicture.asset(
+                      'assets/logo/beeaware_watermark.svg',
+                      width: MediaQuery.of(context).size.width * 0.9,
+                    ),
                   ),
-                );
-              }).toList(),
+                ),
+
+                // ================= CONTENT =================
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: items.asMap().entries.map((entry) {
+                          final item = entry.value;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: FadeInUp(
+                              delay: Duration(milliseconds: 80 * entry.key),
+                              child: _SeverityCard(
+                                item: item,
+                                onTap: () {
+                                  // ✅ Grava severidade no draft
+                                  draft.severity = item.value.name;
+
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          ReportDescriptionScreen(draft: draft),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -88,15 +109,15 @@ class ReportSeverityScreen extends StatelessWidget {
 // ================= MODEL =================
 
 class _SeverityItem {
-  final String label;
   final String description;
   final Color color;
+  final IconData icon;
   final IncidentSeverity value;
 
   const _SeverityItem({
-    required this.label,
     required this.description,
     required this.color,
+    required this.icon,
     required this.value,
   });
 }
@@ -117,20 +138,15 @@ class _SeverityCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       onTap: onTap,
       child: Ink(
         height: 96,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: BeeAwareTheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: BeeAwareTheme.border),
+          boxShadow: BeeAwareTheme.cardShadow,
         ),
         child: Row(
           children: [
@@ -140,11 +156,14 @@ class _SeverityCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: item.color,
                 borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(20),
+                  left: Radius.circular(AppRadius.lg),
                 ),
               ),
             ),
             const SizedBox(width: 16),
+
+            Icon(item.icon, color: item.color, size: 26),
+            const SizedBox(width: 12),
 
             // TEXT
             Expanded(
@@ -153,7 +172,7 @@ class _SeverityCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.label,
+                    SeverityColors.label(context, item.value),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -166,6 +185,7 @@ class _SeverityCard extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 12),
           ],
         ),
       ),

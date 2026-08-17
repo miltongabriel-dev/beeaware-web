@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import 'package:aware/state/token_state.dart';
 import 'package:aware/report/buy_tokens_screen.dart';
+import 'package:aware/theme/beeaware_theme.dart';
+import 'package:aware/l10n/app_localizations.dart';
 
 class TopMenuButton extends StatelessWidget {
   const TopMenuButton({super.key});
@@ -23,19 +25,13 @@ class TopMenuButton extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: BeeAwareTheme.surface,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              boxShadow: BeeAwareTheme.cardShadow,
             ),
             child: const Icon(
               Icons.settings,
-              color: Color(0xFF2F3A4A),
+              color: BeeAwareTheme.textPrimary,
               size: 22,
             ),
           ),
@@ -45,8 +41,7 @@ class TopMenuButton extends StatelessWidget {
   }
 
   void _openMenu(BuildContext context, int tokens) async {
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final loc = AppLocalizations.of(context)!;
     final result = await showMenu<String>(
       context: context,
       position: const RelativeRect.fromLTRB(1000, 80, 16, 0),
@@ -57,40 +52,19 @@ class TopMenuButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Account'),
-              Text('$tokens tokens'),
+              Text(loc.accountLabel),
+              Text(loc.tokensCount(tokens)),
             ],
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'buy',
           child: Row(
             children: [
-              Icon(Icons.toll, size: 18),
-              SizedBox(width: 10),
-              Text('Buy Tokens'),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: 'data',
-          child: Row(
-            children: [
-              Icon(Icons.description_outlined, size: 18),
-              SizedBox(width: 10),
-              Text('Data Sources'),
-            ],
-          ),
-        ),
-        const PopupMenuItem<String>(
-          value: 'about',
-          child: Row(
-            children: [
-              Icon(Icons.info_outline, size: 18),
-              SizedBox(width: 10),
-              Text('About BeeAware'),
+              const Icon(Icons.toll, size: 18),
+              const SizedBox(width: 10),
+              Text(loc.buyTokensButton),
             ],
           ),
         ),
@@ -106,7 +80,5 @@ class TopMenuButton extends StatelessWidget {
         MaterialPageRoute(builder: (_) => const BuyTokensScreen()),
       );
     }
-
-    // por enquanto data/about vamos ligar depois (fácil)
   }
 }

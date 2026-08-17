@@ -1,0 +1,281 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "BeeAware",
+
+  "close": "Close",
+  "cancel": "Cancel",
+  "other": "Other",
+  "buyMore": "Buy more",
+  "filters": "Filters",
+  "dataSources": "Data sources",
+  "aboutBeeAware": "About BeeAware",
+  "emergencyServices": "Emergency services",
+  "noDescriptionProvided": "No description provided.",
+  "continueButton": "Continue",
+  "buyTokensButton": "Buy Tokens",
+
+  "severityLow": "Low",
+  "severityMedium": "Medium",
+  "severityHigh": "High",
+  "severitySuffixed": "{severity, select, low{Low severity} medium{Medium severity} high{High severity} other{}}",
+  "@severitySuffixed": {
+    "placeholders": { "severity": { "type": "String" } }
+  },
+
+  "relativeTimeJustNow": "Just now",
+  "relativeTimeMinutes": "{count, plural, one{{count} minute ago} other{{count} minutes ago}}",
+  "@relativeTimeMinutes": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "relativeTimeHours": "{count, plural, one{{count} hour ago} other{{count} hours ago}}",
+  "@relativeTimeHours": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "relativeTimeDays": "{count, plural, one{{count} day ago} other{{count} days ago}}",
+  "@relativeTimeDays": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "loginHeadline": "Stay aware.\nStay safe.",
+  "loginSubtitle": "Private by design. No personal data required.\nCommunity and official data to help you make safer decisions.",
+  "continueWithGoogle": "Continue with Google",
+  "continueWithApple": "Continue with Apple",
+  "appleSignInComingSoon": "Apple sign-in coming soon",
+  "enterYourEmail": "Enter your email",
+  "sendMagicLink": "Send magic link",
+  "privacyProtectedNotice": "Your privacy is protected. No personal data required.",
+  "checkEmailForLoginLink": "Check your email for the login link",
+
+  "buyTokensSubtitle": "Choose a plan and explore any area before you go.",
+  "packageSearches": "{count, plural, one{{count} search} other{{count} searches}}",
+  "@packageSearches": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "badgeMostPopular": "Most popular",
+  "badgeBestValue": "Best value",
+  "pricePerSearch": "{price} per search",
+  "@pricePerSearch": {
+    "placeholders": { "price": { "type": "String" } }
+  },
+  "bonusTokensNotice": "Bonus tokens — payments are not live yet.",
+  "creditsAdded": "Credits added",
+
+  "whatHappenedTitle": "What happened?",
+  "categoryHarassment": "Harassment",
+  "categorySuspiciousActivity": "Suspicious activity",
+  "categoryTheft": "Theft",
+  "categoryViolence": "Violence",
+  "categoryDrugs": "Drugs",
+
+  "tellUsMoreTitle": "Tell us more",
+  "subHarassmentVerbal": "Verbal",
+  "subHarassmentPhysical": "Physical",
+  "subHarassmentOnline": "Online",
+  "subHarassmentStalking": "Stalking",
+  "subHarassmentSexual": "Sexual",
+  "subSuspiciousLoitering": "Loitering",
+  "subSuspiciousFollowing": "Following someone",
+  "subSuspiciousCars": "Looking into cars",
+  "subSuspiciousDoors": "Checking doors",
+  "subTheftPickpocketing": "Pickpocketing",
+  "subTheftBike": "Bike theft",
+  "subTheftCarBreakIn": "Car break-in",
+  "subTheftShoplifting": "Shoplifting",
+  "subViolenceFight": "Fight",
+  "subViolenceDomestic": "Domestic",
+  "subViolenceWeapon": "Weapon involved",
+  "subViolenceThreats": "Threats",
+  "subDrugsUse": "Use",
+  "subDrugsDealing": "Dealing",
+  "subDrugsExchange": "Suspicious exchange",
+  "subDrugsNeedles": "Needles found",
+
+  "howSeriousWasItTitle": "How serious was it?",
+  "severityLowDesc": "Uncomfortable but no immediate danger",
+  "severityMediumDesc": "Concerning and potentially unsafe",
+  "severityHighDesc": "Serious risk or immediate danger",
+
+  "whenDidItHappenTitle": "When did it happen?",
+  "adjustDateTimeHint": "You can adjust the date and time if you are reporting after the event.",
+  "dateLabel": "Date",
+  "timeLabel": "Time",
+  "reportVisibilityNotice": "This report will appear on the map in about {minutes, plural, one{1 minute} other{{minutes} minutes}}.",
+  "@reportVisibilityNotice": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "confirmReport": "Confirm report",
+
+  "describeWhatHappenedTitle": "Describe what happened",
+  "addShortDescription": "Add a short description",
+  "descriptionHelperText": "This helps others understand the situation better.",
+  "descriptionHint": "Example: A group of people acting suspiciously near the station...",
+
+  "whereDidItHappenTitle": "Where did it happen?",
+  "selectLocationOnMap": "Select a location on map",
+
+  "reviewReportTitle": "Review report",
+  "missingSubcategory": "Missing subcategory. Please go back.",
+  "missingLocation": "Missing location. Please go back.",
+  "waitBeforeAnotherReport": "Please wait {minutes, plural, one{1 minute} other{{minutes} minutes}} before sending another report.",
+  "@waitBeforeAnotherReport": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "reportSubmittedSuccess": "Thank you! Your report was submitted successfully.",
+  "submitFailed": "Submit failed: {error}",
+  "@submitFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "sectionCategory": "Category",
+  "sectionSeverity": "Severity",
+  "sectionDescription": "Description",
+  "sectionWhen": "When",
+  "mapVisibleNow": "This report is now visible on the map.",
+  "mapVisibleShortly": "This report will appear on the map shortly.",
+  "submitReportAnonymously": "Submit report anonymously",
+
+  "typeAddressToSearch": "Type an address to search.",
+  "searchingNearMock": "Searching near: {query} (mock)",
+  "@searchingNearMock": {
+    "placeholders": { "query": { "type": "String" } }
+  },
+  "noTokensLeftTitle": "No tokens left",
+  "noTokensLeftContent": "You have no search tokens remaining.\n\nBuy more tokens to continue searching.",
+  "searchAddressTitle": "Search Address",
+  "tokensRemaining": "Tokens remaining: {count}",
+  "@tokensRemaining": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addressOrPostcodeHint": "Address or postcode",
+  "searchButton": "Search",
+
+  "sourceLabel": "Source: {source}",
+  "@sourceLabel": {
+    "placeholders": { "source": { "type": "String" } }
+  },
+  "incidentInfoDisclaimer": "Information from publicly available sources and community reports. For awareness only.",
+
+  "noDataAvailable": "No data available",
+
+  "accountLabel": "Account",
+  "tokensCount": "{count, plural, one{{count} token} other{{count} tokens}}",
+  "@tokensCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "reportingHintText": "Spot something? Tap the Bee.",
+  "clusterNumbersExplained": "Cluster numbers explained",
+  "loadingIncidents": "Loading incidents…",
+  "noIncidentsForFilters": "No incidents match these filters",
+  "searchAnAddressHint": "Search an address",
+  "tokensSearchBadge": "{count, plural, one{{count} search token} other{{count} search tokens}}",
+  "@tokensSearchBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "oneSearchRemaining": "You have 1 search remaining",
+  "allSearchesUsed": "You've used all your searches",
+
+  "officialRecordDate": "Official Police Record · {month}/{year}",
+  "@officialRecordDate": {
+    "placeholders": {
+      "month": { "type": "int" },
+      "year": { "type": "int" }
+    }
+  },
+  "communityReportRelative": "Community Report · {relative}",
+  "@communityReportRelative": {
+    "placeholders": { "relative": { "type": "String" } }
+  },
+
+  "clusterCountTitle": "Cluster count",
+  "clusterCountExplanation": "The number shown inside each cluster represents the total number of reported incidents in that area.",
+
+  "callEmergency999": "Call emergency (999)",
+  "callNonEmergency101": "Call non-emergency (101)",
+  "emergencyDisclaimer": "BeeAware is not an emergency service.\nIf you are in immediate danger, contact emergency services directly.",
+
+  "filterTimeSectionTitle": "Time",
+  "timeFilterLastHour": "Last hour",
+  "timeFilterLast6Hours": "Last 6 hours",
+  "timeFilterLast24Hours": "Last 24 hours",
+  "timeFilterAllTime": "All time",
+  "distanceLabel": "Distance",
+  "distanceFilter250m": "Within 250 m",
+  "distanceFilter500m": "Within 500 m",
+  "distanceFilter1km": "Within 1 km",
+  "distanceFilterAny": "Any distance",
+
+  "aboutBodyText": "BeeAware is a community safety awareness platform designed to help people stay informed about non-emergency incidents in their local area.\n\nThe app combines community reports and publicly available official data to improve situational awareness and support safer daily decisions.\n\nInformation shown may be delayed, incomplete, or unverified and should not be used as a substitute for emergency services.\n\nBeeAware does not provide real-time monitoring and is not an emergency response system.",
+  "aboutDataSourcesBody": "BeeAware displays safety information from two main sources:\n\n• Anonymous community reports submitted by users\n• Official open public data, including UK Police street-level crime datasets\n\nThese sources are used to improve situational awareness and do not represent real-time alerts.",
+  "privacyAnonymityTitle": "Privacy & anonymity",
+  "privacyAnonymityBody": "BeeAware is designed with privacy by default.\nNo personal identifying information is required.\nReports are anonymous and location data is limited to what is necessary to display incidents on the map.",
+  "privacyPolicyButton": "Privacy Policy",
+  "termsOfServiceButton": "Terms of Service",
+  "copyrightBeeAware": "© BeeAware",
+
+  "officialLegendBody": "BeeAware shows two types of reports:\n\n• Community reports (anonymous user submissions)\n• Official open data (UK Police street-level crime data)\n\nOfficial items are displayed with a distinct pin. They are included for situational awareness and are not real-time emergency alerts.",
+
+  "signInToBeeAware": "Sign in to BeeAware",
+  "signedIn": "Signed in",
+  "secureLoginGoogleEmail": "Secure login · Google or Email",
+  "tokensAvailable": "{count, plural, one{{count} token available} other{{count} tokens available}}",
+  "@tokensAvailable": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "menuSectionAccount": "Account",
+  "menuSectionSupport": "Support",
+  "buyMoreCredits": "Buy more credits",
+  "alertsMonitoring": "Alerts & monitoring",
+  "privacyLabel": "Privacy",
+  "languageLabel": "Language",
+  "languagePortuguese": "Português",
+  "languageEnglish": "English",
+  "languageAutomatic": "Automatic (device)",
+  "signOut": "Sign out",
+
+  "addressNotFound": "Address not found",
+
+  "noSearchTokensRemaining": "No search tokens remaining",
+  "unlockUnlimitedInsights": "Unlock unlimited safety insights before you move or visit an area.",
+
+  "trendSubtitleWithMonth": "Police and community reports · up to {month} {year}",
+  "@trendSubtitleWithMonth": {
+    "placeholders": {
+      "month": { "type": "String" },
+      "year": { "type": "int" }
+    }
+  },
+  "trendSubtitleFallback": "Police and community reports · last 12 months",
+  "safetyTrendTitle": "Safety trend in this area",
+  "safetyTrendShort": "Safety trend",
+
+  "incidentsWithin1Mile": "Incidents within 1 mile",
+
+  "stayUpdatedInArea": "Stay updated in this area",
+  "alertOfferBody": "We noticed you are searching this area. Would you like to receive alerts about new incidents nearby?",
+  "yesNotifyMe": "Yes, notify me",
+  "notNow": "Not now",
+
+  "installAppTooltip": "Install App",
+  "shareReportTooltip": "Share a local safety report",
+
+  "policeReportCategory": "Police report",
+  "officialDescriptionWithOutcome": "Police recorded {category} near {street}. Outcome: {outcome}. Reported in {month}.",
+  "@officialDescriptionWithOutcome": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "street": { "type": "String" },
+      "outcome": { "type": "String" },
+      "month": { "type": "String" }
+    }
+  },
+  "officialDescriptionNoOutcome": "Police recorded {category} near {street}. Reported in {month}.",
+  "@officialDescriptionNoOutcome": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "street": { "type": "String" },
+      "month": { "type": "String" }
+    }
+  },
+  "locationNotSpecified": "Location not specified"
+}

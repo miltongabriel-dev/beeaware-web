@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import '../l10n/app_localizations.dart';
+import '../map/map_incident.dart';
+import '../theme/beeaware_theme.dart';
+import 'report_labels.dart';
+import 'report_step_indicator.dart';
 
 class ReportLocationScreen extends StatefulWidget {
   final dynamic draft;
@@ -81,34 +86,48 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Where did it happen?')),
-      body: Stack(
+      appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.whereDidItHappenTitle)),
+      body: Column(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: const LatLng(51.3305, -0.2708),
-              initialZoom: 15,
-              onTap: _onMapTap,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-              ),
-              if (_currentLocation != null) _buildUserMarker(),
-              if (_selectedLocation != null) _buildSelectedMarker(),
-            ],
-          ),
-          Positioned(
-            right: 16,
-            bottom: 20, // Ajustado para não sobrepor o botão de baixo
-            child: FloatingActionButton(
-              mini: true,
-              backgroundColor: Colors.white,
-              onPressed: _getUserLocation,
-              child: const Icon(Icons.my_location, color: Colors.blue),
+          const ReportStepIndicator(step: 6),
+          Expanded(
+            child: Stack(
+              children: [
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: const LatLng(51.3305, -0.2708),
+                    initialZoom: 15,
+                    onTap: _onMapTap,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                      subdomains: const ['a', 'b', 'c', 'd'],
+                    ),
+                    if (_currentLocation != null) _buildUserMarker(),
+                    if (_selectedLocation != null) _buildSelectedMarker(),
+                  ],
+                ),
+                Positioned(
+                  right: 16,
+                  bottom: 20, // Ajustado para não sobrepor o botão de baixo
+                  child: FloatingActionButton(
+                    mini: true,
+                    backgroundColor: Colors.white,
+                    onPressed: _getUserLocation,
+                    child: const Icon(Icons.my_location, color: Colors.blue),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  left: 16,
+                  right: 16,
+                  child: _DraftSummaryCard(draft: widget.draft),
+                ),
+              ],
             ),
           ),
         ],
@@ -147,6 +166,7 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
 
   Widget _buildContinueButton() {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
     final bool isSelected = _selectedLocation != null;
 
     return Container(
@@ -165,8 +185,8 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
         onPressed: isSelected ? _continue : null,
         style: ElevatedButton.styleFrom(
           backgroundColor:
-              isSelected ? const Color(0xFFF59E0B) : Colors.grey[300],
-          foregroundColor: Colors.black,
+              isSelected ? BeeAwareTheme.primary : Colors.grey[300],
+          foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -174,7 +194,7 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
           elevation: 0,
         ),
         child: Text(
-          isSelected ? 'Continue' : 'Select a location on map',
+          isSelected ? loc.continueButton : loc.selectLocationOnMap,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -184,3 +204,57 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
     );
   }
 } // Chave final da classe
+
+/// Compact reminder of what's being reported — category, subcategory and
+/// severity — shown above the map so the user doesn't lose context while
+/// picking the exact location.
+class _DraftSummaryCard extends StatelessWidget {
+  final dynamic draft;
+
+  const _DraftSummaryCard({required this.draft});
+
+  @override
+  Widget build(BuildContext context) {
+    final severity = IncidentSeverity.values.firstWhere(
+      (e) => e.name == draft.severity,
+      orElse: () => IncidentSeverity.low,
+    );
+
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: BeeAwareTheme.border),
+        boxShadow: BeeAwareTheme.cardShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: SeverityColors.of(severity),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              '${ReportLabels.category(context, draft.category ?? 'Other')} '
+              '→ '
+              '${ReportLabels.subcategory(context, draft.subcategory ?? 'Other')}',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: BeeAwareTheme.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

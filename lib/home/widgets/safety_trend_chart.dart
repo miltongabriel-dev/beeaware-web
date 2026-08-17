@@ -1,23 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-String _monthShort(int m) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec'
-  ];
-  return months[m - 1];
-}
+import '../../l10n/app_localizations.dart';
 
 class SafetyTrendChart extends StatelessWidget {
   final List<double> values;
@@ -30,37 +15,20 @@ class SafetyTrendChart extends StatelessWidget {
   });
 
   @override
-  String _monthShort(int m) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return months[m - 1];
-  }
-
   Widget build(BuildContext context) {
     if (values.isEmpty || months.isEmpty) {
-      return const SizedBox(
+      return SizedBox(
         height: 120,
         child: Center(
           child: Text(
-            'No data available',
-            style: TextStyle(color: Colors.grey),
+            AppLocalizations.of(context)!.noDataAvailable,
+            style: const TextStyle(color: Colors.grey),
           ),
         ),
       );
     }
 
+    final locale = Localizations.localeOf(context).toString();
     final maxValue = values.reduce((a, b) => a > b ? a : b);
 
     return SizedBox(
@@ -90,7 +58,7 @@ class SafetyTrendChart extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      _monthShort(m.month),
+                      DateFormat.MMM(locale).format(m),
                       style: const TextStyle(
                           fontSize: 10, color: Color(0xFF6B7280)),
                     ),

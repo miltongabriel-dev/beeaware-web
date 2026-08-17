@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../state/token_state.dart';
+import '../theme/beeaware_theme.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+enum _PackageBadge { mostPopular, bestValue }
 
 class BuyTokensScreen extends StatelessWidget {
   const BuyTokensScreen({super.key});
@@ -9,7 +13,7 @@ class BuyTokensScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F2E5),
+      backgroundColor: BeeAwareTheme.background,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -26,6 +30,8 @@ class _Content extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       children: [
@@ -40,11 +46,11 @@ class _Content extends StatelessWidget {
                 width: 160,
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Choose a plan and explore any area before you go.',
-                style: TextStyle(
+              Text(
+                loc.buyTokensSubtitle,
+                style: const TextStyle(
                   fontSize: 14,
-                  color: Color.fromARGB(255, 113, 113, 113),
+                  color: BeeAwareTheme.textSecondary,
                 ),
               ),
             ],
@@ -53,37 +59,41 @@ class _Content extends StatelessWidget {
 
         const SizedBox(height: 28),
 
-        _PackageCard(
-          title: '5 searches',
+        const _PackageCard(
           price: '£2',
+          priceValue: 2,
           tokens: 5,
+          icon: Icons.search,
         ),
 
         const SizedBox(height: 14),
 
-        _PackageCard(
-          title: '15 searches',
+        const _PackageCard(
           price: '£5',
+          priceValue: 5,
           tokens: 15,
           highlight: true,
-          badge: 'Most popular',
+          badge: _PackageBadge.mostPopular,
+          icon: Icons.bolt_outlined,
         ),
 
         const SizedBox(height: 14),
 
-        _PackageCard(
-          title: '40 searches',
+        const _PackageCard(
           price: '£10',
+          priceValue: 10,
           tokens: 40,
-          badge: 'Best value',
+          badge: _PackageBadge.bestValue,
+          icon: Icons.workspace_premium_outlined,
         ),
 
         const SizedBox(height: 26),
 
-        const Text(
-          'Secure payments. No subscription required.',
+        Text(
+          loc.bonusTokensNotice,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+          style:
+              const TextStyle(fontSize: 12, color: BeeAwareTheme.textSecondary),
         ),
 
         const SizedBox(height: 30),
@@ -93,16 +103,18 @@ class _Content extends StatelessWidget {
 }
 
 class _PackageCard extends StatefulWidget {
-  final String title;
   final String price;
+  final double priceValue;
   final int tokens;
   final bool highlight;
-  final String? badge;
+  final _PackageBadge? badge;
+  final IconData icon;
 
   const _PackageCard({
-    required this.title,
     required this.price,
+    required this.priceValue,
     required this.tokens,
+    required this.icon,
     this.highlight = false,
     this.badge,
   });
@@ -122,6 +134,7 @@ class _PackageCardState extends State<_PackageCard> {
   @override
   Widget build(BuildContext context) {
     final highlight = widget.highlight;
+    final loc = AppLocalizations.of(context)!;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -135,7 +148,7 @@ class _PackageCardState extends State<_PackageCard> {
           context.read<TokenState>().addTokens(widget.tokens);
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Credits added')),
+            SnackBar(content: Text(loc.creditsAdded)),
           );
 
           Navigator.pop(context);
@@ -146,33 +159,55 @@ class _PackageCardState extends State<_PackageCard> {
           child: Stack(
             children: [
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: highlight ? Colors.white : Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  color: BeeAwareTheme.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(
-                    color: highlight
-                        ? const Color(0xFFF59E0B)
-                        : Colors.grey.shade200,
+                    color:
+                        highlight ? BeeAwareTheme.accent : Colors.grey.shade200,
                     width: highlight ? 2 : 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+                  boxShadow: BeeAwareTheme.cardShadow,
                 ),
                 child: Row(
                   children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: BeeAwareTheme.primary.withOpacity(0.08),
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        size: 22,
+                        color: BeeAwareTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
-                      child: Text(
-                        widget.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.packageSearches(widget.tokens),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            loc.pricePerSearch(
+                              '£${(widget.priceValue / widget.tokens).toStringAsFixed(2)}',
+                            ),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: BeeAwareTheme.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Text(
@@ -195,11 +230,13 @@ class _PackageCardState extends State<_PackageCard> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B),
-                      borderRadius: BorderRadius.circular(12),
+                      color: BeeAwareTheme.accent,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                     child: Text(
-                      widget.badge!,
+                      widget.badge == _PackageBadge.mostPopular
+                          ? loc.badgeMostPopular
+                          : loc.badgeBestValue,
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,

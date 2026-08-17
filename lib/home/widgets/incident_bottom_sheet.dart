@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import '/l10n/app_localizations.dart';
 import '/map/map_incident.dart';
+import '/report/report_icons.dart';
+import '/report/report_labels.dart';
+import '/theme/beeaware_theme.dart';
+import '/utils/relative_time.dart';
 
 class IncidentBottomSheet extends StatelessWidget {
   final MapIncident incident;
@@ -9,46 +14,15 @@ class IncidentBottomSheet extends StatelessWidget {
     required this.incident,
   });
 
-  Color _severityColor() {
-    switch (incident.severity) {
-      case IncidentSeverity.high:
-        return const Color(0xFFF44336);
-      case IncidentSeverity.medium:
-        return const Color(0xFFFF9800);
-      case IncidentSeverity.low:
-      default:
-        return const Color(0xFFFFC107);
-    }
-  }
-
-  String _severityLabel() {
-    switch (incident.severity) {
-      case IncidentSeverity.high:
-        return 'High severity';
-      case IncidentSeverity.medium:
-        return 'Medium severity';
-      case IncidentSeverity.low:
-      default:
-        return 'Low severity';
-    }
-  }
-
-  String _relativeTime(BuildContext context) {
-    final now = DateTime.now();
-    final diff = now.difference(incident.dateTime);
-
-    if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} min ago';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours} hours ago';
-    } else {
-      return '${diff.inDays} days ago';
-    }
-  }
+  Color _severityColor() => SeverityColors.of(incident.severity);
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     final hasExternalDescription = incident.description.trim().isNotEmpty;
+    final categoryLabel = incident.isOfficial
+        ? loc.policeReportCategory
+        : ReportLabels.category(context, incident.category);
 
     return SafeArea(
       top: false,
@@ -79,14 +53,19 @@ class IncidentBottomSheet extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Severity dot
                 Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(top: 6),
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _severityColor(),
+                    color: BeeAwareTheme.primary.withOpacity(0.08),
+                  ),
+                  child: Icon(
+                    incident.isOfficial
+                        ? Icons.local_police_outlined
+                        : ReportIcons.category(incident.category),
+                    size: 18,
+                    color: BeeAwareTheme.primary,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -94,7 +73,7 @@ class IncidentBottomSheet extends StatelessWidget {
                 // Title / category
                 Expanded(
                   child: Text(
-                    incident.category,
+                    categoryLabel,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -103,14 +82,35 @@ class IncidentBottomSheet extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
 
-            // Meta info
-            Text(
-              '${_severityLabel()} • ${_relativeTime(context)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey.shade600,
+            // Meta info: severity chip + relative time
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _severityColor().withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
+                  child: Text(
+                    SeverityColors.label(context, incident.severity),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: _severityColor(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  relativeTime(context, incident.dateTime),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                ),
+              ],
             ),
 
             // ---------------------------
@@ -134,7 +134,7 @@ class IncidentBottomSheet extends StatelessWidget {
                 incident.source!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                'Source: ${incident.source}',
+                loc.sourceLabel(incident.source!),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey.shade600,
                     ),
@@ -145,7 +145,7 @@ class IncidentBottomSheet extends StatelessWidget {
 
             // Footer disclaimer (discreto)
             Text(
-              'Information from publicly available sources and community reports. For awareness only.',
+              loc.incidentInfoDisclaimer,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.grey.shade500,
                   ),

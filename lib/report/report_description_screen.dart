@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'report_draft.dart';
 import 'report_location_screen.dart';
+import 'report_step_indicator.dart';
+import '../l10n/app_localizations.dart';
 
 class ReportDescriptionScreen extends StatefulWidget {
   final ReportDraft draft;
@@ -50,111 +52,119 @@ class _ReportDescriptionScreenState extends State<ReportDescriptionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Describe what happened'),
+        title: Text(loc.describeWhatHappenedTitle),
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // ===== BeeAware watermark (background) =====
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.04,
-              child: Center(
-                child: Image.asset(
-                  'assets/logo/beeaware_watermark.png',
-                  width: 320,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-
-          // ===== Content =====
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const ReportStepIndicator(step: 4),
+          Expanded(
+            child: Stack(
               children: [
-                const SizedBox(height: 8),
-
-                Text(
-                  'Add a short description',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
+                // ===== BeeAware watermark (background) =====
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.04,
+                    child: Center(
+                      child: Image.asset(
+                        'assets/logo/beeaware_watermark.png',
+                        width: 320,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                // ===== Content =====
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
 
-                Text(
-                  'This helps others understand the situation better.',
-                  style: theme.textTheme.bodySmall,
-                ),
-
-                const SizedBox(height: 20),
-
-                // ===== Text field =====
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 12,
+                      Text(
+                        loc.addShortDescription,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _controller,
-                      maxLines: null,
-                      expands: true,
-                      textInputAction: TextInputAction.newline,
-                      decoration: const InputDecoration(
-                        hintText:
-                            'Example: A group of people acting suspiciously near the station...',
-                        border: InputBorder.none,
                       ),
-                      style: theme.textTheme.bodyMedium,
-                    ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        loc.descriptionHelperText,
+                        style: theme.textTheme.bodySmall,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // ===== Text field =====
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 12,
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _controller,
+                            maxLines: null,
+                            expands: true,
+                            textInputAction: TextInputAction.newline,
+                            decoration: InputDecoration(
+                              hintText: loc.descriptionHint,
+                              border: InputBorder.none,
+                            ),
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // ===== Continue button =====
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _canContinue ? _continue : null,
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            disabledForegroundColor:
+                                Colors.white.withOpacity(0.6),
+                            backgroundColor: theme.colorScheme.primary,
+                            disabledBackgroundColor:
+                                theme.colorScheme.primary.withOpacity(0.3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            loc.continueButton,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 16),
-
-                // ===== Continue button =====
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _canContinue ? _continue : null,
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      disabledForegroundColor: Colors.black.withOpacity(0.3),
-                      backgroundColor: theme.colorScheme.primary,
-                      disabledBackgroundColor:
-                          theme.colorScheme.primary.withOpacity(0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      'Continue',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
               ],
             ),
           ),

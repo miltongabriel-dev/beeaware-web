@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 // Adicione este import para a performance do mapa
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
@@ -8,7 +9,13 @@ import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_ti
 import '../map/map_incident.dart';
 import '../map/incident_store.dart';
 import '../backend/incident_api.dart';
+import '../config/app_config.dart';
+import '../l10n/app_localizations.dart';
+import '../theme/beeaware_theme.dart';
+import '../theme/fade_in.dart';
 import 'report_draft.dart';
+import 'report_icons.dart';
+import 'report_labels.dart';
 import '../utils/report_rate_limiter.dart';
 
 class ReportSummaryScreen extends StatefulWidget {
@@ -28,7 +35,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
   @override
   void initState() {
     super.initState();
-    _visibleAt = DateTime.now().add(const Duration(minutes: 1));
+    _visibleAt = DateTime.now().add(AppConfig.incidentVisibilityDelay);
     _remaining = _visibleAt.difference(DateTime.now());
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -55,6 +62,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
 
   Future<void> _submitReport() async {
     if (_submitting) return;
+    final loc = AppLocalizations.of(context)!;
 
     // 1. Validação de dados
     final lat = widget.draft.latitude;
@@ -64,11 +72,11 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
     final sub = widget.draft.subcategory;
 
     if (sub == null || sub.trim().isEmpty) {
-      _toast('Missing subcategory. Please go back.');
+      _toast(loc.missingSubcategory);
       return;
     }
     if (lat == null || lng == null) {
-      _toast('Missing location. Please go back.');
+      _toast(loc.missingLocation);
       return;
     }
 
@@ -79,8 +87,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
       final canSubmit = await ReportRateLimiter.canSubmit();
       if (!canSubmit) {
         final remaining = await ReportRateLimiter.remaining();
-        _toast(
-            'Please wait ${remaining.inMinutes + 1} minutes before sending another report.');
+        _toast(loc.waitBeforeAnotherReport(remaining.inMinutes + 1));
         if (mounted) setState(() => _submitting = false);
         return;
       }
@@ -103,7 +110,8 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
       await IncidentApi.createIncident(incident);
 
       // 4. Feedback local (Otimização de UI)
-      await IncidentStore.addWithDelay(incident, const Duration(minutes: 1));
+      await IncidentStore.addWithDelay(
+          incident, AppConfig.incidentVisibilityDelay);
 
       // 5. MARCA RATE-LIMIT (Blindado contra QuotaExceededError)
       try {
@@ -116,7 +124,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
 
       if (!mounted) return;
 
-      _toast('Thank you! Your report was submitted successfully.');
+      _toast(loc.reportSubmittedSuccess);
 
       // Delay para o Toast ser lido
       await Future.delayed(const Duration(milliseconds: 600));
@@ -127,7 +135,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
       }
     } catch (e) {
       debugPrint('[ReportSummary] SUBMIT failed: $e');
-      _toast('Submit failed: $e');
+      _toast(loc.submitFailed(e.toString()));
       if (mounted) setState(() => _submitting = false);
     }
   }
@@ -135,154 +143,221 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
     final date = widget.draft.dateTime ?? DateTime.now();
     final lat = widget.draft.latitude;
     final lng = widget.draft.longitude;
+    final severity = IncidentSeverity.values.firstWhere(
+      (e) => e.name == widget.draft.severity,
+      orElse: () => IncidentSeverity.low,
+    );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Review report')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _Section(
-            title: 'Category',
-            content: '${widget.draft.category} → ${widget.draft.subcategory}',
-          ),
-          _Section(
-            title: 'Severity',
-            content: (widget.draft.severity ?? 'Low').toUpperCase(),
-          ),
-          _Section(
-            title: 'Description',
-            content: (widget.draft.description ?? '').isEmpty
-                ? 'No description provided'
-                : widget.draft.description!,
-          ),
-          _Section(
-            title: 'When',
-            content:
-                '${date.day}/${date.month}/${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
-          ),
-          const SizedBox(height: 12),
-
-          // PREVIEW DO MAPA
-          SizedBox(
-            height: 180,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: FlutterMap(
-                options: MapOptions(
-                  initialCenter: LatLng(lat ?? 51.3305, lng ?? -0.2708),
-                  initialZoom: 16,
-                  interactionOptions:
-                      const InteractionOptions(flags: InteractiveFlag.none),
+      appBar: AppBar(title: Text(loc.reviewReportTitle)),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              FadeInUp(
+                child: _SummaryCard(
+                  icon: ReportIcons.subcategory(
+                      widget.draft.subcategory ?? 'Other'),
+                  title: loc.sectionCategory,
+                  content:
+                      '${ReportLabels.category(context, widget.draft.category ?? 'Other')} → '
+                      '${ReportLabels.subcategory(context, widget.draft.subcategory ?? 'Other')}',
                 ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                    subdomains: const ['a', 'b', 'c', 'd'],
-                    // Usando o provider performante que instalamos
-                    tileProvider: CancellableNetworkTileProvider(),
+              ),
+              FadeInUp(
+                delay: const Duration(milliseconds: 60),
+                child: _SummaryCard(
+                  icon: Icons.warning_amber_outlined,
+                  iconColor: SeverityColors.of(severity),
+                  title: loc.sectionSeverity,
+                  content:
+                      SeverityColors.label(context, severity).toUpperCase(),
+                ),
+              ),
+              FadeInUp(
+                delay: const Duration(milliseconds: 120),
+                child: _SummaryCard(
+                  icon: Icons.description_outlined,
+                  title: loc.sectionDescription,
+                  content: (widget.draft.description ?? '').isEmpty
+                      ? loc.noDescriptionProvided
+                      : widget.draft.description!,
+                ),
+              ),
+              FadeInUp(
+                delay: const Duration(milliseconds: 180),
+                child: _SummaryCard(
+                  icon: Icons.event_outlined,
+                  title: loc.sectionWhen,
+                  content: DateFormat.yMd(locale).add_Hm().format(date),
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // PREVIEW DO MAPA
+              FadeInUp(
+                delay: const Duration(milliseconds: 240),
+                child: Container(
+                  height: 180,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: BeeAwareTheme.border),
                   ),
-                  if (lat != null && lng != null)
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: LatLng(lat, lng),
-                          width: 40,
-                          height: 40,
-                          child: const Icon(Icons.location_pin,
-                              size: 40, color: Color(0xFFF44336)),
-                        ),
-                      ],
+                  child: FlutterMap(
+                    options: MapOptions(
+                      initialCenter: LatLng(lat ?? 51.3305, lng ?? -0.2708),
+                      initialZoom: 16,
+                      interactionOptions:
+                          const InteractionOptions(flags: InteractiveFlag.none),
                     ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // INFO DE DELAY
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12)
-              ],
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.schedule,
-                    size: 18, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _remaining == Duration.zero
-                        ? 'This report is now visible on the map.'
-                        : 'This report will appear on the map shortly.',
-                    style: theme.textTheme.bodyMedium,
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                        subdomains: const ['a', 'b', 'c', 'd'],
+                        // Usando o provider performante que instalamos
+                        tileProvider: CancellableNetworkTileProvider(),
+                      ),
+                      if (lat != null && lng != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: LatLng(lat, lng),
+                              width: 40,
+                              height: 40,
+                              child: const Icon(Icons.location_pin,
+                                  size: 40, color: Color(0xFFF44336)),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // BOTÃO SUBMETER
-          SizedBox(
-            height: 56,
-            child: ElevatedButton(
-              onPressed: _submitting ? null : _submitReport,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                elevation: 0,
               ),
-              child: _submitting
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(Colors.white)),
-                    )
-                  : const Text('Submit report anonymously',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
+              const SizedBox(height: 16),
+
+              // INFO DE DELAY
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: BeeAwareTheme.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: BeeAwareTheme.border),
+                  boxShadow: BeeAwareTheme.cardShadow,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule,
+                        size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _remaining == Duration.zero
+                            ? loc.mapVisibleNow
+                            : loc.mapVisibleShortly,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // BOTÃO SUBMETER
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _submitReport,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white)),
+                        )
+                      : Text(loc.submitReportAnonymously,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _Section extends StatelessWidget {
+class _SummaryCard extends StatelessWidget {
+  final IconData icon;
+  final Color? iconColor;
   final String title;
   final String content;
-  const _Section({required this.title, required this.content});
+
+  const _SummaryCard({
+    required this.icon,
+    required this.title,
+    required this.content,
+    this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: BeeAwareTheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: BeeAwareTheme.border),
+        boxShadow: BeeAwareTheme.cardShadow,
+      ),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500)),
-          const SizedBox(height: 4),
-          Text(content,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: (iconColor ?? BeeAwareTheme.primary).withOpacity(0.1),
+            ),
+            child:
+                Icon(icon, size: 18, color: iconColor ?? BeeAwareTheme.primary),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: BeeAwareTheme.textSecondary,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 3),
+                Text(content,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
         ],
       ),
     );
