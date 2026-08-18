@@ -5,13 +5,13 @@
   <meta charset="UTF-8">
   <title>BeeAware</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#F6F2E5">
+  <meta name="theme-color" content="#FAF7F2">
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="manifest" href="manifest.json?v=3">
 
   <style>
   html, body {
-    background-color: #F6F2E5;
+    background-color: #FAF7F2;
     margin: 0; padding: 0;
     width: 100%; height: 100%;
     display: flex;
@@ -19,20 +19,21 @@
     justify-content: center;
   }
 
-  /* Este container segura a logo enquanto o Flutter não carrega */
+  /* Shown only until Flutter fires its first frame — kept in the same
+     background/badge as the native splash so there's no visible swap. */
   #loading-logo {
     transition: opacity 0.5s ease-out;
   }
 
   .logo-img {
-    width: 200px; /* Mesmaa largura que usávamos no Flutter */
+    width: 140px;
     height: auto;
   }
 </style>
 
 <body>
   <div id="loading-logo">
-    <img src="beeaware_watermark.png" class="logo-img" alt="BeeAware Logo">
+    <img src="beeaware_badge.png" class="logo-img" alt="BeeAware">
   </div>
 
   <script>
