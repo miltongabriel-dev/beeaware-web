@@ -93,6 +93,15 @@ class IncidentStore {
       }
 
       final clampedRadius = radius.clamp(500, 5000).toDouble();
+
+      // PRF's data is sparse and highway-specific (federal road accidents,
+      // not urban crime) — the UK's 500-5000m clamp above was sized for
+      // dense street-level crime data and left most city-center viewports
+      // with zero events within range. 15-100km fits a national dataset
+      // of ~34k points instead: still tight enough to keep the map
+      // meaningful, wide enough to actually reach a nearby highway.
+      final brazilRadius = radius.clamp(15000, 100000).toDouble();
+
       final official = await Future.wait([
         UkPoliceApi.fetchForArea(
           lat: centerLat,
@@ -102,7 +111,7 @@ class IncidentStore {
         BrazilSecurityApi.fetchForArea(
           lat: centerLat,
           lng: centerLng,
-          radiusMeters: clampedRadius,
+          radiusMeters: brazilRadius,
         ),
       ]).then((results) => results.expand((list) => list));
 
