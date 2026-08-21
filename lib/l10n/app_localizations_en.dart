@@ -630,6 +630,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get policeReportCategory => 'Police report';
 
   @override
+  String get roadAccidentCategory => 'Traffic accident';
+
+  @override
+  String roadAccidentDescription(String type, String city, String state) {
+    return '$type in $city, $state. Source: PRF.';
+  }
+
+  @override
   String officialDescriptionWithOutcome(
       String category, String street, String outcome, String month) {
     return 'Police recorded $category near $street. Outcome: $outcome. Reported in $month.';

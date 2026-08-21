@@ -200,6 +200,15 @@
   "shareReportTooltip": "Compartilhar um relato de segurança local",
 
   "policeReportCategory": "Relato da polícia",
+  "roadAccidentCategory": "Acidente de trânsito",
+  "roadAccidentDescription": "{type} em {city}, {state}. Fonte: PRF.",
+  "@roadAccidentDescription": {
+    "placeholders": {
+      "type": { "type": "String" },
+      "city": { "type": "String" },
+      "state": { "type": "String" }
+    }
+  },
   "officialDescriptionWithOutcome": "A polícia registrou {category} perto de {street}. Resultado: {outcome}. Reportado em {month}.",
   "officialDescriptionNoOutcome": "A polícia registrou {category} perto de {street}. Reportado em {month}.",
   "locationNotSpecified": "Localização não especificada"

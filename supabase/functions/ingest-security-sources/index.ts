@@ -150,6 +150,14 @@ function mapEventToRow(sourceId: string | null, event: SecurityEvent) {
   };
 }
 
+// PRF's single "grouped by occurrence" file already carries ~34k rows for
+// the current year alone — one upsert call per row (as this used to do)
+// means ~34k sequential round trips to PostgREST, which is both slow and
+// a real risk of running past the Edge Function's execution limit. Batch
+// instead: PostgREST/supabase-js upsert() accepts an array and turns it
+// into one bulk statement, so this is ~34k/EVENT_BATCH_SIZE calls.
+const EVENT_BATCH_SIZE = 500;
+
 async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySourceAdapter) {
   const source = adapter.source();
   const health = await adapter.healthCheck();
@@ -163,12 +171,15 @@ async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySource
   let written = 0;
   for (const record of records) {
     const events = await adapter.normalize(record);
-    for (const event of events) {
+    const rows = events.map((event) => mapEventToRow(sourceId, event));
+
+    for (let i = 0; i < rows.length; i += EVENT_BATCH_SIZE) {
+      const batch = rows.slice(i, i + EVENT_BATCH_SIZE);
       const { error } = await supabase
         .from("security_events")
-        .upsert(mapEventToRow(sourceId, event), { onConflict: "source_id,source_record_id" });
-      if (!error) written++;
-      else console.error(`security_events upsert failed for ${event.sourceRecordId}:`, error.message);
+        .upsert(batch, { onConflict: "source_id,source_record_id" });
+      if (!error) written += batch.length;
+      else console.error(`security_events batch upsert failed (rows ${i}-${i + batch.length}):`, error.message);
     }
   }
 

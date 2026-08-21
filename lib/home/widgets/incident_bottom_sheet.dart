@@ -22,7 +22,9 @@ class IncidentBottomSheet extends StatelessWidget {
     final loc = AppLocalizations.of(context)!;
     final hasExternalDescription = incident.description.trim().isNotEmpty;
     final categoryLabel = incident.isOfficial
-        ? loc.policeReportCategory
+        ? (incident.source == 'PRF'
+            ? loc.roadAccidentCategory
+            : loc.policeReportCategory)
         : ReportLabels.category(context, incident.category);
 
     return SafeArea(

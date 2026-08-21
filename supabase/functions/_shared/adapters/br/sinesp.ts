@@ -67,6 +67,22 @@ function authHeaders(): HeadersInit {
   return token ? { "chave-api-dados-abertos": token } : {};
 }
 
+// dados.gov.br's API returns dataUltimaAtualizacaoArquivo as "DD/MM/YYYY"
+// (pt-BR locale), not ISO — a bare pt-BR date string broke the PRF
+// adapter's security_sources upsert the same way (that column is a
+// Postgres `date`, and "30/04/2026" isn't valid ISO input). Convert
+// defensively rather than repeat that bug; if the format ever changes
+// unexpectedly, drop it instead of risking another silent upsert failure.
+function toIsoDate(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (match) {
+    const [, dd, mm, yyyy] = match;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw : undefined;
+}
+
 export class SinespAdapter implements SecuritySourceAdapter {
   source(): SecuritySource {
     return {
@@ -127,7 +143,7 @@ export class SinespAdapter implements SecuritySourceAdapter {
       // links it returns are currently unreachable (see file header).
       return {
         status: "AMBER",
-        lastDataDate: detail.dataUltimaAtualizacaoArquivo,
+        lastDataDate: toIsoDate(detail.dataUltimaAtualizacaoArquivo),
         message: "Metadata OK; resource download links point at a dead domain (dados.mj.gov.br)",
       };
     } catch (e) {

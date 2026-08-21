@@ -1106,6 +1106,18 @@ abstract class AppLocalizations {
   /// **'Police report'**
   String get policeReportCategory;
 
+  /// No description provided for @roadAccidentCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Traffic accident'**
+  String get roadAccidentCategory;
+
+  /// No description provided for @roadAccidentDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} in {city}, {state}. Source: PRF.'**
+  String roadAccidentDescription(String type, String city, String state);
+
   /// No description provided for @officialDescriptionWithOutcome.
   ///
   /// In en, this message translates to:

@@ -7,6 +7,7 @@ import 'map_incident.dart';
 import 'incident_persistence.dart';
 import '../backend/incident_api.dart';
 import '../backend/uk_police_api.dart';
+import '../backend/brazil_security_api.dart';
 
 class IncidentStore {
   static List<MapIncident> _incidents = [];
@@ -91,11 +92,19 @@ class IncidentStore {
         _fetchedCells.clear();
       }
 
-      final official = await UkPoliceApi.fetchForArea(
-        lat: centerLat,
-        lng: centerLng,
-        radiusMeters: radius.clamp(500, 5000),
-      );
+      final clampedRadius = radius.clamp(500, 5000).toDouble();
+      final official = await Future.wait([
+        UkPoliceApi.fetchForArea(
+          lat: centerLat,
+          lng: centerLng,
+          radiusMeters: clampedRadius,
+        ),
+        BrazilSecurityApi.fetchForArea(
+          lat: centerLat,
+          lng: centerLng,
+          radiusMeters: clampedRadius,
+        ),
+      ]).then((results) => results.expand((list) => list));
 
       bool changed = false;
 

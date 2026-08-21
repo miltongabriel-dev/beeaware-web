@@ -260,6 +260,15 @@
   "shareReportTooltip": "Share a local safety report",
 
   "policeReportCategory": "Police report",
+  "roadAccidentCategory": "Traffic accident",
+  "roadAccidentDescription": "{type} in {city}, {state}. Source: PRF.",
+  "@roadAccidentDescription": {
+    "placeholders": {
+      "type": { "type": "String" },
+      "city": { "type": "String" },
+      "state": { "type": "String" }
+    }
+  },
   "officialDescriptionWithOutcome": "Police recorded {category} near {street}. Outcome: {outcome}. Reported in {month}.",
   "@officialDescriptionWithOutcome": {
     "placeholders": {
