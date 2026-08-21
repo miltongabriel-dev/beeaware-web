@@ -25,6 +25,7 @@ import { SinespAdapter } from "../_shared/adapters/br/sinesp.ts";
 import { RenaestAdapter } from "../_shared/adapters/br/renaest.ts";
 import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
 import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
+import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
 import type {
   SecurityEvent,
   SecuritySource,
@@ -42,6 +43,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   RenaestAdapter: new RenaestAdapter(),
   PrfAccidentsAdapter: new PrfAccidentsAdapter(),
   RjIspAdapter: new RjIspAdapter(),
+  PaSegupAdapter: new PaSegupAdapter(),
 };
 
 async function upsertSourceRegistry(
@@ -172,19 +174,45 @@ async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySource
   }
 
   const records = await adapter.fetch();
-  // debug:true skips normalize()/writes entirely and just echoes what
-  // fetch() saw — for inspecting a source's raw metadata (e.g. SINESP's
-  // resource list) without needing a separate script or DB access.
+  // debug:true runs fetch() + normalize() but skips the DB write, and
+  // returns a small sample instead of every event (a full binary
+  // payload or tens of thousands of rows echoed as JSON is its own way
+  // to blow the response size/memory budget) — for inspecting what an
+  // adapter actually produces without needing a separate script or DB
+  // access.
   if (debug) {
-    return { adapter: source.adapterName, health, recordsSeen: records.length, records };
+    const normalized: SecurityEvent[] = [];
+    for (const record of records) {
+      normalized.push(...(await adapter.normalize(record)));
+    }
+    return {
+      adapter: source.adapterName,
+      health,
+      recordsSeen: records.length,
+      eventsNormalized: normalized.length,
+      sample: normalized.slice(0, 3),
+    };
   }
   let written = 0;
   for (const record of records) {
     const events = await adapter.normalize(record);
     const rows = events.map((event) => mapEventToRow(sourceId, event));
 
-    for (let i = 0; i < rows.length; i += EVENT_BATCH_SIZE) {
-      const batch = rows.slice(i, i + EVENT_BATCH_SIZE);
+    // Postgres rejects an entire multi-row upsert with "ON CONFLICT DO
+    // UPDATE command cannot affect row a second time" the moment two rows
+    // in the SAME statement share a conflict key — found in production
+    // with PaSegupAdapter, whose sourceRecordId is a composite fingerprint
+    // (no real unique ID in the source data) with a documented small
+    // collision rate. Two colliding rows landing in the same batch was
+    // silently failing that whole 500-row batch (only the last, smaller
+    // batch without a collision got through). Dedupe by key before
+    // batching so this can't happen for any adapter, not just this one.
+    const bySourceRecordId = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) bySourceRecordId.set(row.source_record_id, row);
+    const dedupedRows = [...bySourceRecordId.values()];
+
+    for (let i = 0; i < dedupedRows.length; i += EVENT_BATCH_SIZE) {
+      const batch = dedupedRows.slice(i, i + EVENT_BATCH_SIZE);
       const { error } = await supabase
         .from("security_events")
         .upsert(batch, { onConflict: "source_id,source_record_id" });
