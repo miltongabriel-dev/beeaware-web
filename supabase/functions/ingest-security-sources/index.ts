@@ -26,6 +26,9 @@ import { RenaestAdapter } from "../_shared/adapters/br/renaest.ts";
 import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
 import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
 import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
+// RsSspAdapter (rs_ssp.ts) is built and its fetch()/normalize() are
+// verified working in production, but not imported/registered here yet
+// — see the eventAdapters comment below for why.
 import type {
   SecurityEvent,
   SecuritySource,
@@ -44,6 +47,18 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   PrfAccidentsAdapter: new PrfAccidentsAdapter(),
   RjIspAdapter: new RjIspAdapter(),
   PaSegupAdapter: new PaSegupAdapter(),
+  // RsSspAdapter is deliberately NOT registered here yet. fetch()/
+  // normalize() both work (verified live: 23741 real aggregate events,
+  // ~123MB RSS — see rs_ssp.ts's file header) but the write phase
+  // (~160 sequential batch upserts for that many rows) still hits
+  // WORKER_RESOURCE_LIMIT in production, for reasons not yet isolated
+  // (probably cumulative memory/time held across that many sequential
+  // round trips, not peak memory the way the parse-phase failure was).
+  // Registering it here would mean a manual "run every adapter" call or
+  // the eventual scheduled job breaks on this one adapter. Paused,
+  // not abandoned — re-add (uncomment the import above too) once the
+  // write path is fixed (either a scope reduction like PaSegupAdapter's,
+  // or real incremental writes spread across multiple scheduled runs).
 };
 
 async function upsertSourceRegistry(
@@ -196,7 +211,6 @@ async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySource
   let written = 0;
   for (const record of records) {
     const events = await adapter.normalize(record);
-    const rows = events.map((event) => mapEventToRow(sourceId, event));
 
     // Postgres rejects an entire multi-row upsert with "ON CONFLICT DO
     // UPDATE command cannot affect row a second time" the moment two rows
@@ -207,8 +221,14 @@ async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySource
     // silently failing that whole 500-row batch (only the last, smaller
     // batch without a collision got through). Dedupe by key before
     // batching so this can't happen for any adapter, not just this one.
-    const bySourceRecordId = new Map<string, (typeof rows)[number]>();
-    for (const row of rows) bySourceRecordId.set(row.source_record_id, row);
+    // Built directly from `events` (skipping a separate intermediate
+    // `rows` array) since RsSspAdapter's row count made every extra
+    // full-array copy here matter — see its file header for the memory
+    // budget this ingestion job runs under.
+    const bySourceRecordId = new Map<string, ReturnType<typeof mapEventToRow>>();
+    for (const event of events) {
+      bySourceRecordId.set(event.sourceRecordId, mapEventToRow(sourceId, event));
+    }
     const dedupedRows = [...bySourceRecordId.values()];
 
     for (let i = 0; i < dedupedRows.length; i += EVENT_BATCH_SIZE) {
