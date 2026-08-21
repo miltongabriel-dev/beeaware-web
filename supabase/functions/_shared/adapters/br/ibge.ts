@@ -5,11 +5,17 @@
 // geo_areas) joins against. This is real, working code — verified live
 // against https://servicodados.ibge.gov.br on 2026-08-21 — not a stub.
 //
-// Population and municipality polygons live on separate IBGE endpoints
-// (SIDRA aggregates, and the /malhas GeoJSON API respectively) and are
-// deliberately left out of this first pass: municipality identity is the
-// dependency everything else needs first, and both of those are
-// meaningfully larger integrations of their own.
+// Population lives on a separate IBGE endpoint (SIDRA aggregates) and is
+// still left out. Municipality polygons (the /malhas GeoJSON API) are
+// now covered by fetchAndNormalizeGeometry() below — added when the
+// RJ-ISP violence choropleth needed real municipality boundaries to
+// color. Verified live: GET /api/v3/malhas/estados/{UF}?formato=
+// application/vnd.geo+json&intrarregiao=municipio&qualidade=minima
+// returns every municipality in that state as one GeoJSON
+// FeatureCollection (92 features / 47KB for RJ) with the IBGE code in
+// `properties.codarea` — one HTTP call per state rather than one per
+// municipality (5570 individual calls would be impractical from a
+// single Edge Function invocation).
 
 import type {
   GeoArea,
@@ -20,6 +26,12 @@ import type {
 } from "../types.ts";
 
 const BASE_URL = "https://servicodados.ibge.gov.br/api/v1/localidades";
+
+export interface MunicipalityGeometry {
+  cityIbgeCode: string;
+  geometry: unknown;
+  sourceVersion: string;
+}
 
 interface IbgeMunicipio {
   id: number;
@@ -92,6 +104,33 @@ export class IbgeAdapter implements TerritorialSourceAdapter {
     };
 
     return Promise.resolve([area]);
+  }
+
+  // Not part of TerritorialSourceAdapter — this backfills geometry onto
+  // municipality rows that already exist (from fetch()/normalize()
+  // above), it doesn't create new geo_areas rows, so it doesn't fit the
+  // fetch-then-normalize shape. Called directly by the ingestion
+  // function's geometry-backfill path, one state at a time.
+  async fetchAndNormalizeGeometry(stateCode: string): Promise<MunicipalityGeometry[]> {
+    const url =
+      `https://servicodados.ibge.gov.br/api/v3/malhas/estados/${stateCode}` +
+      `?formato=application/vnd.geo+json&intrarregiao=municipio&qualidade=minima`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`IBGE malha request failed for ${stateCode}: ${res.status} ${res.statusText}`);
+    }
+
+    const geojson = (await res.json()) as {
+      features: { properties: { codarea: string }; geometry: unknown }[];
+    };
+    const sourceVersion = new Date().toISOString();
+
+    return geojson.features.map((f) => ({
+      cityIbgeCode: f.properties.codarea,
+      geometry: f.geometry,
+      sourceVersion,
+    }));
   }
 
   async healthCheck(): Promise<SourceHealth> {

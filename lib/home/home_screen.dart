@@ -35,6 +35,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:aware/home/widgets/safety_trend_chart.dart';
 import 'package:aware/backend/uk_police_api.dart';
+import 'package:aware/backend/brazil_crime_summary_api.dart';
+import '../map/municipality_choropleth_layer.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -59,6 +61,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<MapIncident> _incidents = [];
+  List<MunicipalityCrimeSummary> _crimeSummary = [];
   LatLng? _userCurrentLocation;
   bool _isLoadingIncidents = true;
   LatLng? _searchLocation;
@@ -410,6 +413,13 @@ class _HomeScreenState extends State<HomeScreen> {
     // 🔥 Centro inicial do mapa
     _resolveInitialCenter();
 
+    // 🔥 Violência/crime por município (Brasil) — carregado uma vez,
+    // não depende do viewport como os pins (dataset pequeno: dezenas de
+    // municípios, não milhares de pontos).
+    BrazilCrimeSummaryApi.fetchSummary().then((summary) {
+      if (mounted) setState(() => _crimeSummary = summary);
+    });
+
     // 🔥 TREND carregado em background (UX premium)
     Future.microtask(() async {
       await _loadUserLocation();
@@ -532,6 +542,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 subdomains: const ['a', 'b', 'c', 'd'],
                 tileProvider: CancellableNetworkTileProvider(),
               ),
+
+              // Violência/crime por município (Brasil) — abaixo dos pins,
+              // acima do mapa base.
+              MunicipalityChoroplethLayer(summaries: _crimeSummary),
 
               //Pin temporario search
               if (_searchLocation != null)

@@ -9,19 +9,22 @@
 // adapters).
 //
 // Honest current state: IbgeAdapter's normalize() is fully implemented,
-// so its scheduled run genuinely writes geo_areas rows. SinespAdapter,
-// RenaestAdapter and PrfAccidentsAdapter all have working fetch() (real
-// discovery against their live sources) but normalize() still returns []
-// (see each adapter's file header for why) — so their scheduled runs
-// today only keep security_sources health metadata current. That's not
-// nothing (it's exactly what the roadmap's source-health dashboard,
-// section 12.5, is meant to show), but it's not event data yet either.
+// so its scheduled run genuinely writes geo_areas rows. PrfAccidentsAdapter
+// and RjIspAdapter are also fully real (verified against their live
+// sources — see each file's header) and write actual security_events
+// rows. SinespAdapter and RenaestAdapter still have working fetch() (real
+// discovery against their live sources) but normalize() returns [] (see
+// each adapter's file header for why) — so their scheduled runs today
+// only keep security_sources health metadata current. That's not nothing
+// (it's exactly what the roadmap's source-health dashboard, section 12.5,
+// is meant to show), but it's not event data yet either.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
 import { SinespAdapter } from "../_shared/adapters/br/sinesp.ts";
 import { RenaestAdapter } from "../_shared/adapters/br/renaest.ts";
 import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
+import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
 import type {
   SecurityEvent,
   SecuritySource,
@@ -38,6 +41,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   SinespAdapter: new SinespAdapter(),
   RenaestAdapter: new RenaestAdapter(),
   PrfAccidentsAdapter: new PrfAccidentsAdapter(),
+  RjIspAdapter: new RjIspAdapter(),
 };
 
 async function upsertSourceRegistry(
@@ -186,6 +190,30 @@ async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySource
   return { adapter: source.adapterName, health, recordsSeen: records.length, eventsWritten: written };
 }
 
+// One-off (not cron-scheduled) backfill: populates geometry on the
+// municipality geo_areas rows IbgeAdapter's regular sync already created
+// (identity only, geometry left null — see ibge.ts). Triggered manually
+// with {"action": "backfill-geometry", "stateCode": "RJ"} rather than
+// running for every state automatically, since it's only needed where a
+// choropleth actually consumes it (RJ today, for RjIspAdapter).
+async function backfillGeometry(supabase: SupabaseClient, stateCode: string) {
+  const ibge = new IbgeAdapter();
+  const rows = await ibge.fetchAndNormalizeGeometry(stateCode);
+
+  let written = 0;
+  for (const row of rows) {
+    const { error } = await supabase
+      .from("geo_areas")
+      .update({ geometry: row.geometry, source_version: row.sourceVersion })
+      .eq("city_ibge_code", row.cityIbgeCode)
+      .eq("area_type", "MUNICIPALITY");
+    if (!error) written++;
+    else console.error(`geo_areas geometry update failed for ${row.cityIbgeCode}:`, error.message);
+  }
+
+  return { stateCode, municipalitiesSeen: rows.length, geometryWritten: written };
+}
+
 Deno.serve(async (req) => {
   // This runs real external HTTP fetches and DB writes on every call —
   // it must only be triggerable by pg_cron (via Vault, see the
@@ -208,11 +236,24 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
 
-  let body: { adapter?: string } = {};
+  let body: { adapter?: string; action?: string; stateCode?: string } = {};
   try {
     body = await req.json();
   } catch {
     // No body / not JSON -> run every adapter.
+  }
+
+  if (body.action === "backfill-geometry") {
+    if (!body.stateCode) {
+      return new Response(JSON.stringify({ ok: false, error: "stateCode required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const result = await backfillGeometry(supabase, body.stateCode);
+    return new Response(JSON.stringify({ ok: true, result }), {
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const results: Record<string, unknown> = {};
