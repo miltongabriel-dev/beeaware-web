@@ -30,6 +30,15 @@
 //     working; bulk file download is not — that's a stale link in the
 //     government's own data, not something to route around by guessing
 //     further.
+//   - Re-verified 2026-08-21 (second pass): tried the same dados.gov.br
+//     path with three auth styles server-side — `chave-api-dados-abertos`
+//     (the working header for the metadata API), `Authorization: Bearer
+//     <token>`, and no auth at all. All three: 401. The legacy download
+//     path isn't gated by an API-key-reachable scheme at all — it almost
+//     certainly needs an actual logged-in browser session (a cookie from
+//     the dados.gov.br web UI), which no API token can produce. This is a
+//     genuine gap in what the government publishes programmatically, not
+//     a header/format guess away from working.
 //
 // normalize() stays a stub for the same reason RENAEST's does: nothing
 // has actually been downloaded and inspected yet.

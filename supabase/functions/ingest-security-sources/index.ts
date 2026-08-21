@@ -162,7 +162,7 @@ function mapEventToRow(sourceId: string | null, event: SecurityEvent) {
 // into one bulk statement, so this is ~34k/EVENT_BATCH_SIZE calls.
 const EVENT_BATCH_SIZE = 500;
 
-async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySourceAdapter) {
+async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySourceAdapter, debug = false) {
   const source = adapter.source();
   const health = await adapter.healthCheck();
   const sourceId = await upsertSourceRegistry(supabase, source, health);
@@ -172,6 +172,12 @@ async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySource
   }
 
   const records = await adapter.fetch();
+  // debug:true skips normalize()/writes entirely and just echoes what
+  // fetch() saw — for inspecting a source's raw metadata (e.g. SINESP's
+  // resource list) without needing a separate script or DB access.
+  if (debug) {
+    return { adapter: source.adapterName, health, recordsSeen: records.length, records };
+  }
   let written = 0;
   for (const record of records) {
     const events = await adapter.normalize(record);
@@ -236,7 +242,7 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
 
-  let body: { adapter?: string; action?: string; stateCode?: string } = {};
+  let body: { adapter?: string; action?: string; stateCode?: string; debug?: boolean } = {};
   try {
     body = await req.json();
   } catch {
@@ -265,7 +271,7 @@ Deno.serve(async (req) => {
 
   for (const [name, adapter] of Object.entries(eventAdapters)) {
     if (body.adapter && body.adapter !== name) continue;
-    results[name] = await runEventAdapter(supabase, adapter);
+    results[name] = await runEventAdapter(supabase, adapter, body.debug === true);
   }
 
   return new Response(JSON.stringify({ ok: true, results }), {
