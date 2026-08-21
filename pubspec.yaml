@@ -65,20 +65,20 @@ flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  image_path: "assets/logo/3.0x/BeeAware-Logo.png"
+  image_path: "assets/logo/beeaware_symbol.png"
   min_sdk_android: 21
   web:
     generate: true
-    image_path: "assets/logo/3.0x/BeeAware-Logo.png"
-    background_color: "#FAF7F2"
-    theme_color: "#1F3A5F"
+    image_path: "assets/logo/beeaware_symbol.png"
+    background_color: "#FFF8EA"
+    theme_color: "#FF9D00"
 
 flutter_native_splash:
-  color: "#FAF7F2"
-  image: assets/logo/3.0x/BeeAware-Logo.png
+  color: "#FFF8EA"
+  image: assets/logo/beeaware_symbol.png
   android_12:
-    image: assets/logo/3.0x/BeeAware-Logo.png
-    color: "#FAF7F2"
+    image: assets/logo/beeaware_symbol.png
+    color: "#FFF8EA"
   web: false
 
 # For information on the generic Dart part of this file, see the

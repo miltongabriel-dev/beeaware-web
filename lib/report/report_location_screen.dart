@@ -186,7 +186,7 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor:
               isSelected ? BeeAwareTheme.primary : Colors.grey[300],
-          foregroundColor: Colors.white,
+          foregroundColor: BeeAwareTheme.textPrimary,
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

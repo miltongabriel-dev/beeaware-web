@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '/l10n/app_localizations.dart';
 import '/map/map_incident.dart';
 import '/report/report_icons.dart';
@@ -60,13 +61,21 @@ class IncidentBottomSheet extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: BeeAwareTheme.primary.withOpacity(0.08),
                   ),
-                  child: Icon(
-                    incident.isOfficial
-                        ? Icons.local_police_outlined
-                        : ReportIcons.category(incident.category),
-                    size: 18,
-                    color: BeeAwareTheme.primary,
-                  ),
+                  child: incident.isOfficial
+                      ? SvgPicture.asset(
+                          'assets/icons/verified.svg',
+                          width: 18,
+                          height: 18,
+                          colorFilter: const ColorFilter.mode(
+                            BeeAwareTheme.primary,
+                            BlendMode.srcIn,
+                          ),
+                        )
+                      : Icon(
+                          ReportIcons.category(incident.category),
+                          size: 18,
+                          color: BeeAwareTheme.primary,
+                        ),
                 ),
                 const SizedBox(width: 10),
 

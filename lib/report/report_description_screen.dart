@@ -4,6 +4,7 @@ import 'report_draft.dart';
 import 'report_location_screen.dart';
 import 'report_step_indicator.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/beeaware_theme.dart';
 
 class ReportDescriptionScreen extends StatefulWidget {
   final ReportDraft draft;
@@ -72,7 +73,7 @@ class _ReportDescriptionScreenState extends State<ReportDescriptionScreen> {
                     opacity: 0.04,
                     child: Center(
                       child: Image.asset(
-                        'assets/logo/beeaware_watermark.png',
+                        'assets/logo/beeaware_symbol.png',
                         width: 320,
                         fit: BoxFit.contain,
                       ),
@@ -141,9 +142,9 @@ class _ReportDescriptionScreenState extends State<ReportDescriptionScreen> {
                         child: ElevatedButton(
                           onPressed: _canContinue ? _continue : null,
                           style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.white,
+                            foregroundColor: BeeAwareTheme.textPrimary,
                             disabledForegroundColor:
-                                Colors.white.withOpacity(0.6),
+                                BeeAwareTheme.textPrimary.withOpacity(0.6),
                             backgroundColor: theme.colorScheme.primary,
                             disabledBackgroundColor:
                                 theme.colorScheme.primary.withOpacity(0.3),

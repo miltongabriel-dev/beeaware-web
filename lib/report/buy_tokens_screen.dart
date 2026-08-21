@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../state/token_state.dart';
 import '../theme/beeaware_theme.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 enum _PackageBadge { mostPopular, bestValue }
 
@@ -41,8 +40,10 @@ class _Content extends StatelessWidget {
         Container(
           child: Column(
             children: [
-              SvgPicture.asset(
-                'assets/logo/beeaware_texto.svg',
+              Image.asset(
+                Localizations.localeOf(context).languageCode == 'pt'
+                    ? 'assets/logo/beeaware_wordmark_pt.png'
+                    : 'assets/logo/beeaware_wordmark_en.png',
                 width: 160,
               ),
               const SizedBox(height: 10),

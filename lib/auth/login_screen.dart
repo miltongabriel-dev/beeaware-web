@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // LOGO
                 FadeInUp(
                   child: SvgPicture.asset(
-                    'assets/logo/beeaware_logo.svg',
+                    'assets/logo/beeaware_symbol.svg',
                     width: 70,
                   ),
                 ),

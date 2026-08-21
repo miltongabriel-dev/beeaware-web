@@ -255,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B),
+                  color: BeeAwareTheme.accent,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
@@ -543,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 40,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B),
+                          color: BeeAwareTheme.accent,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
@@ -738,8 +738,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Opacity(
                   opacity: 0.7,
-                  child: SvgPicture.asset(
-                    'assets/logo/beeaware_texto.svg',
+                  child: Image.asset(
+                    Localizations.localeOf(context).languageCode == 'pt'
+                        ? 'assets/logo/beeaware_wordmark_pt.png'
+                        : 'assets/logo/beeaware_wordmark_en.png',
                     width: 120,
                     fit: BoxFit.contain,
                     alignment: Alignment.centerLeft,
@@ -800,11 +802,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Icon(
-                                  Icons.search,
-                                  key: ValueKey('search_icon'),
-                                  size: 20,
-                                  color: Color(0xFF6B7280),
+                              : SvgPicture.asset(
+                                  'assets/icons/nearby.svg',
+                                  key: const ValueKey('search_icon'),
+                                  width: 20,
+                                  height: 20,
+                                  colorFilter: const ColorFilter.mode(
+                                    Color(0xFF6B7280),
+                                    BlendMode.srcIn,
+                                  ),
                                 ),
                         ),
 
@@ -1580,10 +1586,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: const LinearGradient(
+                              gradient: LinearGradient(
                                 colors: [
-                                  Color(0xFFF59E0B),
-                                  Color(0xFFFBBF24),
+                                  BeeAwareTheme.accent,
+                                  const Color(0xFFFBBF24),
                                 ],
                               ),
                             ),
@@ -2344,7 +2350,7 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.notifications_active,
-                    size: 36, color: Color(0xFFF59E0B)),
+                    size: 36, color: BeeAwareTheme.accent),
                 const SizedBox(height: 12),
                 Text(
                   loc.stayUpdatedInArea,
@@ -2777,7 +2783,7 @@ class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
                       spreadRadius: 8 * glow,
                     ),
                     BoxShadow(
-                      color: const Color(0xFF1F3A5F).withOpacity(0.10),
+                      color: BeeAwareTheme.primary.withOpacity(0.10),
                       blurRadius: 18,
                       spreadRadius: 1,
                     ),
@@ -2793,7 +2799,7 @@ class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
               );
             },
             child: SvgPicture.asset(
-              'assets/logo/beeaware_logo.svg',
+              'assets/logo/beeaware_symbol.svg',
               fit: BoxFit.contain,
             ),
           ),

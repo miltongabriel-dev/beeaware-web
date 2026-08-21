@@ -278,7 +278,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                   onPressed: _submitting ? null : _submitReport,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: BeeAwareTheme.textPrimary,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
@@ -289,7 +289,8 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                           width: 24,
                           child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Colors.white)),
+                              valueColor: AlwaysStoppedAnimation(
+                                  BeeAwareTheme.textPrimary)),
                         )
                       : Text(loc.submitReportAnonymously,
                           style: const TextStyle(

@@ -40,7 +40,7 @@ class ReportCategoryScreen extends StatelessWidget {
                   child: Opacity(
                     opacity: 0.05, // Apple-level
                     child: SvgPicture.asset(
-                      'assets/logo/beeaware_watermark.svg',
+                      'assets/logo/beeaware_symbol.svg',
                       width: MediaQuery.of(context).size.width * 0.9,
                     ),
                   ),

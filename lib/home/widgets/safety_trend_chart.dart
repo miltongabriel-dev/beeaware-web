@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../theme/beeaware_theme.dart';
 
 class SafetyTrendChart extends StatelessWidget {
   final List<double> values;
@@ -75,12 +76,12 @@ class SafetyTrendChart extends StatelessWidget {
           lineBarsData: [
             LineChartBarData(
               isCurved: true,
-              color: const Color(0xFFF59E0B),
+              color: BeeAwareTheme.accent,
               barWidth: 3,
               dotData: FlDotData(show: false),
               belowBarData: BarAreaData(
                 show: true,
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                color: BeeAwareTheme.accent.withValues(alpha: 0.15),
               ),
               spots: List.generate(
                 values.length,

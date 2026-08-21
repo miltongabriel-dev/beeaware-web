@@ -63,6 +63,15 @@ class SeverityColors {
   }
 }
 
+/// Soft context backgrounds from the Global Brand System 2.1 map/signal
+/// system (low concern / official / high-attention) — for distinguishing
+/// official vs. community data, not general-purpose UI color.
+class ContextColors {
+  static const Color mint = Color(0xFFDDF6EA);
+  static const Color blue = Color(0xFFDCEEFF);
+  static const Color red = Color(0xFFFFE1DE);
+}
+
 /// Three-tone semantic colors (solid / soft background / on-soft text) for
 /// status banners and messages — separate from the brand palette, so a
 /// warning never has to borrow the accent color just to stand out.
@@ -81,18 +90,20 @@ class SemanticColors {
 }
 
 class BeeAwareTheme {
-  // ===== Brand colors =====
-  // Navy is the primary brand color; amber is a deliberately sparing
-  // accent (report button, token/plan badges) — not a general-purpose
-  // color.
-  static const Color primary = Color(0xFF1F3A5F);
-  static const Color accent = Color(0xFFF59E0B);
-  static const Color background = Color(0xFFFAF7F2);
-  static const Color surface = Color(0xFFFBF7F2);
+  // ===== Brand colors (Global Brand System 2.1) =====
+  // Signal Orange is the primary brand color; Awareness Amber is the
+  // secondary pulse/attention tone. Unlike the previous navy-based theme,
+  // textPrimary is its own "Ink" tone, not an alias of primary — buttons on
+  // the orange primary need dark foreground text to meet contrast (white on
+  // #FF9D00 is ~2:1, Ink on #FF9D00 is ~7:1).
+  static const Color primary = Color(0xFFFF9D00);
+  static const Color accent = Color(0xFFFFB800);
+  static const Color background = Color(0xFFFFF8EA);
+  static const Color surface = Color(0xFFFFFFFF);
   static const Color border = Color(0xFFE3E8EF);
 
-  static const Color textPrimary = Color(0xFF1F3A5F);
-  static const Color textSecondary = Color(0xFF5F6C7B);
+  static const Color textPrimary = Color(0xFF222831);
+  static const Color textSecondary = Color(0xFF586274);
   static const Color textAux = Color(0xFF9AA4B2);
 
   static const Color cardShadowColor = Color(0x0F000000); // black @ 6%
@@ -110,7 +121,7 @@ class BeeAwareTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: primary,
       primary: primary,
-      onPrimary: Colors.white,
+      onPrimary: textPrimary,
       surface: Colors.white,
     );
 
@@ -161,7 +172,7 @@ class BeeAwareTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.white,
+          foregroundColor: textPrimary,
           backgroundColor: primary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
