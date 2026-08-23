@@ -423,6 +423,55 @@ class AppLocalizationsPt extends AppLocalizations {
       'Como funcionam os números dos agrupamentos';
 
   @override
+  String get coverageSheetTitle => 'Cobertura de dados aqui';
+
+  @override
+  String get coverageBadgeTooltip => 'Cobertura de dados';
+
+  @override
+  String get coverageCategoryViolence => 'Violência';
+
+  @override
+  String get coverageCategoryProperty => 'Crimes contra o patrimônio';
+
+  @override
+  String get coverageCategoryPublicSafety => 'Segurança pública';
+
+  @override
+  String get coverageCategoryRoadSafety => 'Segurança viária';
+
+  @override
+  String coverageFreshness(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Atualizado há $days dias',
+      one: 'Atualizado há $days dia',
+      zero: 'Atualizado hoje',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String coverageSourceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count registros',
+      one: '$count registro',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get coverageGlobalBaselineOnly =>
+      'Só há dado global de base aqui — isso não é garantia de segurança, é só o que temos disponível.';
+
+  @override
+  String get coverageNoData =>
+      'Nenhuma fonte de dados encontrada para esta área ainda.';
+
+  @override
   String get loadingIncidents => 'Carregando incidentes…';
 
   @override

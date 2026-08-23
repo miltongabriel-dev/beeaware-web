@@ -36,6 +36,7 @@ import 'package:http/http.dart' as http;
 import 'package:aware/home/widgets/safety_trend_chart.dart';
 import 'package:aware/backend/uk_police_api.dart';
 import 'package:aware/backend/brazil_crime_summary_api.dart';
+import 'package:aware/backend/location_coverage_api.dart';
 import '../map/municipality_choropleth_layer.dart';
 
 enum IncidentTimeFilter {
@@ -62,6 +63,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<MapIncident> _incidents = [];
   List<MunicipalityCrimeSummary> _crimeSummary = [];
+  List<LocationCoverage> _coverage = [];
   LatLng? _userCurrentLocation;
   bool _isLoadingIncidents = true;
   LatLng? _searchLocation;
@@ -431,6 +433,23 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
+
+    // 🔥 Cobertura de dados perto do usuário (BeeAware Global blueprint —
+    // "Never equate 'no data' with 'safe'"). Carregado uma vez ao redor da
+    // localização inicial, como o crime summary — não depende do viewport.
+    Future.microtask(() async {
+      await _loadUserLocation();
+      final center = _userCurrentLocation;
+      if (center == null) return;
+
+      final coverage = await LocationCoverageApi.fetchCoverage(
+        lat: center.latitude,
+        lng: center.longitude,
+        countryCode: _preferredCountryCode().toUpperCase(),
+      );
+
+      if (mounted) setState(() => _coverage = coverage);
+    });
   }
 
   @override
@@ -674,6 +693,23 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: BeeAwareTheme.textSecondary,
                           ),
                         ),
+                        // "No incidents" here doesn't mean "safe" — it
+                        // often just means BeeAware's only signal for this
+                        // area is the coarse global baseline, not a local
+                        // police feed. Say so rather than staying silent.
+                        if (_coverage.isNotEmpty &&
+                            _coverage.every((c) => c.isCountryOnly)) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            AppLocalizations.of(context)!
+                                .coverageGlobalBaselineOnly,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: BeeAwareTheme.textAux,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1011,6 +1047,19 @@ class _HomeScreenState extends State<HomeScreen> {
             top: 200,
             child: _FilterButton(onTap: () => _showFiltersOverlay()),
           ),
+
+          // Cobertura de dados — badge com a melhor grade disponível perto
+          // do usuário. Só aparece quando já temos uma resposta (evita
+          // piscar um badge vazio antes do fetch terminar).
+          if (_coverage.isNotEmpty)
+            Positioned(
+              right: 16,
+              top: 260,
+              child: _CoverageBadge(
+                grade: bestCoverageGrade(_coverage) ?? 'C',
+                onTap: () => _showCoverageSheet(context),
+              ),
+            ),
 
 // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
           Positioned(
@@ -1528,6 +1577,128 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _coverageCategoryLabel(AppLocalizations loc, String eventCategory) {
+    switch (eventCategory) {
+      case 'VIOLENCE':
+        return loc.coverageCategoryViolence;
+      case 'PROPERTY':
+        return loc.coverageCategoryProperty;
+      case 'PUBLIC_SAFETY':
+        return loc.coverageCategoryPublicSafety;
+      case 'ROAD_SAFETY':
+        return loc.coverageCategoryRoadSafety;
+      default:
+        return eventCategory;
+    }
+  }
+
+  // Wireframe 8.4 "Explain — score provenance" from the BeeAware Global
+  // blueprint: show what's actually behind the badge instead of a bare
+  // letter — source, freshness, geography — so a coarse grade never reads
+  // as untrustworthy silence.
+  void _showCoverageSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        final loc = AppLocalizations.of(sheetContext)!;
+        final coverage = List<LocationCoverage>.from(_coverage)
+          ..sort((a, b) =>
+              _coverageCategoryLabel(loc, a.eventCategory)
+                  .compareTo(_coverageCategoryLabel(loc, b.eventCategory)));
+        final countryOnly = coverage.isNotEmpty &&
+            coverage.every((c) => c.isCountryOnly);
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Text(
+                  loc.coverageSheetTitle,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (coverage.isEmpty)
+                Text(
+                  loc.coverageNoData,
+                  style: const TextStyle(fontSize: 14),
+                )
+              else ...[
+                if (countryOnly)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3CD),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline,
+                            size: 18, color: Color(0xFF92660A)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            loc.coverageGlobalBaselineOnly,
+                            style: const TextStyle(
+                                fontSize: 13, color: Color(0xFF92660A)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ...coverage.map((c) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          _GradeChip(grade: c.grade),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _coverageCategoryLabel(
+                                      loc, c.eventCategory),
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                Text(
+                                  [
+                                    if (c.freshnessDays != null)
+                                      loc.coverageFreshness(c.freshnessDays!),
+                                    loc.coverageSourceCount(c.sourceCount),
+                                  ].join(' · '),
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: BeeAwareTheme.textAux),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+              const SizedBox(height: 8),
             ],
           ),
         );
@@ -2420,6 +2591,133 @@ class _HomeScreenState extends State<HomeScreen> {
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// BeeAware Global blueprint §6.2 source grades, collapsed onto this
+// schema's actual output (see location_coverage_rpc.sql) — A+/A read as
+// strong local/official data, B a regional baseline, C the coarse global
+// (UNODC) fallback. D/U aren't produced by any adapter yet.
+Color _gradeColor(String grade) {
+  switch (grade) {
+    case 'A+':
+    case 'A':
+      return const Color(0xFF16A34A);
+    case 'B':
+      return const Color(0xFFCA8A04);
+    case 'C':
+      return const Color(0xFF9333EA);
+    case 'D':
+      return const Color(0xFFDC2626);
+    default:
+      return const Color(0xFF6B7280);
+  }
+}
+
+class _GradeChip extends StatelessWidget {
+  final String grade;
+
+  const _GradeChip({required this.grade});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _gradeColor(grade);
+    return Container(
+      width: 34,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Text(
+        grade,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+// Floating badge showing the best data grade near the user — same
+// hover-to-expand shape as _TrendButton/_FilterButton, but always shows a
+// live value (the grade letter) instead of a bare icon, since that value
+// is the whole point (blueprint wireframe 8.1: "Always show score +
+// confidence").
+class _CoverageBadge extends StatefulWidget {
+  final String grade;
+  final VoidCallback onTap;
+
+  const _CoverageBadge({required this.grade, required this.onTap});
+
+  @override
+  State<_CoverageBadge> createState() => _CoverageBadgeState();
+}
+
+class _CoverageBadgeState extends State<_CoverageBadge> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _gradeColor(widget.grade);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Semantics(
+          label: AppLocalizations.of(context)!.coverageBadgeTooltip,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(_hover ? 0.95 : 0.85),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: _hover ? 20 : 10,
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    widget.grade,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                ),
+                if (_hover)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text(
+                      AppLocalizations.of(context)!.coverageBadgeTooltip,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
