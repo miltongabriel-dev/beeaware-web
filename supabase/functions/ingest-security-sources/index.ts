@@ -6,16 +6,20 @@
 // for testing. For each adapter: healthCheck() -> upsert its
 // security_sources row -> if healthy, fetch() -> persist raw_events
 // (BeeAware Global blueprint Phase 0 — see persistRawEvents()) ->
-// normalize() -> upsert into geo_areas (territorial adapters) or
-// security_events (event adapters).
+// normalize() -> upsert into geo_areas (territorial adapters),
+// security_events (event adapters), or travel_advisories (advisory
+// adapters — BeeAware Global blueprint Phase 1 part 2; a distinct entity
+// from SecurityEvent, see adapters/types.ts's TravelAdvisory comment).
 //
 // Honest current state: IbgeAdapter's normalize() is fully implemented,
 // so its scheduled run genuinely writes geo_areas rows. PrfAccidentsAdapter,
 // RjIspAdapter, PaSegupAdapter and UnodcAdapter (BeeAware Global blueprint
 // Phase 1 — the first adapter that isn't Brazil-specific) are also fully
 // real (verified against their live sources — see each file's header) and
-// write actual security_events rows. SinespAdapter and RenaestAdapter still
-// have working fetch() (real discovery against their live sources) but
+// write actual security_events rows. FcdoAdapter (Phase 1 part 2) is also
+// fully real and writes travel_advisories rows instead. SinespAdapter and
+// RenaestAdapter still have working fetch() (real discovery against their
+// live sources) but
 // normalize() returns [] (see each adapter's file header for why) — so
 // their scheduled runs today only keep security_sources health metadata
 // current. That's not nothing (it's exactly what the roadmap's source-
@@ -30,6 +34,7 @@ import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
 import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
 import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
+import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 // RsSspAdapter (rs_ssp.ts) is built and its fetch()/normalize() are
 // verified working in production, but not imported/registered here yet
 // — see the eventAdapters comment below for why.
@@ -40,10 +45,16 @@ import type {
   SecuritySourceAdapter,
   SourceHealth,
   TerritorialSourceAdapter,
+  TravelAdvisory,
+  TravelAdvisoryAdapter,
 } from "../_shared/adapters/types.ts";
 
 const territorialAdapters: Record<string, TerritorialSourceAdapter> = {
   IbgeAdapter: new IbgeAdapter(),
+};
+
+const advisoryAdapters: Record<string, TravelAdvisoryAdapter> = {
+  FcdoAdapter: new FcdoAdapter(),
 };
 
 const eventAdapters: Record<string, SecuritySourceAdapter> = {
@@ -200,6 +211,65 @@ async function runTerritorialAdapter(supabase: SupabaseClient, adapter: Territor
   }
 
   return { adapter: source.adapterName, health, recordsSeen: records.length, areasWritten: written };
+}
+
+function mapAdvisoryToRow(sourceId: string | null, advisory: TravelAdvisory) {
+  return {
+    source_id: sourceId,
+    country_code: advisory.countryCode,
+    country_slug: advisory.countrySlug,
+    issuer: advisory.issuer,
+    level: advisory.level,
+    raw_alert_status: advisory.rawAlertStatus,
+    summary: advisory.summary ?? null,
+    source_url: advisory.sourceUrl ?? null,
+    effective_at: advisory.effectiveAt ?? null,
+  };
+}
+
+async function runAdvisoryAdapter(supabase: SupabaseClient, adapter: TravelAdvisoryAdapter, debug = false) {
+  const source = adapter.source();
+  const health = await adapter.healthCheck();
+  const sourceId = await upsertSourceRegistry(supabase, source, health);
+
+  if (health.status === "RED") {
+    return { adapter: source.adapterName, health, advisoriesWritten: 0 };
+  }
+
+  const records = await adapter.fetch();
+  await persistRawEvents(supabase, sourceId, source.adapterName, records);
+
+  if (debug) {
+    const normalized: TravelAdvisory[] = [];
+    for (const record of records) {
+      normalized.push(...(await adapter.normalize(record)));
+    }
+    return {
+      adapter: source.adapterName,
+      health,
+      recordsSeen: records.length,
+      advisoriesNormalized: normalized.length,
+      sample: normalized.slice(0, 3),
+    };
+  }
+
+  let written = 0;
+  const rows: ReturnType<typeof mapAdvisoryToRow>[] = [];
+  for (const record of records) {
+    const advisories = await adapter.normalize(record);
+    for (const advisory of advisories) rows.push(mapAdvisoryToRow(sourceId, advisory));
+  }
+
+  for (let i = 0; i < rows.length; i += EVENT_BATCH_SIZE) {
+    const batch = rows.slice(i, i + EVENT_BATCH_SIZE);
+    const { error } = await supabase
+      .from("travel_advisories")
+      .upsert(batch, { onConflict: "source_id,country_code" });
+    if (!error) written += batch.length;
+    else console.error(`travel_advisories batch upsert failed (rows ${i}-${i + batch.length}):`, error.message);
+  }
+
+  return { adapter: source.adapterName, health, recordsSeen: records.length, advisoriesWritten: written };
 }
 
 // Not yet exercised against real rows — SinespAdapter/RenaestAdapter/
@@ -391,6 +461,11 @@ Deno.serve(async (req) => {
   for (const [name, adapter] of Object.entries(eventAdapters)) {
     if (body.adapter && body.adapter !== name) continue;
     results[name] = await runEventAdapter(supabase, adapter, body.debug === true);
+  }
+
+  for (const [name, adapter] of Object.entries(advisoryAdapters)) {
+    if (body.adapter && body.adapter !== name) continue;
+    results[name] = await runAdvisoryAdapter(supabase, adapter, body.debug === true);
   }
 
   return new Response(JSON.stringify({ ok: true, results }), {

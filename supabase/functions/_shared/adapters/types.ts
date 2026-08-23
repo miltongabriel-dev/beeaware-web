@@ -112,6 +112,30 @@ export interface TerritorialSourceAdapter {
   healthCheck(): Promise<SourceHealth>;
 }
 
+// BeeAware Global blueprint (Phase 1 part 2) — a travel advisory is a
+// distinct entity from SecurityEvent, per the blueprint's own canonical
+// data model: issuer, level, text summary, effective_at, no occurrence-
+// count/severity shape. Same reasoning as GeoArea/TerritorialSourceAdapter
+// above — a third sibling interface rather than forcing this through
+// normalize() -> SecurityEvent[].
+export interface TravelAdvisory {
+  countryCode: string;
+  countrySlug: string;
+  issuer: string;
+  level: string;
+  rawAlertStatus: string[];
+  summary?: string;
+  sourceUrl?: string;
+  effectiveAt?: string;
+}
+
+export interface TravelAdvisoryAdapter {
+  source(): SecuritySource;
+  fetch(): Promise<RawSecurityRecord[]>;
+  normalize(record: RawSecurityRecord): Promise<TravelAdvisory[]>;
+  healthCheck(): Promise<SourceHealth>;
+}
+
 // ===== Registries =====
 // registerAdapter(new PaSegupAdapter()) is the pattern the roadmap uses
 // (section 2.1) — a plain in-memory map is enough for Phase 0/1. Whatever
