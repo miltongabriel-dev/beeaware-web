@@ -39,6 +39,10 @@ const DEFAULT_LOCATION_CONFIDENCE: Record<GeoPrecision, number> = {
   DISTRICT: 0.6,
   MUNICIPALITY: 0.5,
   STATE: 0.3,
+  // Added for UnodcAdapter (Phase 1) — a whole-country statistic is
+  // genuinely the coarsest tier this schema has, so it gets the lowest
+  // location_confidence, not a repeat of STATE's.
+  COUNTRY: 0.2,
 };
 
 export function defaultLocationConfidence(geoPrecision: GeoPrecision): number {

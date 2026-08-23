@@ -10,15 +10,17 @@
 // security_events (event adapters).
 //
 // Honest current state: IbgeAdapter's normalize() is fully implemented,
-// so its scheduled run genuinely writes geo_areas rows. PrfAccidentsAdapter
-// and RjIspAdapter are also fully real (verified against their live
-// sources — see each file's header) and write actual security_events
-// rows. SinespAdapter and RenaestAdapter still have working fetch() (real
-// discovery against their live sources) but normalize() returns [] (see
-// each adapter's file header for why) — so their scheduled runs today
-// only keep security_sources health metadata current. That's not nothing
-// (it's exactly what the roadmap's source-health dashboard, section 12.5,
-// is meant to show), but it's not event data yet either.
+// so its scheduled run genuinely writes geo_areas rows. PrfAccidentsAdapter,
+// RjIspAdapter, PaSegupAdapter and UnodcAdapter (BeeAware Global blueprint
+// Phase 1 — the first adapter that isn't Brazil-specific) are also fully
+// real (verified against their live sources — see each file's header) and
+// write actual security_events rows. SinespAdapter and RenaestAdapter still
+// have working fetch() (real discovery against their live sources) but
+// normalize() returns [] (see each adapter's file header for why) — so
+// their scheduled runs today only keep security_sources health metadata
+// current. That's not nothing (it's exactly what the roadmap's source-
+// health dashboard, section 12.5, is meant to show), but it's not event
+// data yet either.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
@@ -27,6 +29,7 @@ import { RenaestAdapter } from "../_shared/adapters/br/renaest.ts";
 import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
 import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
 import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
+import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 // RsSspAdapter (rs_ssp.ts) is built and its fetch()/normalize() are
 // verified working in production, but not imported/registered here yet
 // — see the eventAdapters comment below for why.
@@ -49,6 +52,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   PrfAccidentsAdapter: new PrfAccidentsAdapter(),
   RjIspAdapter: new RjIspAdapter(),
   PaSegupAdapter: new PaSegupAdapter(),
+  UnodcAdapter: new UnodcAdapter(),
   // RsSspAdapter is deliberately NOT registered here yet. fetch()/
   // normalize() both work (verified live: 23741 real aggregate events,
   // ~123MB RSS — see rs_ssp.ts's file header) but the write phase

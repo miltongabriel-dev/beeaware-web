@@ -81,7 +81,8 @@ export type GeoPrecision =
   | "NEIGHBORHOOD"
   | "DISTRICT"
   | "MUNICIPALITY"
-  | "STATE";
+  | "STATE"
+  | "COUNTRY";
 
 export type GeoAreaType =
   | "COUNTRY"

@@ -1,0 +1,11 @@
+-- BeeAware Global blueprint — Phase 1: global baseline (UNODC).
+--
+-- UNODC's intentional-homicide data (the first genuinely global source
+-- this schema ingests — supabase/functions/_shared/adapters/global/
+-- unodc.ts) has no subnational breakdown at all: it's one number per
+-- country per year. The coarsest existing geo_precision tier, STATE,
+-- would overstate that — a national statistic isn't "state-level," it's
+-- coarser still. Standalone statement: Postgres doesn't allow adding an
+-- enum value and using it in the same transaction, so this migration
+-- only adds the value; unodc.ts is the first thing to write it.
+alter type geo_precision add value 'COUNTRY';
