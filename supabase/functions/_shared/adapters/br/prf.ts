@@ -52,6 +52,7 @@
 // (2026 file breakdown: 2467 fatal, 6961 serious, 24266 low.)
 
 import JSZip from "https://esm.sh/jszip@3.10.1";
+import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import type {
   RawSecurityRecord,
   SecurityEvent,
@@ -157,6 +158,12 @@ function mapRowToEvent(row: Record<string, string>): SecurityEvent {
     : undefined;
   const victimCount = Number.isFinite(Number(row.pessoas)) ? Number(row.pessoas) : undefined;
 
+  // Real coordinates recorded by the source itself, not inferred —
+  // MUNICIPALITY fallback only covers the (unseen in practice) case of a
+  // row missing lat/lon.
+  const geoPrecision = latitude != null && longitude != null ? "EXACT" : "MUNICIPALITY";
+  const locationConfidence = defaultLocationConfidence(geoPrecision);
+
   return {
     countryCode: "BR",
     stateCode: row.uf || undefined,
@@ -168,16 +175,16 @@ function mapRowToEvent(row: Record<string, string>): SecurityEvent {
     occurredAt,
     latitude,
     longitude,
-    // Real coordinates recorded by the source itself, not inferred —
-    // MUNICIPALITY fallback only covers the (unseen in practice) case of
-    // a row missing lat/lon.
-    geoPrecision: latitude != null && longitude != null ? "EXACT" : "MUNICIPALITY",
-    locationConfidence: 1.0,
+    geoPrecision,
+    locationConfidence,
     city: row.municipio || undefined,
     state: row.uf || undefined,
     victimCount,
     severity,
-    confidenceScore: 1.0,
+    confidenceScore: computeConfidenceScore({
+      reliabilityGrade: "official_confirmed_record",
+      locationConfidence,
+    }),
     rawPayload: row,
   };
 }

@@ -80,6 +80,7 @@
 // not something specific to this source.
 
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import type {
   RawSecurityRecord,
   SecurityEvent,
@@ -290,6 +291,10 @@ export class PaSegupAdapter implements SecuritySourceAdapter {
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
 
     const events: SecurityEvent[] = [];
+    // Constant across every row: every occurrence in this source has a
+    // real coordinate (see the geoPrecision comment below), so this is
+    // computed once rather than per row.
+    const exactLocationConfidence = defaultLocationConfidence("EXACT");
 
     for (const row of rows) {
       const consolidado = row["CONSOLIDADO(S)"] as string | null;
@@ -327,12 +332,15 @@ export class PaSegupAdapter implements SecuritySourceAdapter {
         // Real coordinates from the source's own occurrence record, not
         // inferred from the neighbourhood — same standard as PRF.
         geoPrecision: "EXACT",
-        locationConfidence: 1.0,
+        locationConfidence: exactLocationConfidence,
         neighborhood: bairro || undefined,
         city: (row["MUNICÍPIO(S)"] as string) ?? MUNICIPALITY,
         state: "PA",
         severity: severityFor(eventType),
-        confidenceScore: 1.0,
+        confidenceScore: computeConfidenceScore({
+          reliabilityGrade: "official_confirmed_record",
+          locationConfidence: exactLocationConfidence,
+        }),
       });
     }
 

@@ -4,9 +4,10 @@
 // intelligence_ingestion.sql) once per source at its documented cadence,
 // or manually with a specific `adapter` name (or none, to run everything)
 // for testing. For each adapter: healthCheck() -> upsert its
-// security_sources row -> if healthy, fetch() -> normalize() -> upsert
-// into geo_areas (territorial adapters) or security_events (event
-// adapters).
+// security_sources row -> if healthy, fetch() -> persist raw_events
+// (BeeAware Global blueprint Phase 0 — see persistRawEvents()) ->
+// normalize() -> upsert into geo_areas (territorial adapters) or
+// security_events (event adapters).
 //
 // Honest current state: IbgeAdapter's normalize() is fully implemented,
 // so its scheduled run genuinely writes geo_areas rows. PrfAccidentsAdapter
@@ -30,6 +31,7 @@ import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
 // verified working in production, but not imported/registered here yet
 // — see the eventAdapters comment below for why.
 import type {
+  RawSecurityRecord,
   SecurityEvent,
   SecuritySource,
   SecuritySourceAdapter,
@@ -97,16 +99,80 @@ async function upsertSourceRegistry(
   return data?.id ?? null;
 }
 
+// BeeAware Global blueprint — raw_events (Phase 0). Every adapter's
+// fetch() already returns this same RawSecurityRecord[] shape, so this
+// persists replay-capable raw payloads for any adapter with zero changes
+// to the adapter files themselves. payload is bytea, sent as Postgres's
+// standard `\x`-prefixed hex text (PostgREST casts a hex-prefixed string
+// to bytea on insert) — chosen over base64 because it's the format
+// Postgres itself uses natively, not a workaround.
+function toBytes(payload: unknown): Uint8Array {
+  if (payload instanceof Uint8Array) return payload;
+  const text = typeof payload === "string" ? payload : JSON.stringify(payload);
+  return new TextEncoder().encode(text);
+}
+
+// Genuinely necessary, not just tidy: Array.from(bytes, fn).join("") — a
+// reasonable-looking first attempt — hit WORKER_RESOURCE_LIMIT on
+// RjIspAdapter's ~7MB raw CSV text payload. Millions of individual
+// 2-character string objects (one per byte) plus the array holding them
+// is a large multiple of the input size in V8, not the ~2x hex encoding
+// itself implies. This writes straight into one pre-sized byte buffer
+// (ASCII hex digits are valid UTF-8) and decodes it once — no
+// intermediate per-byte allocations.
+const HEX_DIGITS = "0123456789abcdef";
+
+function toHex(bytes: Uint8Array): string {
+  const hexBytes = new Uint8Array(bytes.length * 2);
+  for (let i = 0; i < bytes.length; i++) {
+    const byte = bytes[i];
+    hexBytes[i * 2] = HEX_DIGITS.charCodeAt(byte >> 4);
+    hexBytes[i * 2 + 1] = HEX_DIGITS.charCodeAt(byte & 0x0f);
+  }
+  return new TextDecoder().decode(hexBytes);
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return toHex(new Uint8Array(digest));
+}
+
+async function persistRawEvents(
+  supabase: SupabaseClient,
+  sourceId: string | null,
+  adapterName: string,
+  records: RawSecurityRecord[],
+): Promise<void> {
+  if (records.length === 0) return;
+
+  const rows = await Promise.all(
+    records.map(async (record) => {
+      const bytes = toBytes(record.payload);
+      return {
+        source_id: sourceId,
+        source_record_id: record.sourceRecordId,
+        payload: `\\x${toHex(bytes)}`,
+        checksum: await sha256Hex(bytes),
+        adapter_name: adapterName,
+      };
+    }),
+  );
+
+  const { error } = await supabase.from("raw_events").insert(rows);
+  if (error) console.error(`raw_events insert failed for ${adapterName}:`, error.message);
+}
+
 async function runTerritorialAdapter(supabase: SupabaseClient, adapter: TerritorialSourceAdapter) {
   const source = adapter.source();
   const health = await adapter.healthCheck();
-  await upsertSourceRegistry(supabase, source, health);
+  const sourceId = await upsertSourceRegistry(supabase, source, health);
 
   if (health.status === "RED") {
     return { adapter: source.adapterName, health, areasWritten: 0 };
   }
 
   const records = await adapter.fetch();
+  await persistRawEvents(supabase, sourceId, source.adapterName, records);
   let written = 0;
   for (const record of records) {
     const areas = await adapter.normalize(record);
@@ -189,6 +255,7 @@ async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySource
   }
 
   const records = await adapter.fetch();
+  await persistRawEvents(supabase, sourceId, source.adapterName, records);
   // debug:true runs fetch() + normalize() but skips the DB write, and
   // returns a small sample instead of every event (a full binary
   // payload or tens of thousands of rows echoed as JSON is its own way

@@ -7,6 +7,22 @@
 // event_type/event_subtype are intentionally NOT enums here either (same
 // reasoning as the DB migration): adapters map source-specific categories
 // onto this list, and the list grows with every new state source.
+//
+// BeeAware Global blueprint alignment (release.new/
+// BeeAware_Global_Product_Data_Blueprint.pdf, §13 "Decisions needed from
+// Product + Engineering") — recorded here since these categories ARE the
+// canonical taxonomy that decision is about:
+//   - Kept this taxonomy as BeeAware's canonical categories rather than
+//     switching to raw ICCS codes — it's already what every adapter and
+//     the Flutter map layer key off of, and re-keying it would be a
+//     breaking change to working adapters for no functional gain.
+//   - `iccs_code` exists as a nullable column on security_events
+//     (migration 20260823100000) as a hook for cross-referencing the UN's
+//     classification, but isn't populated: the official ICCS PDF wasn't
+//     reliably fetchable while this decision was made, and a web-search
+//     summary of plausible-looking codes isn't something to hand-enter
+//     into a schema. Populating it is a dedicated follow-up once the real
+//     document (unodc.org) is in hand, not a guess made in passing.
 
 export type EventCategory =
   | "VIOLENCE"
@@ -80,10 +96,13 @@ export type GeoAreaType =
 
 export type SourceType = "official" | "community" | "news";
 
-// Starting reliability per signal type (section 7.3) — the confidence
-// engine multiplies this by location_confidence, time_confidence and a
-// corroboration_adjustment; it is not the final confidence_score on its
-// own.
+// Starting reliability per signal type (section 7.3). Used by
+// confidence.ts's computeConfidenceScore() — confidence_score =
+// baseline × location_confidence; see that file's header for why
+// time_confidence/corroboration_adjustment (sketched here originally)
+// aren't implemented yet. This constant existed for a while with no
+// caller at all — every adapter hardcoded confidenceScore to 1.0
+// instead — until confidence.ts actually used it.
 export const SOURCE_RELIABILITY_BASELINE: Record<string, number> = {
   official_confirmed_record: 1.0,
   official_emergency_call: 0.9,

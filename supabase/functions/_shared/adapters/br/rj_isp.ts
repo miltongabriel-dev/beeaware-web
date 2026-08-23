@@ -36,6 +36,7 @@
 // file, vs. ~380k if every column/month/CISP combination since 2003 were
 // kept).
 
+import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import type {
   RawSecurityRecord,
   SecurityEvent,
@@ -220,6 +221,8 @@ export class RjIspAdapter implements SecuritySourceAdapter {
       }
     }
 
+    const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
+
     const events: SecurityEvent[] = Array.from(groups.values()).map((g) => ({
       countryCode: "BR",
       stateCode: "RJ",
@@ -230,12 +233,15 @@ export class RjIspAdapter implements SecuritySourceAdapter {
       eventType: g.eventType,
       occurredAt: `${g.yearMonth}-01T00:00:00-03:00`,
       geoPrecision: "MUNICIPALITY",
-      locationConfidence: 1.0,
+      locationConfidence: municipalityLocationConfidence,
       city: g.cityName,
       state: "RJ",
       occurrenceCount: g.occurrenceCount,
       severity: severityFor(g.eventType),
-      confidenceScore: 1.0,
+      confidenceScore: computeConfidenceScore({
+        reliabilityGrade: "official_confirmed_record",
+        locationConfidence: municipalityLocationConfidence,
+      }),
     }));
 
     return Promise.resolve(events);

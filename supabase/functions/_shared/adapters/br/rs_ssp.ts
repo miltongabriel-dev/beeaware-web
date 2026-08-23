@@ -63,6 +63,7 @@
 // "SANTANA DO LIVRAMENTO" vs IBGE's "Sant'Ana do Livramento") are
 // skipped rather than guessed.
 
+import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import type {
   RawSecurityRecord,
   SecurityEvent,
@@ -253,6 +254,8 @@ export class RsSspAdapter implements SecuritySourceAdapter {
       }
     });
 
+    const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
+
     return Array.from(groups.values()).map((g) => ({
       countryCode: "BR",
       stateCode: "RS",
@@ -263,12 +266,15 @@ export class RsSspAdapter implements SecuritySourceAdapter {
       eventType: g.eventType,
       occurredAt: `${g.yearMonth}-01T00:00:00-03:00`,
       geoPrecision: "MUNICIPALITY",
-      locationConfidence: 1.0,
+      locationConfidence: municipalityLocationConfidence,
       city: g.cityName,
       state: "RS",
       occurrenceCount: g.occurrenceCount,
       severity: severityFor(g.eventType),
-      confidenceScore: 1.0,
+      confidenceScore: computeConfidenceScore({
+        reliabilityGrade: "official_confirmed_record",
+        locationConfidence: municipalityLocationConfidence,
+      }),
     }));
   }
 
