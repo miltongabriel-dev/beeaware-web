@@ -47,7 +47,13 @@ dependencies:
   flutter_map_cancellable_tile_provider: 3.0.2
   provider: ^6.0.0
   fl_chart: ^0.66.0
-  phosphor_flutter: ^2.1.0
+  # phosphor_flutter (2.1.0, unmaintained since ~2 years) extends the
+  # framework's IconData class directly — broken by Flutter marking
+  # IconData `final` in a recent stable release. Vercel's build always
+  # clones fresh `stable`, so it hit this even though older local SDKs
+  # don't yet. phosphoricons_flutter is a maintained fork with the same
+  # PhosphorIconsRegular.* API that uses plain IconData instead.
+  phosphoricons_flutter: ^1.0.0
 
 dev_dependencies:
   flutter_test:

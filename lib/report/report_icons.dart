@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 /// Icon per canonical category/subcategory value — same English keys used
 /// by [ReportLabels], kept neutral (never a literal weapon/violence icon).

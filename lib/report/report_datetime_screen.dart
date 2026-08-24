@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'report_draft.dart';
 import 'report_step_scaffold.dart';
 import 'report_summary_screen.dart';
