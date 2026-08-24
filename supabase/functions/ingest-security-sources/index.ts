@@ -13,9 +13,10 @@
 //
 // Honest current state: IbgeAdapter's normalize() is fully implemented,
 // so its scheduled run genuinely writes geo_areas rows. PrfAccidentsAdapter,
-// RjIspAdapter, PaSegupAdapter and UnodcAdapter (BeeAware Global blueprint
-// Phase 1 — the first adapter that isn't Brazil-specific) are also fully
-// real (verified against their live sources — see each file's header) and
+// RjIspAdapter, PaSegupAdapter, MgAdapter (Phase 2 — Minas Gerais) and
+// UnodcAdapter (BeeAware Global blueprint Phase 1 — the first adapter that
+// isn't Brazil-specific) are also fully real (verified against their live
+// sources — see each file's header) and
 // write actual security_events rows. FcdoAdapter (Phase 1 part 2) is also
 // fully real and writes travel_advisories rows instead. RsSspAdapter
 // (Phase 2 hardening) is real too but genuinely flaky — its source file is
@@ -37,6 +38,7 @@ import { RenaestAdapter } from "../_shared/adapters/br/renaest.ts";
 import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
 import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
 import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
+import { MgAdapter } from "../_shared/adapters/br/mg_ssp.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
@@ -65,6 +67,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   PrfAccidentsAdapter: new PrfAccidentsAdapter(),
   RjIspAdapter: new RjIspAdapter(),
   PaSegupAdapter: new PaSegupAdapter(),
+  MgAdapter: new MgAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   RsSspAdapter: new RsSspAdapter(),
 };
