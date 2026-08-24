@@ -93,6 +93,14 @@ const BASE_URL = "https://codec.segup.pa.gov.br/";
 const DOWNLOAD_URL = "https://codec.segup.pa.gov.br/download_recorte";
 const BAIRROS_API_URL = "https://codec.segup.pa.gov.br/api/bairros";
 const MUNICIPALITY = "BELEM";
+// Real IBGE code, confirmed against geo_areas — this adapter is
+// hardcoded to Belém only (see MUNICIPALITY above), so this is safe to
+// hardcode too rather than resolve per-row. Found missing entirely
+// during Safety Pulse validation: every event this adapter had ever
+// written had cityIbgeCode null, making Belém invisible to any RPC that
+// joins on city_ibge_code (historical_safety, municipality_crime_summary
+// — the choropleth never had Belém data either, not just Safety Pulse).
+const BELEM_IBGE_CODE = "1501402";
 const MONTHS_WINDOW = 1;
 const USER_AGENT = "Mozilla/5.0 (compatible; BeeAwareBot/1.0)";
 
@@ -206,6 +214,44 @@ export class PaSegupAdapter implements SecuritySourceAdapter {
   }
 
   async fetch(_since?: Date): Promise<RawSecurityRecord[]> {
+    const now = new Date();
+    const start = new Date(now);
+    start.setMonth(start.getMonth() - MONTHS_WINDOW);
+    return this.fetchRange(start, now);
+  }
+
+  // Not part of SecuritySourceAdapter — a one-off backfill helper, same
+  // "not the regular fetch/normalize shape" reasoning as IbgeAdapter's
+  // fetchAndNormalizeGeometry/fetchAndNormalizePopulation. Built because
+  // Safety Pulse validation surfaced that Belém's only real data covers
+  // ~12 days (this adapter's regular trailing-1-month window, run once
+  // so far) — 7 homicides isn't a real 12-month count, it's a real
+  // ~2-week count read as if it were a year's worth. The header comment
+  // above already documents why a single wider request isn't safe (3
+  // months/8083 rows hit WORKER_RESOURCE_LIMIT; 1 month/~1000 rows is
+  // the proven-safe scope) — so this fetches ONE non-overlapping past
+  // month at a time (monthsAgo=1 is last month, monthsAgo=2 the month
+  // before that, etc.), called once per invocation from the
+  // backfill-pa-segup-month action, not looped internally, since
+  // /download_recorte's own regeneration latency (60-500s+ observed,
+  // sometimes timing out outright — also already documented above) makes
+  // multiple sequential pulls in one invocation a real risk on its own.
+  async fetchAndNormalizeMonth(monthsAgo: number): Promise<SecurityEvent[]> {
+    const now = new Date();
+    const end = new Date(now);
+    end.setMonth(end.getMonth() - (monthsAgo - 1));
+    const start = new Date(now);
+    start.setMonth(start.getMonth() - monthsAgo);
+
+    const records = await this.fetchRange(start, end);
+    const events: SecurityEvent[] = [];
+    for (const record of records) {
+      events.push(...(await this.normalize(record)));
+    }
+    return events;
+  }
+
+  private async fetchRange(start: Date, end: Date): Promise<RawSecurityRecord[]> {
     const homeRes = await fetch(BASE_URL, { headers: { "User-Agent": USER_AGENT } });
     if (!homeRes.ok) {
       throw new Error(`SEGUP-PA home page request failed: ${homeRes.status}`);
@@ -233,17 +279,13 @@ export class PaSegupAdapter implements SecuritySourceAdapter {
       throw new Error(`SEGUP-PA /api/bairros returned no neighbourhoods for ${MUNICIPALITY}`);
     }
 
-    const now = new Date();
-    const start = new Date(now);
-    start.setMonth(start.getMonth() - MONTHS_WINDOW);
-
     const params = new URLSearchParams();
     params.append("csrfmiddlewaretoken", tokenMatch[1]);
     params.append("lista_municipios", MUNICIPALITY);
     for (const b of municipalityBairros) params.append("lista_bairros", b);
     for (const c of CONSOLIDADOS) params.append("lista_consolidados", c);
     params.append("data_inicio", formatDate(start));
-    params.append("data_fim", formatDate(now));
+    params.append("data_fim", formatDate(end));
     params.append("btn-pesquisa", "BUSCAR");
 
     const searchRes = await fetch(BASE_URL, {
@@ -277,7 +319,7 @@ export class PaSegupAdapter implements SecuritySourceAdapter {
 
     return [
       {
-        sourceRecordId: `${MUNICIPALITY}-${formatDate(start)}-${formatDate(now)}`,
+        sourceRecordId: `${MUNICIPALITY}-${formatDate(start)}-${formatDate(end)}`,
         payload: bytes,
         fetchedAt: new Date().toISOString(),
       },
@@ -320,6 +362,7 @@ export class PaSegupAdapter implements SecuritySourceAdapter {
       events.push({
         countryCode: "BR",
         stateCode: "PA",
+        cityIbgeCode: BELEM_IBGE_CODE,
         sourceRecordId:
           `${bairro}|${dateSerial}|${hora}|${consolidado}|${especificacao}|${latitude}|${longitude}|${idadeVitima}|${sexoVitima}`,
         sourceType: "official",

@@ -503,6 +503,41 @@ async function backfillPopulation(supabase: SupabaseClient, stateCode?: string) 
   return { stateCodes, municipalitiesSeen, populationWritten };
 }
 
+// One-off (not cron-scheduled) backfill: pulls ONE past, non-overlapping
+// month of real Belém history via PaSegupAdapter.fetchAndNormalizeMonth
+// (see that method's own header for why this can't just widen the
+// regular trailing-1-month window in a single request). Triggered with
+// {"action": "backfill-pa-segup-month", "monthsAgo": 2} — one invocation
+// per month, not looped internally, since /download_recorte's own
+// regeneration latency (60-500s+ observed) makes several sequential
+// pulls in one invocation a real risk. Same batched-upsert-with-dedupe
+// logic runEventAdapter uses for its regular real-mode writes.
+async function backfillPaSegupMonth(supabase: SupabaseClient, monthsAgo: number) {
+  const adapter = new PaSegupAdapter();
+  const source = adapter.source();
+  const sourceId = await upsertSourceRegistry(supabase, source, await adapter.healthCheck());
+
+  const events = await adapter.fetchAndNormalizeMonth(monthsAgo);
+
+  const bySourceRecordId = new Map<string, ReturnType<typeof mapEventToRow>>();
+  for (const event of events) {
+    bySourceRecordId.set(event.sourceRecordId, mapEventToRow(sourceId, event));
+  }
+  const dedupedRows = [...bySourceRecordId.values()];
+
+  let written = 0;
+  for (let i = 0; i < dedupedRows.length; i += EVENT_BATCH_SIZE) {
+    const batch = dedupedRows.slice(i, i + EVENT_BATCH_SIZE);
+    const { error } = await supabase
+      .from("security_events")
+      .upsert(batch, { onConflict: "source_id,source_record_id" });
+    if (!error) written += batch.length;
+    else console.error(`security_events batch upsert failed (backfill month ${monthsAgo}, rows ${i}-${i + batch.length}):`, error.message);
+  }
+
+  return { monthsAgo, eventsSeen: events.length, eventsWritten: written };
+}
+
 Deno.serve(async (req) => {
   // This runs real external HTTP fetches and DB writes on every call —
   // it must only be triggerable by pg_cron (via Vault, see the
@@ -525,7 +560,7 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
 
-  let body: { adapter?: string; action?: string; stateCode?: string; debug?: boolean } = {};
+  let body: { adapter?: string; action?: string; stateCode?: string; debug?: boolean; monthsAgo?: number } = {};
   try {
     body = await req.json();
   } catch {
@@ -550,6 +585,30 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, result }), {
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  if (body.action === "backfill-pa-segup-month") {
+    if (!body.monthsAgo) {
+      return new Response(JSON.stringify({ ok: false, error: "monthsAgo required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    try {
+      const result = await backfillPaSegupMonth(supabase, body.monthsAgo);
+      return new Response(JSON.stringify({ ok: true, result }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      // A thrown error here otherwise surfaces as an opaque platform 500
+      // with no message — this action is invoked manually/interactively
+      // (not by cron), so a real error message matters more here than
+      // for the regular scheduled adapter runs.
+      return new Response(JSON.stringify({ ok: false, error: String(e) }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   }
 
   const results: Record<string, unknown> = {};
