@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:aware/config/rounded_hexagon_painter.dart';
@@ -586,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         child: const Icon(
-                          Icons.location_on,
+                          PhosphorIconsRegular.mapPin,
                           color: Colors.white,
                         ),
                       ),
@@ -681,7 +682,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.search_off_outlined,
+                        Icon(PhosphorIconsRegular.magnifyingGlass,
                             size: 28, color: BeeAwareTheme.textAux),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
@@ -761,7 +762,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.info_outline,
+                          const Icon(PhosphorIconsRegular.info,
                               size: 14, color: BeeAwareTheme.textSecondary),
                           const SizedBox(width: 6),
                           Text(
@@ -789,7 +790,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.info_outline,
+                            const Icon(PhosphorIconsRegular.info,
                                 size: 14, color: BeeAwareTheme.textSecondary),
                             const SizedBox(width: 6),
                             Text(
@@ -863,7 +864,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: GestureDetector(
                             onTap: () => _openMenu(context),
                             child: const Icon(
-                              Icons.menu,
+                              PhosphorIconsRegular.list,
                               size: 22,
                               color: BeeAwareTheme.textPrimary,
                             ),
@@ -974,7 +975,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final display = item['display_name'] ?? '';
 
                       return ListTile(
-                        leading: const Icon(Icons.location_on_outlined),
+                        leading: const Icon(PhosphorIconsRegular.mapPin),
                         title: Text(
                           display,
                           maxLines: 2,
@@ -1079,7 +1080,7 @@ class _HomeScreenState extends State<HomeScreen> {
               backgroundColor: Colors.white,
               onPressed: _centerMapOnUser,
               child: const Icon(
-                Icons.my_location,
+                PhosphorIconsRegular.crosshair,
                 color: Colors.blue,
               ),
             ),
@@ -1299,7 +1300,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                icon: const Icon(Icons.emergency),
+                icon: const Icon(PhosphorIconsRegular.siren),
                 label: Text(loc.callEmergency999),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: SeverityColors.high,
@@ -1314,7 +1315,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               TextButton.icon(
-                icon: const Icon(Icons.phone),
+                icon: const Icon(PhosphorIconsRegular.phone),
                 label: Text(loc.callNonEmergency101),
                 onPressed: () async {
                   final uri = Uri.parse('tel:101');
@@ -1705,7 +1706,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.info_outline,
+                        const Icon(PhosphorIconsRegular.info,
                             size: 18, color: SemanticColors.alertText),
                         const SizedBox(width: 8),
                         Expanded(
@@ -1836,9 +1837,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               radius: 22,
                               backgroundColor: Colors.transparent,
                               child: user == null
-                                  ? const Icon(Icons.person_outline,
+                                  ? const Icon(PhosphorIconsRegular.person,
                                       color: Colors.black)
-                                  : const Icon(Icons.verified,
+                                  : const Icon(PhosphorIconsRegular.sealCheck,
                                       color: Colors.black),
                             ),
                           ),
@@ -1876,7 +1877,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                           // Arrow
                           const Icon(
-                            Icons.chevron_right,
+                            PhosphorIconsRegular.caretRight,
                             size: 20,
                             color: BeeAwareTheme.textAux,
                           ),
@@ -1894,7 +1895,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // ================= BUY =================
                 if (AppConfig.tokensEnabled)
                   _menuItem(
-                    icon: Icons.credit_card,
+                    icon: PhosphorIconsRegular.creditCard,
                     label: loc.buyMoreCredits,
                     onTap: () {
                       Navigator.pop(rootContext);
@@ -1909,7 +1910,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // ================= ALERTS =================
                 _menuItem(
-                  icon: Icons.notifications_active,
+                  icon: PhosphorIconsRegular.bellRinging,
                   label: loc.alertsMonitoring,
                   onTap: () {
                     Navigator.pop(rootContext);
@@ -1922,7 +1923,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // ================= DATA =================
                 _menuItem(
-                  icon: Icons.analytics_outlined,
+                  icon: PhosphorIconsRegular.chartBar,
                   label: loc.dataSources,
                   onTap: () {
                     Navigator.pop(rootContext);
@@ -1931,7 +1932,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 _menuItem(
-                  icon: Icons.language,
+                  icon: PhosphorIconsRegular.globe,
                   label: loc.languageLabel,
                   onTap: () {
                     Navigator.pop(rootContext);
@@ -1940,7 +1941,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 _menuItem(
-                  icon: Icons.privacy_tip_outlined,
+                  icon: PhosphorIconsRegular.shieldCheck,
                   label: loc.privacyLabel,
                   onTap: () async {
                     Navigator.pop(rootContext);
@@ -1956,7 +1957,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 _menuItem(
-                  icon: Icons.info_outline,
+                  icon: PhosphorIconsRegular.info,
                   label: loc.aboutBeeAware,
                   onTap: () {
                     Navigator.pop(rootContext);
@@ -1968,7 +1969,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (user != null) ...[
                   const Divider(height: 30),
                   _menuItem(
-                    icon: Icons.logout,
+                    icon: PhosphorIconsRegular.signOut,
                     label: loc.signOut,
                     onTap: () async {
                       await Supabase.instance.client.auth.signOut();
@@ -2588,7 +2589,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.notifications_active,
+                const Icon(PhosphorIconsRegular.bellRinging,
                     size: 36, color: BeeAwareTheme.accent),
                 const SizedBox(height: 12),
                 Text(
@@ -2941,12 +2942,12 @@ class _BottomBarState extends State<_BottomBar> {
                 Row(
                   children: [
                     _BarIcon(
-                      icon: Icons.emergency,
+                      icon: PhosphorIconsRegular.siren,
                       tooltip: loc.emergencyServices,
                       onTap: widget.onPolice,
                     ),
                     _BarIcon(
-                      icon: Icons.filter_list,
+                      icon: PhosphorIconsRegular.funnel,
                       tooltip: loc.filters,
                       onTap: widget.onFilters,
                     ),
@@ -2956,7 +2957,7 @@ class _BottomBarState extends State<_BottomBar> {
                 Row(
                   children: [
                     _BarIcon(
-                      icon: Icons.show_chart,
+                      icon: PhosphorIconsRegular.chartLine,
                       tooltip: loc.safetyTrendShort,
                       onTap: widget.onTrend,
                     ),
@@ -2967,7 +2968,7 @@ class _BottomBarState extends State<_BottomBar> {
                       ),
                     if (canInstall)
                       _BarIcon(
-                        icon: Icons.install_mobile,
+                        icon: PhosphorIconsRegular.downloadSimple,
                         tooltip: loc.installAppTooltip,
                         onTap: () {
                           if (js.context.callMethod('isPwaInstallable') ==

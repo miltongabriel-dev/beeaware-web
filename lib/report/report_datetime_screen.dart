@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'report_draft.dart';
 import 'report_step_scaffold.dart';
 import 'report_summary_screen.dart';
@@ -80,7 +81,7 @@ class _ReportDateTimeScreenState extends State<ReportDateTimeScreen> {
           const SizedBox(height: 16),
           FadeInUp(
             child: _DateTimeCard(
-              icon: Icons.calendar_today,
+              icon: PhosphorIconsRegular.calendar,
               label: loc.dateLabel,
               value:
                   '${selectedDateTime.day}/${selectedDateTime.month}/${selectedDateTime.year}',
@@ -91,7 +92,7 @@ class _ReportDateTimeScreenState extends State<ReportDateTimeScreen> {
           FadeInUp(
             delay: const Duration(milliseconds: 80),
             child: _DateTimeCard(
-              icon: Icons.access_time,
+              icon: PhosphorIconsRegular.clock,
               label: loc.timeLabel,
               value:
                   '${selectedDateTime.hour.toString().padLeft(2, '0')}:${selectedDateTime.minute.toString().padLeft(2, '0')}',
@@ -182,7 +183,7 @@ class _DateTimeCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right,
+          const Icon(PhosphorIconsRegular.caretRight,
               size: 20, color: BeeAwareTheme.textAux),
         ],
       ),

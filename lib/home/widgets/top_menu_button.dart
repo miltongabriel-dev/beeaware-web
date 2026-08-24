@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'package:aware/state/token_state.dart';
@@ -30,7 +31,7 @@ class TopMenuButton extends StatelessWidget {
               boxShadow: BeeAwareTheme.cardShadow,
             ),
             child: const Icon(
-              Icons.settings,
+              PhosphorIconsRegular.gear,
               color: BeeAwareTheme.textPrimary,
               size: 22,
             ),
@@ -62,7 +63,7 @@ class TopMenuButton extends StatelessWidget {
           value: 'buy',
           child: Row(
             children: [
-              const Icon(Icons.toll, size: 18),
+              const Icon(PhosphorIconsRegular.coins, size: 18),
               const SizedBox(width: 10),
               Text(loc.buyTokensButton),
             ],

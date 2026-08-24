@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../l10n/app_localizations.dart';
 import '../map/map_incident.dart';
 import '../theme/beeaware_theme.dart';
@@ -116,7 +117,7 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
                     mini: true,
                     backgroundColor: BeeAwareTheme.surface,
                     onPressed: _getUserLocation,
-                    child: const Icon(Icons.my_location, color: Colors.blue),
+                    child: const Icon(PhosphorIconsRegular.crosshair, color: Colors.blue),
                   ),
                 ),
                 Positioned(
@@ -148,7 +149,12 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
               border: Border.all(color: BeeAwareTheme.surface, width: 2),
             ),
             child: const Center(
-                child: Icon(Icons.circle, color: Colors.blue, size: 12)),
+                child: SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: DecoratedBox(
+                        decoration: BoxDecoration(
+                            color: Colors.blue, shape: BoxShape.circle)))),
           ),
         ),
       ]);
@@ -158,7 +164,7 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
           point: _selectedLocation!,
           width: 45,
           height: 45,
-          child: const Icon(Icons.location_pin, color: SeverityColors.high, size: 45),
+          child: const Icon(PhosphorIconsRegular.mapPin, color: SeverityColors.high, size: 45),
         ),
       ]);
 

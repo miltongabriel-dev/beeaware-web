@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../map/map_incident.dart'; // ✅ AQUI está o IncidentSeverity
 import '../l10n/app_localizations.dart';
@@ -23,19 +24,19 @@ class ReportSeverityScreen extends StatelessWidget {
       _SeverityItem(
         description: loc.severityLowDesc,
         color: SeverityColors.low,
-        icon: Icons.info_outline,
+        icon: PhosphorIconsRegular.info,
         value: IncidentSeverity.low,
       ),
       _SeverityItem(
         description: loc.severityMediumDesc,
         color: SeverityColors.medium,
-        icon: Icons.warning_amber_outlined,
+        icon: PhosphorIconsRegular.warningCircle,
         value: IncidentSeverity.medium,
       ),
       _SeverityItem(
         description: loc.severityHighDesc,
         color: SeverityColors.high,
-        icon: Icons.report_problem_outlined,
+        icon: PhosphorIconsRegular.warningOctagon,
         value: IncidentSeverity.high,
       ),
     ];

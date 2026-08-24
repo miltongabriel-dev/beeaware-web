@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../state/token_state.dart';
@@ -64,7 +65,7 @@ class _Content extends StatelessWidget {
           price: '£2',
           priceValue: 2,
           tokens: 5,
-          icon: Icons.search,
+          icon: PhosphorIconsRegular.magnifyingGlass,
         ),
 
         const SizedBox(height: 14),
@@ -75,7 +76,7 @@ class _Content extends StatelessWidget {
           tokens: 15,
           highlight: true,
           badge: _PackageBadge.mostPopular,
-          icon: Icons.bolt_outlined,
+          icon: PhosphorIconsRegular.lightning,
         ),
 
         const SizedBox(height: 14),
@@ -85,7 +86,7 @@ class _Content extends StatelessWidget {
           priceValue: 10,
           tokens: 40,
           badge: _PackageBadge.bestValue,
-          icon: Icons.workspace_premium_outlined,
+          icon: PhosphorIconsRegular.medal,
         ),
 
         const SizedBox(height: 26),

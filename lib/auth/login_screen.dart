@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -137,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(AppRadius.md),
                             ),
-                            prefixIcon: const Icon(Icons.email_outlined),
+                            prefixIcon: const Icon(PhosphorIconsRegular.envelope),
                           ),
                         ),
 

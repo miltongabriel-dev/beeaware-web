@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 // Adicione este import para a performance do mapa
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../map/map_incident.dart';
 import '../map/incident_store.dart';
@@ -174,7 +175,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
               FadeInUp(
                 delay: const Duration(milliseconds: 60),
                 child: _SummaryCard(
-                  icon: Icons.warning_amber_outlined,
+                  icon: PhosphorIconsRegular.warningCircle,
                   iconColor: SeverityColors.of(severity),
                   title: loc.sectionSeverity,
                   content:
@@ -184,7 +185,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
               FadeInUp(
                 delay: const Duration(milliseconds: 120),
                 child: _SummaryCard(
-                  icon: Icons.description_outlined,
+                  icon: PhosphorIconsRegular.fileText,
                   title: loc.sectionDescription,
                   content: (widget.draft.description ?? '').isEmpty
                       ? loc.noDescriptionProvided
@@ -194,7 +195,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
               FadeInUp(
                 delay: const Duration(milliseconds: 180),
                 child: _SummaryCard(
-                  icon: Icons.event_outlined,
+                  icon: PhosphorIconsRegular.calendarCheck,
                   title: loc.sectionWhen,
                   content: DateFormat.yMd(locale).add_Hm().format(date),
                 ),
@@ -233,7 +234,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                               point: LatLng(lat, lng),
                               width: 40,
                               height: 40,
-                              child: const Icon(Icons.location_pin,
+                              child: const Icon(PhosphorIconsRegular.mapPin,
                                   size: 40, color: SeverityColors.high),
                             ),
                           ],
@@ -255,7 +256,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.schedule,
+                    Icon(PhosphorIconsRegular.clock,
                         size: 18, color: theme.colorScheme.primary),
                     const SizedBox(width: 8),
                     Expanded(

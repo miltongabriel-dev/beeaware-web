@@ -1,71 +1,74 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Icon per canonical category/subcategory value — same English keys used
 /// by [ReportLabels], kept neutral (never a literal weapon/violence icon).
+/// Phosphor "regular" weight — see the app's visual audit (redesign step 4):
+/// the app had zero icon identity of its own beyond stock Material icons.
 class ReportIcons {
   static IconData category(String value) {
     switch (value) {
       case 'Harassment':
-        return Icons.warning_amber_rounded;
+        return PhosphorIconsRegular.warningCircle;
       case 'Suspicious activity':
-        return Icons.remove_red_eye_outlined;
+        return PhosphorIconsRegular.eye;
       case 'Theft':
-        return Icons.lock_outline;
+        return PhosphorIconsRegular.lock;
       case 'Violence':
-        return Icons.report_gmailerrorred;
+        return PhosphorIconsRegular.warningOctagon;
       case 'Drugs':
-        return Icons.medical_services_outlined;
+        return PhosphorIconsRegular.firstAid;
       default:
-        return Icons.more_horiz;
+        return PhosphorIconsRegular.dotsThree;
     }
   }
 
   static IconData subcategory(String value) {
     switch (value) {
       case 'Verbal':
-        return Icons.record_voice_over_outlined;
+        return PhosphorIconsRegular.microphone;
       case 'Physical':
-        return Icons.front_hand_outlined;
+        return PhosphorIconsRegular.handPointing;
       case 'Online':
-        return Icons.smartphone_outlined;
+        return PhosphorIconsRegular.deviceMobile;
       case 'Stalking':
-        return Icons.visibility_outlined;
+        return PhosphorIconsRegular.eyeSlash;
       case 'Sexual':
-        return Icons.report_outlined;
+        return PhosphorIconsRegular.warningDiamond;
       case 'Loitering':
-        return Icons.person_pin_circle_outlined;
+        return PhosphorIconsRegular.mapPinArea;
       case 'Following someone':
-        return Icons.directions_walk_outlined;
+        return PhosphorIconsRegular.personSimpleWalk;
       case 'Looking into cars':
-        return Icons.directions_car_outlined;
+        return PhosphorIconsRegular.car;
       case 'Checking doors':
-        return Icons.sensor_door_outlined;
+        return PhosphorIconsRegular.door;
       case 'Pickpocketing':
-        return Icons.pan_tool_outlined;
+        return PhosphorIconsRegular.hand;
       case 'Bike theft':
-        return Icons.pedal_bike_outlined;
+        return PhosphorIconsRegular.bicycle;
       case 'Car break-in':
-        return Icons.no_crash_outlined;
+        return PhosphorIconsRegular.carSimple;
       case 'Shoplifting':
-        return Icons.storefront_outlined;
+        return PhosphorIconsRegular.storefront;
       case 'Fight':
-        return Icons.personal_injury_outlined;
+        return PhosphorIconsRegular.handFist;
       case 'Domestic':
-        return Icons.home_outlined;
+        return PhosphorIconsRegular.house;
       case 'Weapon involved':
-        return Icons.gpp_bad_outlined;
+        return PhosphorIconsRegular.shieldWarning;
       case 'Threats':
-        return Icons.campaign_outlined;
+        return PhosphorIconsRegular.megaphone;
       case 'Use':
-        return Icons.medication_outlined;
+        return PhosphorIconsRegular.pill;
       case 'Dealing':
-        return Icons.swap_horiz_outlined;
+        return PhosphorIconsRegular.arrowsLeftRight;
       case 'Suspicious exchange':
-        return Icons.compare_arrows_outlined;
+        return PhosphorIconsRegular.handshake;
       case 'Needles found':
-        return Icons.vaccines_outlined;
+        return PhosphorIconsRegular.syringe;
       default:
-        return Icons.more_horiz;
+        return PhosphorIconsRegular.dotsThree;
     }
   }
 }
