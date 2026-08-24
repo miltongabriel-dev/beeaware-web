@@ -165,8 +165,7 @@ class _PackageCardState extends State<_PackageCard> {
                   color: BeeAwareTheme.surface,
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(
-                    color:
-                        highlight ? BeeAwareTheme.accent : Colors.grey.shade200,
+                    color: highlight ? BeeAwareTheme.accent : BeeAwareTheme.border,
                     width: highlight ? 2 : 1,
                   ),
                   boxShadow: BeeAwareTheme.cardShadow,
@@ -178,7 +177,7 @@ class _PackageCardState extends State<_PackageCard> {
                       height: 44,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: BeeAwareTheme.primary.withOpacity(0.08),
+                        color: BeeAwareTheme.primary.withValues(alpha: 0.08),
                       ),
                       child: Icon(
                         widget.icon,
@@ -241,7 +240,7 @@ class _PackageCardState extends State<_PackageCard> {
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                        color: BeeAwareTheme.textPrimary,
                       ),
                     ),
                   ),

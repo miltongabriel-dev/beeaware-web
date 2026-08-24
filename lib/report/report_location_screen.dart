@@ -72,8 +72,6 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
     widget.draft.longitude = _selectedLocation!.longitude;
     widget.draft.dateTime = DateTime.now();
 
-    print("Summary...");
-
     // 2. EXECUTA A NAVEGAÇÃO REAL
     // Certifique-se de que a ReportSummaryScreen está importada no topo do arquivo
     Navigator.of(context).push(
@@ -116,7 +114,7 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
                   bottom: 20, // Ajustado para não sobrepor o botão de baixo
                   child: FloatingActionButton(
                     mini: true,
-                    backgroundColor: Colors.white,
+                    backgroundColor: BeeAwareTheme.surface,
                     onPressed: _getUserLocation,
                     child: const Icon(Icons.my_location, color: Colors.blue),
                   ),
@@ -145,9 +143,9 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
           height: 30,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.2),
+              color: Colors.blue.withValues(alpha: 0.2),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: BeeAwareTheme.surface, width: 2),
             ),
             child: const Center(
                 child: Icon(Icons.circle, color: Colors.blue, size: 12)),
@@ -160,7 +158,7 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
           point: _selectedLocation!,
           width: 45,
           height: 45,
-          child: const Icon(Icons.location_pin, color: Colors.red, size: 45),
+          child: const Icon(Icons.location_pin, color: SeverityColors.high, size: 45),
         ),
       ]);
 
@@ -175,7 +173,7 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
         color: theme.scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -185,11 +183,11 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
         onPressed: isSelected ? _continue : null,
         style: ElevatedButton.styleFrom(
           backgroundColor:
-              isSelected ? BeeAwareTheme.primary : Colors.grey[300],
+              isSelected ? BeeAwareTheme.primary : BeeAwareTheme.border,
           foregroundColor: BeeAwareTheme.textPrimary,
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
           elevation: 0,
         ),
@@ -224,7 +222,7 @@ class _DraftSummaryCard extends StatelessWidget {
       padding:
           const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: BeeAwareTheme.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: BeeAwareTheme.border),
         boxShadow: BeeAwareTheme.cardShadow,

@@ -234,7 +234,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                               width: 40,
                               height: 40,
                               child: const Icon(Icons.location_pin,
-                                  size: 40, color: Color(0xFFF44336)),
+                                  size: 40, color: SeverityColors.high),
                             ),
                           ],
                         ),
@@ -280,7 +280,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: BeeAwareTheme.textPrimary,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(AppRadius.lg)),
                     elevation: 0,
                   ),
                   child: _submitting
@@ -337,7 +337,7 @@ class _SummaryCard extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: (iconColor ?? BeeAwareTheme.primary).withOpacity(0.1),
+              color: (iconColor ?? BeeAwareTheme.primary).withValues(alpha: 0.1),
             ),
             child:
                 Icon(icon, size: 18, color: iconColor ?? BeeAwareTheme.primary),

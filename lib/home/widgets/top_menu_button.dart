@@ -19,7 +19,7 @@ class TopMenuButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           onTap: () => _openMenu(context, tokens),
           child: Container(
             width: 48,
@@ -45,7 +45,7 @@ class TopMenuButton extends StatelessWidget {
     final result = await showMenu<String>(
       context: context,
       position: const RelativeRect.fromLTRB(1000, 80, 16, 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
       items: [
         PopupMenuItem<String>(
           enabled: false,

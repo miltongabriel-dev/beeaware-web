@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'report_draft.dart';
 import 'report_location_screen.dart';
@@ -72,8 +73,8 @@ class _ReportDescriptionScreenState extends State<ReportDescriptionScreen> {
                   child: Opacity(
                     opacity: 0.04,
                     child: Center(
-                      child: Image.asset(
-                        'assets/logo/beeaware_symbol.png',
+                      child: SvgPicture.asset(
+                        'assets/logo/beeaware_symbol.svg',
                         width: 320,
                         fit: BoxFit.contain,
                       ),
@@ -110,14 +111,9 @@ class _ReportDescriptionScreenState extends State<ReportDescriptionScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
-                                blurRadius: 12,
-                              ),
-                            ],
+                            color: BeeAwareTheme.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            boxShadow: BeeAwareTheme.cardShadow,
                           ),
                           child: TextField(
                             controller: _controller,
@@ -144,12 +140,12 @@ class _ReportDescriptionScreenState extends State<ReportDescriptionScreen> {
                           style: ElevatedButton.styleFrom(
                             foregroundColor: BeeAwareTheme.textPrimary,
                             disabledForegroundColor:
-                                BeeAwareTheme.textPrimary.withOpacity(0.6),
+                                BeeAwareTheme.textPrimary.withValues(alpha: 0.6),
                             backgroundColor: theme.colorScheme.primary,
                             disabledBackgroundColor:
-                                theme.colorScheme.primary.withOpacity(0.3),
+                                theme.colorScheme.primary.withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
                             ),
                           ),
                           child: Text(

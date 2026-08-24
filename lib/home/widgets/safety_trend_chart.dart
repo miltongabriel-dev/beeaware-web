@@ -23,7 +23,7 @@ class SafetyTrendChart extends StatelessWidget {
         child: Center(
           child: Text(
             AppLocalizations.of(context)!.noDataAvailable,
-            style: const TextStyle(color: Colors.grey),
+            style: const TextStyle(color: BeeAwareTheme.textSecondary),
           ),
         ),
       );
@@ -61,7 +61,7 @@ class SafetyTrendChart extends StatelessWidget {
                     child: Text(
                       DateFormat.MMM(locale).format(m),
                       style: const TextStyle(
-                          fontSize: 10, color: Color(0xFF6B7280)),
+                          fontSize: 10, color: BeeAwareTheme.textSecondary),
                     ),
                   );
                 },

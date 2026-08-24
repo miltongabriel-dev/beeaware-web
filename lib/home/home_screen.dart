@@ -135,9 +135,9 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 12,
           height: 12,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.8),
+            color: color.withValues(alpha: 0.8),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.black.withOpacity(0.1)),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
           ),
         ),
         const SizedBox(width: 8),
@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF4B5563),
+            color: BeeAwareTheme.textSecondary,
           ),
         ),
       ],
@@ -261,10 +261,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 decoration: BoxDecoration(
                   color: BeeAwareTheme.accent,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -580,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 8,
                             ),
                           ],
@@ -604,7 +604,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 30,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.2),
+                          color: Colors.blue.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -654,7 +654,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_isLoadingIncidents)
             Positioned.fill(
               child: Container(
-                color: Colors.white.withOpacity(0.55),
+                color: Colors.white.withValues(alpha: 0.55),
                 child: BeeLoadingCard(
                   message: AppLocalizations.of(context)!.loadingIncidents,
                 ),
@@ -727,11 +727,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -762,13 +762,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.info_outline,
-                              size: 14, color: Color(0xFF6B7280)),
+                              size: 14, color: BeeAwareTheme.textSecondary),
                           const SizedBox(width: 6),
                           Text(
                             AppLocalizations.of(context)!
                                 .clusterNumbersExplained,
                             style: const TextStyle(
-                                fontSize: 11, color: Color(0xFF6B7280)),
+                                fontSize: 11, color: BeeAwareTheme.textSecondary),
                           ),
                         ],
                       ),
@@ -790,13 +790,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.info_outline,
-                                size: 14, color: Color(0xFF6B7280)),
+                                size: 14, color: BeeAwareTheme.textSecondary),
                             const SizedBox(width: 6),
                             Text(
                               AppLocalizations.of(context)!
                                   .choroplethLegendTooltip,
                               style: const TextStyle(
-                                  fontSize: 11, color: Color(0xFF6B7280)),
+                                  fontSize: 11, color: BeeAwareTheme.textSecondary),
                             ),
                           ],
                         ),
@@ -846,10 +846,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
+                          color: Colors.black.withValues(alpha: 0.06),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -865,7 +865,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: const Icon(
                               Icons.menu,
                               size: 22,
-                              color: Color(0xFF1F2933),
+                              color: BeeAwareTheme.textPrimary,
                             ),
                           ),
                         ),
@@ -887,7 +887,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   width: 20,
                                   height: 20,
                                   colorFilter: const ColorFilter.mode(
-                                    Color(0xFF6B7280),
+                                    BeeAwareTheme.textSecondary,
                                     BlendMode.srcIn,
                                   ),
                                 ),
@@ -932,8 +932,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: BeeAwareTheme.accent.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(20),
+                              color: BeeAwareTheme.accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
                             ),
                             child: Text(
                               AppLocalizations.of(context)!
@@ -958,12 +958,12 @@ class _HomeScreenState extends State<HomeScreen> {
               left: 20,
               right: 20,
               child: Material(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 elevation: 8,
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
                   ),
                   child: ListView.separated(
                     shrinkWrap: true,
@@ -1006,7 +1006,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: SemanticColors.alertSoft,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
                   ),
                   child: Text(
                     AppLocalizations.of(context)!.oneSearchRemaining,
@@ -1035,7 +1035,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: SemanticColors.errorSoft,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
                     boxShadow: BeeAwareTheme.cardShadow,
                   ),
                   child: Row(
@@ -1192,7 +1192,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               Text(ReportLabels.subcategory(sheetContext, incident.subcategory),
                   style:
-                      const TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
+                      const TextStyle(fontSize: 14, color: BeeAwareTheme.textSecondary)),
               const SizedBox(height: 12),
               Text(
                 incident.description.isEmpty
@@ -1208,7 +1208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         relativeTime(sheetContext, incident.dateTime)),
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: BeeAwareTheme.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1281,7 +1281,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 loc.choroplethNoDataDisclaimer,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                style: const TextStyle(fontSize: 13, color: BeeAwareTheme.textSecondary),
               ),
               const SizedBox(height: 12),
             ],
@@ -1318,7 +1318,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.emergency),
                 label: Text(loc.callEmergency999),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF44336),
+                  backgroundColor: SeverityColors.high,
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () async {
@@ -1345,7 +1345,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF6B7280),
+                  color: BeeAwareTheme.textSecondary,
                   height: 1.4,
                 ),
               ),
@@ -1376,7 +1376,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           },
           child: Material(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             child: Center(
               child: GestureDetector(
                 onTap: () {}, // evita fechar ao clicar dentro
@@ -1394,10 +1394,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 20,
                         ),
                       ],
@@ -1508,8 +1508,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.black26,
-                    borderRadius: BorderRadius.circular(2),
+                    color: BeeAwareTheme.border,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1604,7 +1604,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         loc.copyrightBeeAware,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6B7280),
+                          color: BeeAwareTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -1715,20 +1715,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     margin: const EdgeInsets.only(bottom: 14),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3CD),
-                      borderRadius: BorderRadius.circular(12),
+                      color: SemanticColors.alertSoft,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(Icons.info_outline,
-                            size: 18, color: Color(0xFF92660A)),
+                            size: 18, color: SemanticColors.alertText),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             loc.coverageGlobalBaselineOnly,
                             style: const TextStyle(
-                                fontSize: 13, color: Color(0xFF92660A)),
+                                fontSize: 13, color: SemanticColors.alertText),
                           ),
                         ),
                       ],
@@ -1819,7 +1819,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
                         gradient: user == null
                             ? null
                             : const LinearGradient(
@@ -1830,7 +1830,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                           ),
                         ],
@@ -1883,7 +1883,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         : loc.tokensAvailable(tokens),
                                     style: const TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFF6B7280),
+                                      color: BeeAwareTheme.textSecondary,
                                     ),
                                   ),
                               ],
@@ -1894,7 +1894,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Icon(
                             Icons.chevron_right,
                             size: 20,
-                            color: Color(0xFF9CA3AF),
+                            color: BeeAwareTheme.textAux,
                           ),
                         ],
                       ),
@@ -2057,7 +2057,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
           title: Text(loc.languageLabel),
           content: Column(
@@ -2152,7 +2152,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final loc = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
           title: Text(loc.noSearchTokensRemaining),
           content: Text(loc.unlockUnlimitedInsights),
@@ -2274,7 +2274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.15),
@@ -2297,7 +2297,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         subtitle,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6B7280),
+                          color: BeeAwareTheme.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -2525,8 +2525,8 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (dialogContext) {
         final loc = AppLocalizations.of(dialogContext)!;
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg)),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -2597,7 +2597,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final loc = AppLocalizations.of(dialogContext)!;
         return Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -2682,7 +2682,7 @@ Color _gradeColor(String grade) {
     case 'D':
       return const Color(0xFFDC2626);
     default:
-      return const Color(0xFF6B7280);
+      return BeeAwareTheme.textSecondary;
   }
 }
 
@@ -2699,9 +2699,9 @@ class _GradeChip extends StatelessWidget {
       height: 34,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         shape: BoxShape.circle,
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Text(
         grade,
@@ -2748,11 +2748,11 @@ class _CoverageBadgeState extends State<_CoverageBadge> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(_hover ? 0.95 : 0.85),
-              borderRadius: BorderRadius.circular(18),
+              color: Colors.white.withValues(alpha: _hover ? 0.95 : 0.85),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
+                  color: Colors.black.withValues(alpha: 0.15),
                   blurRadius: _hover ? 20 : 10,
                 ),
               ],
@@ -2764,7 +2764,7 @@ class _CoverageBadgeState extends State<_CoverageBadge> {
                   height: 22,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -2818,11 +2818,11 @@ class _FilterButtonState extends State<_FilterButton> {
           margin: const EdgeInsets.only(top: 10),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(_hover ? 0.95 : 0.85),
-            borderRadius: BorderRadius.circular(18),
+            color: Colors.white.withValues(alpha: _hover ? 0.95 : 0.85),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: _hover ? 20 : 10,
               ),
             ],
@@ -2912,7 +2912,7 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
                 child: Text(
                   widget.count.toString(),
                   style: TextStyle(
-                    color: widget.color == const Color(0xFFFDE047)
+                    color: widget.color == SeverityColors.low
                         ? Colors.black
                         : Colors.white,
                     fontWeight: FontWeight.bold,
@@ -2991,10 +2991,10 @@ class _BottomBarState extends State<_BottomBar> {
             height: 56,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
+                  color: Colors.black.withValues(alpha: 0.12),
                   blurRadius: 12,
                 ),
               ],
@@ -3078,11 +3078,11 @@ class _TrendButtonState extends State<_TrendButton> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(_hover ? 0.95 : 0.85),
-            borderRadius: BorderRadius.circular(18),
+            color: Colors.white.withValues(alpha: _hover ? 0.95 : 0.85),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: _hover ? 20 : 10,
               ),
             ],
@@ -3160,17 +3160,17 @@ class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
                     // the accent color calls attention to itself.
                     BoxShadow(
                       color:
-                          BeeAwareTheme.accent.withOpacity(0.35 * (1 - glow)),
+                          BeeAwareTheme.accent.withValues(alpha: 0.35 * (1 - glow)),
                       blurRadius: 6,
                       spreadRadius: 8 * glow,
                     ),
                     BoxShadow(
-                      color: BeeAwareTheme.primary.withOpacity(0.10),
+                      color: BeeAwareTheme.primary.withValues(alpha: 0.10),
                       blurRadius: 18,
                       spreadRadius: 1,
                     ),
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.22),
+                      color: Colors.black.withValues(alpha: 0.22),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),

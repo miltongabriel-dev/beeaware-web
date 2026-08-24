@@ -32,8 +32,8 @@ class IncidentBottomSheet extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          color: BeeAwareTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -46,8 +46,8 @@ class IncidentBottomSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+                  color: BeeAwareTheme.border,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
             ),
@@ -61,7 +61,7 @@ class IncidentBottomSheet extends StatelessWidget {
                   height: 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: BeeAwareTheme.primary.withOpacity(0.08),
+                    color: BeeAwareTheme.primary.withValues(alpha: 0.08),
                   ),
                   child: incident.isOfficial
                       ? SvgPicture.asset(
@@ -102,7 +102,7 @@ class IncidentBottomSheet extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm, vertical: 3),
                   decoration: BoxDecoration(
-                    color: _severityColor().withOpacity(0.14),
+                    color: _severityColor().withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   child: Text(
@@ -118,7 +118,7 @@ class IncidentBottomSheet extends StatelessWidget {
                 Text(
                   relativeTime(context, incident.dateTime),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
+                        color: BeeAwareTheme.textSecondary,
                       ),
                 ),
               ],
@@ -147,7 +147,7 @@ class IncidentBottomSheet extends StatelessWidget {
               Text(
                 loc.sourceLabel(incident.source!),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600,
+                      color: BeeAwareTheme.textSecondary,
                     ),
               ),
             ],
@@ -158,7 +158,7 @@ class IncidentBottomSheet extends StatelessWidget {
             Text(
               loc.incidentInfoDisclaimer,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey.shade500,
+                    color: BeeAwareTheme.textAux,
                   ),
             ),
           ],

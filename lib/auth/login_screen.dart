@@ -121,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           loc.appleSignInComingSoon,
                           style: const TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF9CA3AF),
+                            color: BeeAwareTheme.textAux,
                           ),
                         ),
 
@@ -135,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: InputDecoration(
                             hintText: loc.enterYourEmail,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
                             ),
                             prefixIcon: const Icon(Icons.email_outlined),
                           ),
@@ -164,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF9CA3AF),
+                    color: BeeAwareTheme.textAux,
                   ),
                 ),
               ],
@@ -257,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
               color: BeeAwareTheme.surface,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
-                color: const Color(0xFFE5E7EB),
+                color: BeeAwareTheme.border,
               ),
               boxShadow: BeeAwareTheme.cardShadow,
             ),
