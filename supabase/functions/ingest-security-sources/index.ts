@@ -16,7 +16,12 @@
 // RjIspAdapter, PaSegupAdapter, MgAdapter (Phase 2 — Minas Gerais),
 // EsSespAdapter (Phase 2 — Espírito Santo, EXACT-precision with real
 // coordinates), AlAdapter (Phase 2 — Alagoas, real per-occurrence unique
-// IDs) and UnodcAdapter (BeeAware Global blueprint Phase 1 — the first
+// IDs), MtAdapter (Phase 2 — Mato Grosso, real per-occurrence data, but
+// genuinely narrower in SCOPE than every other state adapter: every row
+// is an occurrence with a female victim specifically, Lei Maria da Penha
+// and related statutes — not general crime; see mt_sesp.ts's header for
+// why that's the ceiling of what MT's open-data portal publishes) and
+// UnodcAdapter (BeeAware Global blueprint Phase 1 — the first
 // adapter that isn't Brazil-specific) are also fully real (verified
 // against their live sources — see each file's header) and
 // write actual security_events rows. FcdoAdapter (Phase 1 part 2) is also
@@ -58,6 +63,7 @@ import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
 import { MgAdapter } from "../_shared/adapters/br/mg_ssp.ts";
 import { EsSespAdapter } from "../_shared/adapters/br/es_sesp.ts";
 import { AlAdapter } from "../_shared/adapters/br/al_seds.ts";
+import { MtAdapter } from "../_shared/adapters/br/mt_sesp.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail.
@@ -98,6 +104,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   MgAdapter: new MgAdapter(),
   EsSespAdapter: new EsSespAdapter(),
   AlAdapter: new AlAdapter(),
+  MtAdapter: new MtAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   RsSspAdapter: new RsSspAdapter(),
 };

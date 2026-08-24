@@ -773,6 +773,35 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
+                    // Blueprint principle again ("never equate 'no data'
+                    // with 'safe'"), applied to the municipality choropleth
+                    // specifically: it only paints municipalities that HAVE
+                    // a source (municipality_choropleth_layer.dart) — most
+                    // of Brazil's states still have no adapter at all, so
+                    // silence on the map there means "no public data", not
+                    // "no crime". Only shown when the choropleth is
+                    // actually rendering something, same guard as the layer
+                    // itself uses.
+                    if (_crimeSummary.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      GestureDetector(
+                        onTap: _showChoroplethLegendInfo,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.info_outline,
+                                size: 14, color: Color(0xFF6B7280)),
+                            const SizedBox(width: 6),
+                            Text(
+                              AppLocalizations.of(context)!
+                                  .choroplethLegendTooltip,
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF6B7280)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1212,6 +1241,47 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 loc.clusterCountExplanation,
                 textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showChoroplethLegendInfo() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        final loc = AppLocalizations.of(sheetContext)!;
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                loc.choroplethLegendTitle,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              _buildLegendItem(SeverityColors.high,
+                  SeverityColors.labelSuffixed(sheetContext, IncidentSeverity.high)),
+              const SizedBox(height: 6),
+              _buildLegendItem(SeverityColors.medium,
+                  SeverityColors.labelSuffixed(sheetContext, IncidentSeverity.medium)),
+              const SizedBox(height: 6),
+              _buildLegendItem(SeverityColors.low,
+                  SeverityColors.labelSuffixed(sheetContext, IncidentSeverity.low)),
+              const SizedBox(height: 16),
+              Text(
+                loc.choroplethNoDataDisclaimer,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               ),
               const SizedBox(height: 12),
             ],

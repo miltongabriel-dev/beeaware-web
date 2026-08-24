@@ -806,6 +806,24 @@ abstract class AppLocalizations {
   /// **'No data sources found for this area yet.'**
   String get coverageNoData;
 
+  /// No description provided for @choroplethLegendTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Map legend'**
+  String get choroplethLegendTooltip;
+
+  /// No description provided for @choroplethLegendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What the colors mean'**
+  String get choroplethLegendTitle;
+
+  /// No description provided for @choroplethNoDataDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Areas with no color on the map have no public security data source. The absence of color doesn\'t mean the area is safe — only that police or local government haven\'t published that data yet.'**
+  String get choroplethNoDataDisclaimer;
+
   /// No description provided for @loadingIncidents.
   ///
   /// In en, this message translates to:

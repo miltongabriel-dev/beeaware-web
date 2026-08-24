@@ -467,6 +467,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coverageNoData => 'No data sources found for this area yet.';
 
   @override
+  String get choroplethLegendTooltip => 'Map legend';
+
+  @override
+  String get choroplethLegendTitle => 'What the colors mean';
+
+  @override
+  String get choroplethNoDataDisclaimer =>
+      'Areas with no color on the map have no public security data source. The absence of color doesn\'t mean the area is safe — only that police or local government haven\'t published that data yet.';
+
+  @override
   String get loadingIncidents => 'Loading incidents…';
 
   @override

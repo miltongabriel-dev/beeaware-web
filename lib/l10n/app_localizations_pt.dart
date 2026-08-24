@@ -472,6 +472,16 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhuma fonte de dados encontrada para esta área ainda.';
 
   @override
+  String get choroplethLegendTooltip => 'Legenda do mapa';
+
+  @override
+  String get choroplethLegendTitle => 'O que as cores mostram';
+
+  @override
+  String get choroplethNoDataDisclaimer =>
+      'Áreas sem cor no mapa não têm fonte pública de dados de segurança. A ausência de cor não significa que o local é seguro — só que a polícia ou o governo local ainda não divulgam esses dados.';
+
+  @override
   String get loadingIncidents => 'Carregando incidentes…';
 
   @override

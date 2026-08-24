@@ -191,9 +191,26 @@ export async function forEachRowRaw(
 // used by sources with no sharedStrings.xml at all, e.g. sinesp.ts) —
 // group 3 is the <v> capture, group 4 the inline-string capture;
 // parseRowCells picks whichever one matched.
+//
+// Group 2 captures the cell's ENTIRE attribute blob after r="...", rather
+// than anchoring a `\st="(\w+)"` match right after it — found necessary
+// while building mt_ssp.ts: that source's export orders the style
+// attribute before the type attribute (`s="4" t="s"`, not `t="s" s="4"`
+// like every XLSX file this reader had seen before), and the old
+// position-anchored group silently failed to match `t="s"` in that order
+// (its optional group just matched empty and `[^>]*` swallowed the rest,
+// with no error — parseRowCells then fell through to treating the cell as
+// a raw value, storing the shared-string INDEX instead of the resolved
+// text). Extracting the full attribute blob and searching it for `t="..."`
+// (see parseRowCells below) is attribute-order-independent, a strict
+// superset of the old behaviour — verified against a real ES-SESP
+// Homicídios row (t before s) and a real MT row (s before t), same result
+// on the former, now-correct on the latter.
 export function buildCellRegex(): RegExp {
-  return /<c r="([A-Z]+)\d+"[^>]*?(?:\st="(\w+)")?[^>]*>(?:<f>.*?<\/f>)?(?:<v>(.*?)<\/v>|<is><t[^>]*>(.*?)<\/t><\/is>)<\/c>/gs;
+  return /<c r="([A-Z]+)\d+"([^>]*)>(?:<f>.*?<\/f>)?(?:<v>(.*?)<\/v>|<is><t[^>]*>(.*?)<\/t><\/is>)<\/c>/gs;
 }
+
+const CELL_TYPE_RE = /\st="(\w+)"/;
 
 function columnIndex(columnLetters: string): number {
   let index = 0;
@@ -218,7 +235,8 @@ export function parseRowCells(
   cellRe.lastIndex = 0;
   let cellMatch: RegExpExecArray | null;
   while ((cellMatch = cellRe.exec(rowInnerXml))) {
-    const [, columnLetters, type, vValue, inlineValue] = cellMatch;
+    const [, columnLetters, attrs, vValue, inlineValue] = cellMatch;
+    const type = CELL_TYPE_RE.exec(attrs)?.[1];
     const idx = columnIndex(columnLetters);
     if (type === "s") {
       cells[idx] = sharedStrings[Number(vValue)];
