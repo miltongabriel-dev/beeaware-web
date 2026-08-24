@@ -15,8 +15,9 @@
 // so its scheduled run genuinely writes geo_areas rows. PrfAccidentsAdapter,
 // RjIspAdapter, PaSegupAdapter, MgAdapter (Phase 2 — Minas Gerais),
 // EsSespAdapter (Phase 2 — Espírito Santo, EXACT-precision with real
-// coordinates) and UnodcAdapter (BeeAware Global blueprint Phase 1 — the
-// first adapter that isn't Brazil-specific) are also fully real (verified
+// coordinates), AlAdapter (Phase 2 — Alagoas, real per-occurrence unique
+// IDs) and UnodcAdapter (BeeAware Global blueprint Phase 1 — the first
+// adapter that isn't Brazil-specific) are also fully real (verified
 // against their live sources — see each file's header) and
 // write actual security_events rows. FcdoAdapter (Phase 1 part 2) is also
 // fully real and writes travel_advisories rows instead. RsSspAdapter
@@ -41,6 +42,7 @@ import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
 import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
 import { MgAdapter } from "../_shared/adapters/br/mg_ssp.ts";
 import { EsSespAdapter } from "../_shared/adapters/br/es_sesp.ts";
+import { AlAdapter } from "../_shared/adapters/br/al_seds.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail.
@@ -74,6 +76,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   PaSegupAdapter: new PaSegupAdapter(),
   MgAdapter: new MgAdapter(),
   EsSespAdapter: new EsSespAdapter(),
+  AlAdapter: new AlAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   RsSspAdapter: new RsSspAdapter(),
 };
