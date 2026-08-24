@@ -884,17 +884,17 @@ abstract class AppLocalizations {
   /// **'The number shown inside each cluster represents the total number of reported incidents in that area.'**
   String get clusterCountExplanation;
 
-  /// No description provided for @callEmergency999.
+  /// No description provided for @callEmergencyNumber.
   ///
   /// In en, this message translates to:
-  /// **'Call emergency (999)'**
-  String get callEmergency999;
+  /// **'Call emergency ({number})'**
+  String callEmergencyNumber(String number);
 
-  /// No description provided for @callNonEmergency101.
+  /// No description provided for @callNonEmergencyNumber.
   ///
   /// In en, this message translates to:
-  /// **'Call non-emergency (101)'**
-  String get callNonEmergency101;
+  /// **'Call non-emergency ({number})'**
+  String callNonEmergencyNumber(String number);
 
   /// No description provided for @emergencyDisclaimer.
   ///
@@ -905,8 +905,8 @@ abstract class AppLocalizations {
   /// No description provided for @sosBarLabel.
   ///
   /// In en, this message translates to:
-  /// **'SOS 999'**
-  String get sosBarLabel;
+  /// **'SOS {number}'**
+  String sosBarLabel(String number);
 
   /// No description provided for @reportBarLabel.
   ///

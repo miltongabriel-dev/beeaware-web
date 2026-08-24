@@ -209,10 +209,19 @@
   "clusterCountTitle": "Cluster count",
   "clusterCountExplanation": "The number shown inside each cluster represents the total number of reported incidents in that area.",
 
-  "callEmergency999": "Call emergency (999)",
-  "callNonEmergency101": "Call non-emergency (101)",
+  "callEmergencyNumber": "Call emergency ({number})",
+  "@callEmergencyNumber": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callNonEmergencyNumber": "Call non-emergency ({number})",
+  "@callNonEmergencyNumber": {
+    "placeholders": { "number": { "type": "String" } }
+  },
   "emergencyDisclaimer": "BeeAware is not an emergency service.\nIf you are in immediate danger, contact emergency services directly.",
-  "sosBarLabel": "SOS 999",
+  "sosBarLabel": "SOS {number}",
+  "@sosBarLabel": {
+    "placeholders": { "number": { "type": "String" } }
+  },
   "reportBarLabel": "Report",
 
   "filterTimeSectionTitle": "Time",

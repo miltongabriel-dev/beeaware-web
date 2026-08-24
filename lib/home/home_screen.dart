@@ -9,6 +9,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:aware/config/rounded_hexagon_painter.dart';
+import 'package:aware/config/emergency_numbers.dart';
 
 import '../map/map_incident.dart';
 import '../map/incident_store.dart';
@@ -83,12 +84,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_userCurrentLocation == null) return 'gb';
 
     final lat = _userCurrentLocation!.latitude;
+    final lng = _userCurrentLocation!.longitude;
 
     // 🇬🇧 UK approx
     if (lat > 49 && lat < 61) return 'gb';
 
     // 🇧🇷 Brazil approx
     if (lat < 5 && lat > -35) return 'br';
+
+    // 🇪🇸 Spain approx (mainland + Balearic Islands). A faixa de latitude
+    // sozinha também cobriria Itália/Grécia/Turquia, então a longitude
+    // entra aqui para não confundir o número de emergência do usuário.
+    if (lat > 36 && lat < 44 && lng > -9.5 && lng < 3.5) return 'es';
 
     return 'gb';
   }
@@ -1191,6 +1198,8 @@ class _HomeScreenState extends State<HomeScreen> {
               coverageGrade: _coverage.isNotEmpty
                   ? (bestCoverageGrade(_coverage) ?? 'C')
                   : null,
+              emergencyNumber:
+                  emergencyNumbersFor(_preferredCountryCode()).primary,
             ),
           ),
         ],
@@ -1368,6 +1377,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showPoliceSheet(BuildContext context) {
+    final numbers = emergencyNumbersFor(_preferredCountryCode());
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -1392,29 +1402,31 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 icon: const Icon(PhosphorIconsRegular.siren),
-                label: Text(loc.callEmergency999),
+                label: Text(loc.callEmergencyNumber(numbers.primary)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: SeverityColors.high,
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () async {
-                  final uri = Uri.parse('tel:999');
+                  final uri = Uri.parse('tel:${numbers.primary}');
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri);
                   }
                 },
               ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                icon: const Icon(PhosphorIconsRegular.phone),
-                label: Text(loc.callNonEmergency101),
-                onPressed: () async {
-                  final uri = Uri.parse('tel:101');
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  }
-                },
-              ),
+              if (numbers.secondary != null) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  icon: const Icon(PhosphorIconsRegular.phone),
+                  label: Text(loc.callNonEmergencyNumber(numbers.secondary!)),
+                  onPressed: () async {
+                    final uri = Uri.parse('tel:${numbers.secondary}');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                ),
+              ],
               const SizedBox(height: 12),
               Text(
                 loc.emergencyDisclaimer,
@@ -3283,6 +3295,7 @@ class _BottomBar extends StatefulWidget {
   final VoidCallback onTrend;
   final VoidCallback onCoverageTap;
   final String? coverageGrade;
+  final String emergencyNumber;
 
   const _BottomBar({
     required this.onReport,
@@ -3290,6 +3303,7 @@ class _BottomBar extends StatefulWidget {
     required this.onFilters,
     required this.onTrend,
     required this.onCoverageTap,
+    required this.emergencyNumber,
     this.coverageGrade,
   });
 
@@ -3364,7 +3378,7 @@ class _BottomBarState extends State<_BottomBar> {
                         // SOS: vermelho e com texto, nunca só um ícone —
                         // é a única ação de emergência da barra.
                         _SosButton(
-                          label: loc.sosBarLabel,
+                          label: loc.sosBarLabel(widget.emergencyNumber),
                           onTap: widget.onPolice,
                         ),
                         const SizedBox(width: 4),

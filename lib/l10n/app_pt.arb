@@ -158,10 +158,10 @@
   "clusterCountTitle": "Contagem do agrupamento",
   "clusterCountExplanation": "O número mostrado dentro de cada agrupamento representa o total de incidentes reportados naquela área.",
 
-  "callEmergency999": "Ligar para emergência (999)",
-  "callNonEmergency101": "Ligar para não-emergência (101)",
+  "callEmergencyNumber": "Ligar para emergência ({number})",
+  "callNonEmergencyNumber": "Ligar para não-emergência ({number})",
   "emergencyDisclaimer": "BeeAware não é um serviço de emergência.\nSe você estiver em perigo imediato, contate os serviços de emergência diretamente.",
-  "sosBarLabel": "SOS 999",
+  "sosBarLabel": "SOS {number}",
   "reportBarLabel": "Reportar",
 
   "filterTimeSectionTitle": "Período",

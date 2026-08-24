@@ -526,17 +526,23 @@ class AppLocalizationsPt extends AppLocalizations {
       'O número mostrado dentro de cada agrupamento representa o total de incidentes reportados naquela área.';
 
   @override
-  String get callEmergency999 => 'Ligar para emergência (999)';
+  String callEmergencyNumber(String number) {
+    return 'Ligar para emergência ($number)';
+  }
 
   @override
-  String get callNonEmergency101 => 'Ligar para não-emergência (101)';
+  String callNonEmergencyNumber(String number) {
+    return 'Ligar para não-emergência ($number)';
+  }
 
   @override
   String get emergencyDisclaimer =>
       'BeeAware não é um serviço de emergência.\nSe você estiver em perigo imediato, contate os serviços de emergência diretamente.';
 
   @override
-  String get sosBarLabel => 'SOS 999';
+  String sosBarLabel(String number) {
+    return 'SOS $number';
+  }
 
   @override
   String get reportBarLabel => 'Reportar';
