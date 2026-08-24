@@ -1066,34 +1066,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          // Grupo de botões flutuantes do lado direito — um único Column
-          // com espaçamento real (AppSpacing.md) em vez de três Positioned
-          // independentes com top: escolhido à mão só para não se
-          // sobrepor (era 140/200/260). Se o badge de cobertura some
-          // (_coverage vazio), o Column recua sozinho, sem gap fantasma.
-          Positioned(
-            right: 16,
-            top: 140,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _TrendButton(onTap: _showSafetyTrend),
-                const SizedBox(height: AppSpacing.md),
-                _FilterButton(onTap: () => _showFiltersOverlay()),
-                // Cobertura de dados — badge com a melhor grade disponível
-                // perto do usuário. Só aparece quando já temos uma
-                // resposta (evita piscar um badge vazio antes do fetch
-                // terminar).
-                if (_coverage.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  _CoverageBadge(
-                    grade: bestCoverageGrade(_coverage) ?? 'C',
-                    onTap: () => _showCoverageSheet(context),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          // Tendência, filtro e badge de cobertura agora moram na barra
+          // inferior (ver _BottomBar) — ancorados junto com emergência e
+          // instalar, no padrão Waze/Maps, em vez de flutuando soltos aqui.
 
 // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
           Positioned(
@@ -1127,6 +1102,10 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               onPolice: () => _showPoliceSheet(context),
               onFilters: () => _showFiltersOverlay(),
+              onTrend: _showSafetyTrend,
+              onCoverageTap: () => _showCoverageSheet(context),
+              coverageGrade:
+                  _coverage.isNotEmpty ? (bestCoverageGrade(_coverage) ?? 'C') : null,
             ),
           ),
         ],
@@ -2720,130 +2699,74 @@ class _GradeChip extends StatelessWidget {
   }
 }
 
-// Floating badge showing the best data grade near the user — same
-// hover-to-expand shape as _TrendButton/_FilterButton, but always shows a
-// live value (the grade letter) instead of a bare icon, since that value
-// is the whole point (blueprint wireframe 8.1: "Always show score +
-// confidence").
-class _CoverageBadge extends StatefulWidget {
+// Ícone compacto padrão da barra inferior — Tooltip cobre tanto hover
+// (desktop) quanto toque longo (mobile), o que o _hover manual de cada
+// botão anterior não fazia: em celular o rótulo nunca aparecia. Tamanho
+// reduzido (~36px) de propósito — a barra passou a acomodar até 5 ícones
+// de cada lado do botão central, não cabe no alvo de toque padrão do
+// Material (48px).
+class _BarIcon extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _BarIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        color: BeeAwareTheme.primary,
+        iconSize: 20,
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(),
+        onPressed: onTap,
+      ),
+    );
+  }
+}
+
+// Nota de cobertura (grade A+ a D) — mantém o círculo colorido com a
+// letra, que é informação, não decoração; só o rótulo em hover/toque-
+// longo virou Tooltip, como todo outro ícone da barra.
+class _CoverageBadge extends StatelessWidget {
   final String grade;
   final VoidCallback onTap;
 
   const _CoverageBadge({required this.grade, required this.onTap});
 
   @override
-  State<_CoverageBadge> createState() => _CoverageBadgeState();
-}
-
-class _CoverageBadgeState extends State<_CoverageBadge> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
-    final color = _gradeColor(widget.grade);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Semantics(
-          label: AppLocalizations.of(context)!.coverageBadgeTooltip,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(10),
+    final color = _gradeColor(grade);
+    return Tooltip(
+      message: AppLocalizations.of(context)!.coverageBadgeTooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: Container(
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: _hover ? 0.95 : 0.85),
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: _hover ? 20 : 10,
-                ),
-              ],
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    widget.grade,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      color: color,
-                    ),
-                  ),
-                ),
-                if (_hover)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Text(
-                      AppLocalizations.of(context)!.coverageBadgeTooltip,
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterButton extends StatefulWidget {
-  final VoidCallback onTap;
-
-  const _FilterButton({required this.onTap});
-
-  @override
-  State<_FilterButton> createState() => _FilterButtonState();
-}
-
-class _FilterButtonState extends State<_FilterButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.only(top: 10),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: _hover ? 0.95 : 0.85),
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: _hover ? 20 : 10,
+            child: Text(
+              grade,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                color: color,
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.filter_list, size: 20),
-              if (_hover)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text(
-                    AppLocalizations.of(context)!.filters,
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ),
@@ -2939,11 +2862,17 @@ class _BottomBar extends StatefulWidget {
   final VoidCallback onReport;
   final VoidCallback onPolice;
   final VoidCallback onFilters;
+  final VoidCallback onTrend;
+  final VoidCallback onCoverageTap;
+  final String? coverageGrade;
 
   const _BottomBar({
     required this.onReport,
     required this.onPolice,
     required this.onFilters,
+    required this.onTrend,
+    required this.onCoverageTap,
+    this.coverageGrade,
   });
 
   @override
@@ -3004,36 +2933,53 @@ class _BottomBarState extends State<_BottomBar> {
                 ),
               ],
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Tooltip(
-                  message: loc.emergencyServices,
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: IconButton(
-                      icon: const Icon(Icons.emergency),
-                      color: BeeAwareTheme.primary,
-                      onPressed: widget.onPolice,
+                // Esquerda: ações sobre a visão atual do mapa.
+                Row(
+                  children: [
+                    _BarIcon(
+                      icon: Icons.emergency,
+                      tooltip: loc.emergencyServices,
+                      onTap: widget.onPolice,
                     ),
-                  ),
+                    _BarIcon(
+                      icon: Icons.filter_list,
+                      tooltip: loc.filters,
+                      onTap: widget.onFilters,
+                    ),
+                  ],
                 ),
-                if (canInstall)
-                  Tooltip(
-                    message: loc.installAppTooltip,
-                    child: IconButton(
-                      icon: const Icon(Icons.install_mobile),
-                      color: BeeAwareTheme.primary,
-                      onPressed: () {
-                        if (js.context.callMethod('isPwaInstallable') == true) {
-                          js.context.callMethod('triggerPwaInstall');
-                        } else {
-                          pwa.PWAInstall().promptInstall_();
-                        }
-                      },
+                // Direita: informação sobre a área + ações de sistema.
+                Row(
+                  children: [
+                    _BarIcon(
+                      icon: Icons.show_chart,
+                      tooltip: loc.safetyTrendShort,
+                      onTap: widget.onTrend,
                     ),
-                  ),
+                    if (widget.coverageGrade != null)
+                      _CoverageBadge(
+                        grade: widget.coverageGrade!,
+                        onTap: widget.onCoverageTap,
+                      ),
+                    if (canInstall)
+                      _BarIcon(
+                        icon: Icons.install_mobile,
+                        tooltip: loc.installAppTooltip,
+                        onTap: () {
+                          if (js.context.callMethod('isPwaInstallable') ==
+                              true) {
+                            js.context.callMethod('triggerPwaInstall');
+                          } else {
+                            pwa.PWAInstall().promptInstall_();
+                          }
+                        },
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -3057,58 +3003,6 @@ class _AnimatedCentralButton extends StatefulWidget {
 
   @override
   State<_AnimatedCentralButton> createState() => _AnimatedCentralButtonState();
-}
-
-class _TrendButton extends StatefulWidget {
-  final VoidCallback onTap;
-
-  const _TrendButton({required this.onTap});
-
-  @override
-  State<_TrendButton> createState() => _TrendButtonState();
-}
-
-class _TrendButtonState extends State<_TrendButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: _hover ? 0.95 : 0.85),
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: _hover ? 20 : 10,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.show_chart, size: 20),
-              if (_hover)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text(
-                    AppLocalizations.of(context)!.safetyTrendShort,
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
