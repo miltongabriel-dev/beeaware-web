@@ -902,6 +902,18 @@ abstract class AppLocalizations {
   /// **'BeeAware is not an emergency service.\nIf you are in immediate danger, contact emergency services directly.'**
   String get emergencyDisclaimer;
 
+  /// No description provided for @sosBarLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SOS 999'**
+  String get sosBarLabel;
+
+  /// No description provided for @reportBarLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get reportBarLabel;
+
   /// No description provided for @filterTimeSectionTitle.
   ///
   /// In en, this message translates to:
@@ -961,6 +973,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Any distance'**
   String get distanceFilterAny;
+
+  /// No description provided for @applyFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get applyFilters;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearFilters;
+
+  /// No description provided for @filterResultCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} incident} other{{count} incidents}}'**
+  String filterResultCount(int count);
 
   /// No description provided for @aboutBodyText.
   ///

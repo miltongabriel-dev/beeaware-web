@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey, KeyDownEvent;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -16,6 +17,7 @@ import '../config/app_config.dart';
 import '../theme/beeaware_theme.dart';
 import '../theme/bee_loader.dart';
 import '../report/report_category_screen.dart';
+import '../report/report_icons.dart';
 import '../report/report_labels.dart';
 import '../l10n/app_localizations.dart';
 import '../state/locale_state.dart';
@@ -166,6 +168,20 @@ class _HomeScreenState extends State<HomeScreen> {
     IncidentSeverity.medium,
     IncidentSeverity.high,
   };
+
+  // Mesmas 6 categorias fixas de ReportCategoryScreen — repetidas aqui
+  // porque a lista de lá é privada e o valor gravado em MapIncident.category
+  // já é sempre uma dessas strings (ou 'Other').
+  static const List<String> _allCategories = [
+    'Harassment',
+    'Suspicious activity',
+    'Theft',
+    'Violence',
+    'Drugs',
+    'Other',
+  ];
+
+  final Set<String> _activeCategories = _allCategories.toSet();
 
   final MapController _mapController = MapController();
 
@@ -486,6 +502,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final visibleIncidents = _incidents.where((i) {
       if (!_activeFilters.contains(i.severity)) return false;
 
+      // Category filter is a community-report concept (the 6 fixed report
+      // categories) — official police records use their own category
+      // string ('Police report') and must stay visible regardless of
+      // which category chips are selected.
+      if (!i.isOfficial && !_activeCategories.contains(i.category)) {
+        return false;
+      }
+
       // time filter applies to ALL incidents (as you requested)
       switch (_timeFilter) {
         case IncidentTimeFilter.lastHour:
@@ -542,6 +566,14 @@ class _HomeScreenState extends State<HomeScreen> {
               // ✅ FIX: initial center uses _initialCenter (not only user or Epsom)
               initialCenter: _initialCenter ?? _mapCenter,
               initialZoom: 15,
+              // Só uma superfície flutuante aberta por vez: tocar no mapa
+              // fecha as sugestões de busca, como tocar fora fecharia
+              // qualquer outro painel.
+              onTap: (_, __) {
+                if (_suggestions.isNotEmpty) {
+                  setState(() => _suggestions = []);
+                }
+              },
               onMapReady: () {
                 _loadUserLocation(); // keep (helps web/PWA)
                 Future.delayed(const Duration(seconds: 3), _showReportingHint);
@@ -769,7 +801,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             AppLocalizations.of(context)!
                                 .clusterNumbersExplained,
                             style: const TextStyle(
-                                fontSize: 11, color: BeeAwareTheme.textSecondary),
+                                fontSize: 11,
+                                color: BeeAwareTheme.textSecondary),
                           ),
                         ],
                       ),
@@ -797,7 +830,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               AppLocalizations.of(context)!
                                   .choroplethLegendTooltip,
                               style: const TextStyle(
-                                  fontSize: 11, color: BeeAwareTheme.textSecondary),
+                                  fontSize: 11,
+                                  color: BeeAwareTheme.textSecondary),
                             ),
                           ],
                         ),
@@ -898,30 +932,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // Placeholder
                         Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              // Texto mais curto que o original ("Enter
-                              // address and press search") -- o espaço
-                              // disponível ao lado do ícone de busca e do
-                              // badge de tokens é estreito, e a frase
-                              // inteira ficava cortada no meio.
-                              hintText: AppLocalizations.of(context)!
-                                  .searchAnAddressHint,
-                              border: InputBorder.none,
-                              isDense: true,
+                          child: Focus(
+                            onKeyEvent: (node, event) {
+                              if (event is KeyDownEvent &&
+                                  event.logicalKey ==
+                                      LogicalKeyboardKey.escape) {
+                                setState(() => _suggestions = []);
+                                FocusScope.of(context).unfocus();
+                                return KeyEventResult.handled;
+                              }
+                              return KeyEventResult.ignored;
+                            },
+                            child: TextField(
+                              decoration: InputDecoration(
+                                // Texto mais curto que o original ("Enter
+                                // address and press search") -- o espaço
+                                // disponível ao lado do ícone de busca e do
+                                // badge de tokens é estreito, e a frase
+                                // inteira ficava cortada no meio.
+                                hintText: AppLocalizations.of(context)!
+                                    .searchAnAddressHint,
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
+                              textInputAction: TextInputAction.search,
+                              onChanged: (value) {
+                                // Só uma superfície flutuante por vez: abrir
+                                // sugestões fecha o painel de filtros.
+                                if (_filterOverlay != null) {
+                                  _filterOverlay!.remove();
+                                  _filterOverlay = null;
+                                }
+                                _debounce?.cancel();
+                                _debounce = Timer(
+                                  const Duration(milliseconds: 250),
+                                  () => _fetchSuggestions(value),
+                                );
+                              },
+                              onSubmitted: (value) {
+                                _clearHint();
+                                _handleSearch(context, value);
+                              },
                             ),
-                            textInputAction: TextInputAction.search,
-                            onChanged: (value) {
-                              _debounce?.cancel();
-                              _debounce = Timer(
-                                const Duration(milliseconds: 250),
-                                () => _fetchSuggestions(value),
-                              );
-                            },
-                            onSubmitted: (value) {
-                              _clearHint();
-                              _handleSearch(context, value);
-                            },
                           ),
                         ),
 
@@ -933,8 +985,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: BeeAwareTheme.accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              color:
+                                  BeeAwareTheme.accent.withValues(alpha: 0.12),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill),
                             ),
                             child: Text(
                               AppLocalizations.of(context)!
@@ -972,15 +1026,32 @@ class _HomeScreenState extends State<HomeScreen> {
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final item = _suggestions[index];
-                      final display = item['display_name'] ?? '';
+                      final String display = item['display_name'] ?? '';
+                      final parts = display.split(',');
+                      final primary = parts.first.trim();
+                      final secondary = parts.length > 1
+                          ? parts.sublist(1).join(',').trim()
+                          : '';
 
                       return ListTile(
                         leading: const Icon(PhosphorIconsRegular.mapPin),
                         title: Text(
-                          display,
-                          maxLines: 2,
+                          primary,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
+                        subtitle: secondary.isEmpty
+                            ? null
+                            : Text(
+                                secondary,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: BeeAwareTheme.textSecondary,
+                                ),
+                              ),
                         onTap: () {
                           setState(() => _suggestions = []);
                           _clearHint();
@@ -1071,10 +1142,22 @@ class _HomeScreenState extends State<HomeScreen> {
           // inferior (ver _BottomBar) — ancorados junto com emergência e
           // instalar, no padrão Waze/Maps, em vez de flutuando soltos aqui.
 
+          // Chips de filtro ativo sobre o mapa — só aparecem quando algum
+          // filtro aplicado difere do padrão, e só quando as sugestões de
+          // busca não estão ocupando o mesmo espaço.
+          if (_suggestions.isEmpty && _hasActiveFilters)
+            Positioned(
+              top: 120,
+              left: 20,
+              right: 20,
+              child: _buildActiveFilterChips(context),
+            ),
+
 // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
           Positioned(
             right: 16,
-            bottom: 120, // acima da bottom bar
+            bottom:
+                138, // acima da bottom bar (que cresceu com o rótulo "Reportar")
             child: FloatingActionButton(
               mini: true,
               backgroundColor: Colors.white,
@@ -1105,8 +1188,9 @@ class _HomeScreenState extends State<HomeScreen> {
               onFilters: () => _showFiltersOverlay(),
               onTrend: _showSafetyTrend,
               onCoverageTap: () => _showCoverageSheet(context),
-              coverageGrade:
-                  _coverage.isNotEmpty ? (bestCoverageGrade(_coverage) ?? 'C') : null,
+              coverageGrade: _coverage.isNotEmpty
+                  ? (bestCoverageGrade(_coverage) ?? 'C')
+                  : null,
             ),
           ),
         ],
@@ -1176,8 +1260,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 18, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Text(ReportLabels.subcategory(sheetContext, incident.subcategory),
-                  style:
-                      const TextStyle(fontSize: 14, color: BeeAwareTheme.textSecondary)),
+                  style: const TextStyle(
+                      fontSize: 14, color: BeeAwareTheme.textSecondary)),
               const SizedBox(height: 12),
               Text(
                 incident.description.isEmpty
@@ -1254,19 +1338,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
               ),
               const SizedBox(height: 12),
-              _buildLegendItem(SeverityColors.high,
-                  SeverityColors.labelSuffixed(sheetContext, IncidentSeverity.high)),
+              _buildLegendItem(
+                  SeverityColors.high,
+                  SeverityColors.labelSuffixed(
+                      sheetContext, IncidentSeverity.high)),
               const SizedBox(height: 6),
-              _buildLegendItem(SeverityColors.medium,
-                  SeverityColors.labelSuffixed(sheetContext, IncidentSeverity.medium)),
+              _buildLegendItem(
+                  SeverityColors.medium,
+                  SeverityColors.labelSuffixed(
+                      sheetContext, IncidentSeverity.medium)),
               const SizedBox(height: 6),
-              _buildLegendItem(SeverityColors.low,
-                  SeverityColors.labelSuffixed(sheetContext, IncidentSeverity.low)),
+              _buildLegendItem(
+                  SeverityColors.low,
+                  SeverityColors.labelSuffixed(
+                      sheetContext, IncidentSeverity.low)),
               const SizedBox(height: 16),
               Text(
                 loc.choroplethNoDataDisclaimer,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: BeeAwareTheme.textSecondary),
+                style: const TextStyle(
+                    fontSize: 13, color: BeeAwareTheme.textSecondary),
               ),
               const SizedBox(height: 12),
             ],
@@ -1346,6 +1437,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showFiltersOverlay() {
     if (!mounted) return;
 
+    // Só uma superfície flutuante por vez: abrir o painel de filtros fecha
+    // as sugestões de busca, se houver.
+    if (_suggestions.isNotEmpty) {
+      setState(() => _suggestions = []);
+    }
+
     if (_filterOverlay != null) {
       _filterOverlay!.remove();
       _filterOverlay = null;
@@ -1400,75 +1497,309 @@ class _HomeScreenState extends State<HomeScreen> {
     Overlay.of(context).insert(_filterOverlay!);
   }
 
+  bool get _hasActiveFilters =>
+      _timeFilter != IncidentTimeFilter.all ||
+      _distanceFilter != IncidentDistanceFilter.all ||
+      _activeFilters.length != IncidentSeverity.values.length ||
+      _activeCategories.length != _allCategories.length;
+
+  Widget _buildActiveFilterChips(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final chips = <Widget>[];
+
+    if (_timeFilter != IncidentTimeFilter.all) {
+      chips.add(_ActiveFilterChip(
+        label: _timeFilterLabel(loc, _timeFilter),
+        onRemove: () => setState(() => _timeFilter = IncidentTimeFilter.all),
+      ));
+    }
+    if (_distanceFilter != IncidentDistanceFilter.all) {
+      chips.add(_ActiveFilterChip(
+        label: _distanceFilterLabel(loc, _distanceFilter),
+        onRemove: () =>
+            setState(() => _distanceFilter = IncidentDistanceFilter.all),
+      ));
+    }
+    if (_activeFilters.length != IncidentSeverity.values.length) {
+      for (final s in List<IncidentSeverity>.of(_activeFilters)) {
+        chips.add(_ActiveFilterChip(
+          label: SeverityColors.label(context, s),
+          color: SeverityColors.of(s),
+          onRemove: () => setState(() => _activeFilters.remove(s)),
+        ));
+      }
+    }
+    if (_activeCategories.length != _allCategories.length) {
+      for (final c in List<String>.of(_activeCategories)) {
+        chips.add(_ActiveFilterChip(
+          label: ReportLabels.category(context, c),
+          onRemove: () => setState(() => _activeCategories.remove(c)),
+        ));
+      }
+    }
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final chip in chips)
+            Padding(padding: const EdgeInsets.only(right: 8), child: chip),
+        ],
+      ),
+    );
+  }
+
+  static String _timeFilterLabel(AppLocalizations loc, IncidentTimeFilter f) {
+    switch (f) {
+      case IncidentTimeFilter.lastHour:
+        return loc.timeFilterLastHour;
+      case IncidentTimeFilter.last6Hours:
+        return loc.timeFilterLast6Hours;
+      case IncidentTimeFilter.last24Hours:
+        return loc.timeFilterLast24Hours;
+      case IncidentTimeFilter.all:
+        return loc.timeFilterAllTime;
+    }
+  }
+
+  static String _distanceFilterLabel(
+      AppLocalizations loc, IncidentDistanceFilter f) {
+    switch (f) {
+      case IncidentDistanceFilter.m250:
+        return loc.distanceFilter250m;
+      case IncidentDistanceFilter.m500:
+        return loc.distanceFilter500m;
+      case IncidentDistanceFilter.km1:
+        return loc.distanceFilter1km;
+      case IncidentDistanceFilter.all:
+        return loc.distanceFilterAny;
+    }
+  }
+
+  // Painel de filtros com estado "staged": as escolhas só valem de verdade
+  // quando o usuário aperta Aplicar. Fechar pelo fundo/Esc descarta o que
+  // foi mexido, igual Google Maps/Waze.
   Widget _buildFiltersContent() {
+    IncidentTimeFilter pendingTime = _timeFilter;
+    IncidentDistanceFilter pendingDistance = _distanceFilter;
+    final pendingSeverity = Set<IncidentSeverity>.of(_activeFilters);
+    final pendingCategories = Set<String>.of(_activeCategories);
+
     return StatefulBuilder(
       builder: (context, setModalState) {
         final loc = AppLocalizations.of(context)!;
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              loc.filters,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 20),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(loc.filterTimeSectionTitle,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-            const SizedBox(height: 8),
-            ...IncidentTimeFilter.values.map((f) {
-              final label = {
-                IncidentTimeFilter.lastHour: loc.timeFilterLastHour,
-                IncidentTimeFilter.last6Hours: loc.timeFilterLast6Hours,
-                IncidentTimeFilter.last24Hours: loc.timeFilterLast24Hours,
-                IncidentTimeFilter.all: loc.timeFilterAllTime,
-              }[f]!;
+        final now = DateTime.now();
+        final distanceFrom =
+            _userCurrentLocation ?? _initialCenter ?? _mapCenter;
 
-              return RadioListTile<IncidentTimeFilter>(
-                dense: true,
-                title: Text(label),
-                value: f,
-                groupValue: _timeFilter,
-                onChanged: (v) {
-                  setModalState(() => _timeFilter = v!);
-                  setState(() {});
-                },
-              );
-            }),
-            const Divider(height: 32),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(loc.distanceLabel,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-            const SizedBox(height: 8),
-            ...IncidentDistanceFilter.values.map((f) {
-              final label = {
-                IncidentDistanceFilter.m250: loc.distanceFilter250m,
-                IncidentDistanceFilter.m500: loc.distanceFilter500m,
-                IncidentDistanceFilter.km1: loc.distanceFilter1km,
-                IncidentDistanceFilter.all: loc.distanceFilterAny,
-              }[f]!;
+        int previewCount() {
+          return _incidents.where((i) {
+            if (!pendingSeverity.contains(i.severity)) return false;
+            if (!i.isOfficial && !pendingCategories.contains(i.category)) {
+              return false;
+            }
+            switch (pendingTime) {
+              case IncidentTimeFilter.lastHour:
+                if (!i.dateTime
+                    .isAfter(now.subtract(const Duration(hours: 1)))) {
+                  return false;
+                }
+                break;
+              case IncidentTimeFilter.last6Hours:
+                if (!i.dateTime
+                    .isAfter(now.subtract(const Duration(hours: 6)))) {
+                  return false;
+                }
+                break;
+              case IncidentTimeFilter.last24Hours:
+                if (!i.dateTime
+                    .isAfter(now.subtract(const Duration(hours: 24)))) {
+                  return false;
+                }
+                break;
+              case IncidentTimeFilter.all:
+                break;
+            }
+            if (pendingDistance != IncidentDistanceFilter.all) {
+              final meters =
+                  _distanceCalc.as(LengthUnit.Meter, distanceFrom, i.location);
+              switch (pendingDistance) {
+                case IncidentDistanceFilter.m250:
+                  if (meters > 250) return false;
+                  break;
+                case IncidentDistanceFilter.m500:
+                  if (meters > 500) return false;
+                  break;
+                case IncidentDistanceFilter.km1:
+                  if (meters > 1000) return false;
+                  break;
+                case IncidentDistanceFilter.all:
+                  break;
+              }
+            }
+            return true;
+          }).length;
+        }
 
-              return RadioListTile<IncidentDistanceFilter>(
-                dense: true,
-                title: Text(label),
-                value: f,
-                groupValue: _distanceFilter,
-                onChanged: (v) {
-                  setModalState(() => _distanceFilter = v!);
-                  setState(() {});
-                },
-              );
-            }),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: () => _filterOverlay?.remove(),
-              child: Text(loc.close),
+        Widget section(String title, Widget child) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              child,
+              const SizedBox(height: 20),
+            ],
+          );
+        }
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Text(
+                    loc.filters,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                section(
+                  loc.filterTimeSectionTitle,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: IncidentTimeFilter.values.map((f) {
+                      return ChoiceChip(
+                        label: Text(_timeFilterLabel(loc, f)),
+                        selected: pendingTime == f,
+                        onSelected: (_) => setModalState(() => pendingTime = f),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                section(
+                  loc.distanceLabel,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: IncidentDistanceFilter.values.map((f) {
+                      return ChoiceChip(
+                        label: Text(_distanceFilterLabel(loc, f)),
+                        selected: pendingDistance == f,
+                        onSelected: (_) =>
+                            setModalState(() => pendingDistance = f),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                section(
+                  loc.sectionSeverity,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: IncidentSeverity.values.map((s) {
+                      final color = SeverityColors.of(s);
+                      final selected = pendingSeverity.contains(s);
+                      return FilterChip(
+                        label: Text(SeverityColors.label(context, s)),
+                        selected: selected,
+                        selectedColor: color.withValues(alpha: 0.18),
+                        checkmarkColor: color,
+                        side: BorderSide(color: color.withValues(alpha: 0.4)),
+                        onSelected: (sel) => setModalState(() {
+                          if (sel) {
+                            pendingSeverity.add(s);
+                          } else {
+                            pendingSeverity.remove(s);
+                          }
+                        }),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                section(
+                  loc.sectionCategory,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _allCategories.map((c) {
+                      final selected = pendingCategories.contains(c);
+                      return FilterChip(
+                        avatar: Icon(ReportIcons.category(c), size: 16),
+                        label: Text(ReportLabels.category(context, c)),
+                        selected: selected,
+                        onSelected: (sel) => setModalState(() {
+                          if (sel) {
+                            pendingCategories.add(c);
+                          } else {
+                            pendingCategories.remove(c);
+                          }
+                        }),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    loc.filterResultCount(previewCount()),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: BeeAwareTheme.textSecondary),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => setModalState(() {
+                          pendingTime = IncidentTimeFilter.all;
+                          pendingDistance = IncidentDistanceFilter.all;
+                          pendingSeverity
+                            ..clear()
+                            ..addAll(IncidentSeverity.values);
+                          pendingCategories
+                            ..clear()
+                            ..addAll(_allCategories);
+                        }),
+                        child: Text(loc.clearFilters),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _timeFilter = pendingTime;
+                            _distanceFilter = pendingDistance;
+                            _activeFilters
+                              ..clear()
+                              ..addAll(pendingSeverity);
+                            _activeCategories
+                              ..clear()
+                              ..addAll(pendingCategories);
+                          });
+                          _filterOverlay?.remove();
+                          _filterOverlay = null;
+                        },
+                        child: Text(loc.applyFilters),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -1667,11 +1998,10 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
         final coverage = List<LocationCoverage>.from(_coverage)
-          ..sort((a, b) =>
-              _coverageCategoryLabel(loc, a.eventCategory)
-                  .compareTo(_coverageCategoryLabel(loc, b.eventCategory)));
-        final countryOnly = coverage.isNotEmpty &&
-            coverage.every((c) => c.isCountryOnly);
+          ..sort((a, b) => _coverageCategoryLabel(loc, a.eventCategory)
+              .compareTo(_coverageCategoryLabel(loc, b.eventCategory)));
+        final countryOnly =
+            coverage.isNotEmpty && coverage.every((c) => c.isCountryOnly);
 
         return Padding(
           padding: const EdgeInsets.all(24),
@@ -1730,8 +2060,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _coverageCategoryLabel(
-                                      loc, c.eventCategory),
+                                  _coverageCategoryLabel(loc, c.eventCategory),
                                   style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500),
@@ -2700,6 +3029,94 @@ class _GradeChip extends StatelessWidget {
   }
 }
 
+// Botão de SOS da barra inferior — vermelho e com texto sempre visível,
+// nunca só um ícone de sirene: é a única ação de emergência da barra e
+// precisa ser reconhecível sem hover/tooltip.
+class _SosButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _SosButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SeverityColors.high,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(PhosphorIconsRegular.siren,
+                  size: 16, color: Colors.white),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Chip removível de filtro ativo, mostrado sobre o mapa (ver
+// _buildActiveFilterChips) — mesmo estilo pill branca já usado na legenda
+// de severidade e no badge de tokens da busca.
+class _ActiveFilterChip extends StatelessWidget {
+  final String label;
+  final Color? color;
+  final VoidCallback onRemove;
+
+  const _ActiveFilterChip({
+    required this.label,
+    required this.onRemove,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? BeeAwareTheme.primary;
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      elevation: 2,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        onTap: onRemove,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: c,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(PhosphorIconsRegular.x, size: 14, color: c),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // Ícone compacto padrão da barra inferior — Tooltip cobre tanto hover
 // (desktop) quanto toque longo (mobile), o que o _hover manual de cada
 // botão anterior não fazia: em celular o rótulo nunca aparecia. Tamanho
@@ -2917,82 +3334,97 @@ class _BottomBarState extends State<_BottomBar> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    return SizedBox(
-      height: 92,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 12,
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Esquerda: ações sobre a visão atual do mapa.
-                Row(
-                  children: [
-                    _BarIcon(
-                      icon: PhosphorIconsRegular.siren,
-                      tooltip: loc.emergencyServices,
-                      onTap: widget.onPolice,
-                    ),
-                    _BarIcon(
-                      icon: PhosphorIconsRegular.funnel,
-                      tooltip: loc.filters,
-                      onTap: widget.onFilters,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 92,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 12,
                     ),
                   ],
                 ),
-                // Direita: informação sobre a área + ações de sistema.
-                Row(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _BarIcon(
-                      icon: PhosphorIconsRegular.chartLine,
-                      tooltip: loc.safetyTrendShort,
-                      onTap: widget.onTrend,
+                    // Esquerda: ações sobre a visão atual do mapa.
+                    Row(
+                      children: [
+                        // SOS: vermelho e com texto, nunca só um ícone —
+                        // é a única ação de emergência da barra.
+                        _SosButton(
+                          label: loc.sosBarLabel,
+                          onTap: widget.onPolice,
+                        ),
+                        const SizedBox(width: 4),
+                        _BarIcon(
+                          icon: PhosphorIconsRegular.funnel,
+                          tooltip: loc.filters,
+                          onTap: widget.onFilters,
+                        ),
+                      ],
                     ),
-                    if (widget.coverageGrade != null)
-                      _CoverageBadge(
-                        grade: widget.coverageGrade!,
-                        onTap: widget.onCoverageTap,
-                      ),
-                    if (canInstall)
-                      _BarIcon(
-                        icon: PhosphorIconsRegular.downloadSimple,
-                        tooltip: loc.installAppTooltip,
-                        onTap: () {
-                          if (js.context.callMethod('isPwaInstallable') ==
-                              true) {
-                            js.context.callMethod('triggerPwaInstall');
-                          } else {
-                            pwa.PWAInstall().promptInstall_();
-                          }
-                        },
-                      ),
+                    // Direita: informação sobre a área + ações de sistema.
+                    Row(
+                      children: [
+                        _BarIcon(
+                          icon: PhosphorIconsRegular.chartLine,
+                          tooltip: loc.safetyTrendShort,
+                          onTap: widget.onTrend,
+                        ),
+                        if (widget.coverageGrade != null)
+                          _CoverageBadge(
+                            grade: widget.coverageGrade!,
+                            onTap: widget.onCoverageTap,
+                          ),
+                        if (canInstall)
+                          _BarIcon(
+                            icon: PhosphorIconsRegular.downloadSimple,
+                            tooltip: loc.installAppTooltip,
+                            onTap: () {
+                              if (js.context.callMethod('isPwaInstallable') ==
+                                  true) {
+                                js.context.callMethod('triggerPwaInstall');
+                              } else {
+                                pwa.PWAInstall().promptInstall_();
+                              }
+                            },
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Positioned(
+                bottom: 16,
+                child: _AnimatedCentralButton(onTap: widget.onReport),
+              ),
+            ],
           ),
-          Positioned(
-            bottom: 16,
-            child: Tooltip(
-              message: loc.shareReportTooltip,
-              child: _AnimatedCentralButton(onTap: widget.onReport),
-            ),
+        ),
+        const SizedBox(height: 2),
+        // Rótulo visível do botão central — "FAB com rótulo", não só um
+        // ícone com tooltip que some no toque.
+        Text(
+          loc.reportBarLabel,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: BeeAwareTheme.primary,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -3059,8 +3491,8 @@ class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
                     // Subtle amber pulse — the one spot in the app where
                     // the accent color calls attention to itself.
                     BoxShadow(
-                      color:
-                          BeeAwareTheme.accent.withValues(alpha: 0.35 * (1 - glow)),
+                      color: BeeAwareTheme.accent
+                          .withValues(alpha: 0.35 * (1 - glow)),
                       blurRadius: 6,
                       spreadRadius: 8 * glow,
                     ),

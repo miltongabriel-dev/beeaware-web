@@ -530,6 +530,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'BeeAware is not an emergency service.\nIf you are in immediate danger, contact emergency services directly.';
 
   @override
+  String get sosBarLabel => 'SOS 999';
+
+  @override
+  String get reportBarLabel => 'Report';
+
+  @override
   String get filterTimeSectionTitle => 'Time';
 
   @override
@@ -558,6 +564,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get distanceFilterAny => 'Any distance';
+
+  @override
+  String get applyFilters => 'Apply';
+
+  @override
+  String get clearFilters => 'Clear';
+
+  @override
+  String filterResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count incidents',
+      one: '$count incident',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get aboutBodyText =>

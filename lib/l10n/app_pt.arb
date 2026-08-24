@@ -161,6 +161,8 @@
   "callEmergency999": "Ligar para emergência (999)",
   "callNonEmergency101": "Ligar para não-emergência (101)",
   "emergencyDisclaimer": "BeeAware não é um serviço de emergência.\nSe você estiver em perigo imediato, contate os serviços de emergência diretamente.",
+  "sosBarLabel": "SOS 999",
+  "reportBarLabel": "Reportar",
 
   "filterTimeSectionTitle": "Período",
   "timeFilterLastHour": "Última hora",
@@ -172,6 +174,9 @@
   "distanceFilter500m": "Até 500 m",
   "distanceFilter1km": "Até 1 km",
   "distanceFilterAny": "Qualquer distância",
+  "applyFilters": "Aplicar",
+  "clearFilters": "Limpar",
+  "filterResultCount": "{count, plural, one{{count} incidente} other{{count} incidentes}}",
 
   "aboutBodyText": "BeeAware é uma plataforma comunitária de conscientização sobre segurança, feita para ajudar pessoas a se manterem informadas sobre incidentes não emergenciais na sua região.\n\nO app combina relatos da comunidade e dados oficiais publicamente disponíveis para melhorar a percepção situacional e apoiar decisões mais seguras no dia a dia.\n\nAs informações exibidas podem estar atrasadas, incompletas ou não verificadas, e não devem ser usadas como substituto dos serviços de emergência.\n\nO BeeAware não oferece monitoramento em tempo real e não é um sistema de resposta a emergências.",
   "aboutDataSourcesBody": "O BeeAware exibe informações de segurança a partir de duas fontes principais:\n\n• Relatos anônimos enviados pela comunidade\n• Dados públicos abertos oficiais, incluindo os conjuntos de dados de criminalidade por rua da polícia do Reino Unido\n\nEssas fontes são usadas para melhorar a percepção situacional e não representam alertas em tempo real.",
