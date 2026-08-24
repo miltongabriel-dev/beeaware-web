@@ -1066,29 +1066,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+          // Grupo de botões flutuantes do lado direito — um único Column
+          // com espaçamento real (AppSpacing.md) em vez de três Positioned
+          // independentes com top: escolhido à mão só para não se
+          // sobrepor (era 140/200/260). Se o badge de cobertura some
+          // (_coverage vazio), o Column recua sozinho, sem gap fantasma.
           Positioned(
             right: 16,
             top: 140,
-            child: _TrendButton(onTap: _showSafetyTrend),
-          ),
-          Positioned(
-            right: 16,
-            top: 200,
-            child: _FilterButton(onTap: () => _showFiltersOverlay()),
-          ),
-
-          // Cobertura de dados — badge com a melhor grade disponível perto
-          // do usuário. Só aparece quando já temos uma resposta (evita
-          // piscar um badge vazio antes do fetch terminar).
-          if (_coverage.isNotEmpty)
-            Positioned(
-              right: 16,
-              top: 260,
-              child: _CoverageBadge(
-                grade: bestCoverageGrade(_coverage) ?? 'C',
-                onTap: () => _showCoverageSheet(context),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _TrendButton(onTap: _showSafetyTrend),
+                const SizedBox(height: AppSpacing.md),
+                _FilterButton(onTap: () => _showFiltersOverlay()),
+                // Cobertura de dados — badge com a melhor grade disponível
+                // perto do usuário. Só aparece quando já temos uma
+                // resposta (evita piscar um badge vazio antes do fetch
+                // terminar).
+                if (_coverage.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  _CoverageBadge(
+                    grade: bestCoverageGrade(_coverage) ?? 'C',
+                    onTap: () => _showCoverageSheet(context),
+                  ),
+                ],
+              ],
             ),
+          ),
 
 // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
           Positioned(
@@ -1172,7 +1177,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
@@ -1223,7 +1228,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
@@ -1254,7 +1259,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
@@ -1295,7 +1300,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
@@ -1494,7 +1499,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
@@ -1622,7 +1627,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
@@ -1677,7 +1682,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
@@ -1783,7 +1788,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (sheetContext) {
         final loc = AppLocalizations.of(sheetContext)!;
