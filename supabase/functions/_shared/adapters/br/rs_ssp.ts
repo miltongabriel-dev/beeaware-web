@@ -254,28 +254,56 @@ export class RsSspAdapter implements SecuritySourceAdapter {
       }
     });
 
+    // The write phase (batch upserts of the aggregated rows) hit
+    // WORKER_RESOURCE_LIMIT in production for all ~23741 groups from the
+    // full jan-jul file, even though PrfAccidentsAdapter's write phase
+    // handles more rows (~34k) without issue — the difference is residual
+    // memory pressure carried over from this adapter's much heavier
+    // decompression pass (95MB decompressed CSV vs PRF's lighter file),
+    // not the write phase in isolation. Rather than chase the exact V8/GC
+    // timing, scope down the same way PaSegupAdapter's date window did.
+    // Tried a 2-month window first: measured genuinely flaky in production
+    // (two identical requests, one succeeded, one still hit
+    // WORKER_RESOURCE_LIMIT) - right at the ceiling, not under it. Only the
+    // single most recent month is written instead. The source publishes
+    // one cumulative file, so each month's rows have a disjoint
+    // sourceRecordId key space (cityCode-yearMonth-eventType) - a monthly
+    // cron run naturally picks up each new month as the source appends it.
+    // Tradeoff accepted for now: a single missed cron run skips that
+    // month's data with no automatic backfill; revisit with incremental/
+    // chunked writes if that gap proves to matter in practice.
+    const distinctYearMonths = new Set<string>();
+    for (const g of groups.values()) distinctYearMonths.add(g.yearMonth);
+    const recentYearMonths = new Set([...distinctYearMonths].sort().slice(-1));
+
     const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
 
-    return Array.from(groups.values()).map((g) => ({
-      countryCode: "BR",
-      stateCode: "RS",
-      cityIbgeCode: g.cityIbgeCode,
-      sourceRecordId: `${g.cityIbgeCode}-${g.yearMonth}-${g.eventType}`,
-      sourceType: "official",
-      eventCategory: g.eventCategory as SecurityEvent["eventCategory"],
-      eventType: g.eventType,
-      occurredAt: `${g.yearMonth}-01T00:00:00-03:00`,
-      geoPrecision: "MUNICIPALITY",
-      locationConfidence: municipalityLocationConfidence,
-      city: g.cityName,
-      state: "RS",
-      occurrenceCount: g.occurrenceCount,
-      severity: severityFor(g.eventType),
-      confidenceScore: computeConfidenceScore({
-        reliabilityGrade: "official_confirmed_record",
+    const events: SecurityEvent[] = [];
+    for (const g of groups.values()) {
+      if (!recentYearMonths.has(g.yearMonth)) continue;
+      events.push({
+        countryCode: "BR",
+        stateCode: "RS",
+        cityIbgeCode: g.cityIbgeCode,
+        sourceRecordId: `${g.cityIbgeCode}-${g.yearMonth}-${g.eventType}`,
+        sourceType: "official",
+        eventCategory: g.eventCategory as SecurityEvent["eventCategory"],
+        eventType: g.eventType,
+        occurredAt: `${g.yearMonth}-01T00:00:00-03:00`,
+        geoPrecision: "MUNICIPALITY",
         locationConfidence: municipalityLocationConfidence,
-      }),
-    }));
+        city: g.cityName,
+        state: "RS",
+        occurrenceCount: g.occurrenceCount,
+        severity: severityFor(g.eventType),
+        confidenceScore: computeConfidenceScore({
+          reliabilityGrade: "official_confirmed_record",
+          locationConfidence: municipalityLocationConfidence,
+        }),
+      });
+    }
+
+    return events;
   }
 
   async healthCheck(): Promise<SourceHealth> {

@@ -17,9 +17,13 @@
 // Phase 1 — the first adapter that isn't Brazil-specific) are also fully
 // real (verified against their live sources — see each file's header) and
 // write actual security_events rows. FcdoAdapter (Phase 1 part 2) is also
-// fully real and writes travel_advisories rows instead. SinespAdapter and
-// RenaestAdapter still have working fetch() (real discovery against their
-// live sources) but
+// fully real and writes travel_advisories rows instead. RsSspAdapter
+// (Phase 2 hardening) is real too but genuinely flaky — its source file is
+// right at this Edge Function's memory ceiling (~12.5% real-mode success
+// per attempt, measured), so it's scheduled daily rather than monthly and
+// leans on idempotent upserts to retry safely (see
+// rs_ssp_cron_daily.sql's comment). SinespAdapter and RenaestAdapter
+// still have working fetch() (real discovery against their live sources) but
 // normalize() returns [] (see each adapter's file header for why) — so
 // their scheduled runs today only keep security_sources health metadata
 // current. That's not nothing (it's exactly what the roadmap's source-
@@ -35,9 +39,7 @@ import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
 import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
-// RsSspAdapter (rs_ssp.ts) is built and its fetch()/normalize() are
-// verified working in production, but not imported/registered here yet
-// — see the eventAdapters comment below for why.
+import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 import type {
   RawSecurityRecord,
   SecurityEvent,
@@ -64,18 +66,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   RjIspAdapter: new RjIspAdapter(),
   PaSegupAdapter: new PaSegupAdapter(),
   UnodcAdapter: new UnodcAdapter(),
-  // RsSspAdapter is deliberately NOT registered here yet. fetch()/
-  // normalize() both work (verified live: 23741 real aggregate events,
-  // ~123MB RSS — see rs_ssp.ts's file header) but the write phase
-  // (~160 sequential batch upserts for that many rows) still hits
-  // WORKER_RESOURCE_LIMIT in production, for reasons not yet isolated
-  // (probably cumulative memory/time held across that many sequential
-  // round trips, not peak memory the way the parse-phase failure was).
-  // Registering it here would mean a manual "run every adapter" call or
-  // the eventual scheduled job breaks on this one adapter. Paused,
-  // not abandoned — re-add (uncomment the import above too) once the
-  // write path is fixed (either a scope reduction like PaSegupAdapter's,
-  // or real incremental writes spread across multiple scheduled runs).
+  RsSspAdapter: new RsSspAdapter(),
 };
 
 async function upsertSourceRegistry(
@@ -160,18 +151,43 @@ async function persistRawEvents(
 ): Promise<void> {
   if (records.length === 0) return;
 
-  const rows = await Promise.all(
-    records.map(async (record) => {
-      const bytes = toBytes(record.payload);
-      return {
-        source_id: sourceId,
-        source_record_id: record.sourceRecordId,
-        payload: `\\x${toHex(bytes)}`,
-        checksum: await sha256Hex(bytes),
-        adapter_name: adapterName,
-      };
-    }),
-  );
+  // toHex() itself is cheap (linear, pre-sized buffer — see its own
+  // comment), but for a genuinely large payload the hex string it
+  // produces (2x the input) plus the original bytes plus whatever the
+  // adapter's own normalize() needs concurrently (RsSspAdapter's 95MB
+  // decompressed CSV, streamed but still substantial) can combine to
+  // cross the Edge Function's memory budget — confirmed live: RsSspAdapter
+  // debug mode, which worked before raw_events existed, started hitting
+  // WORKER_RESOURCE_LIMIT once persistRawEvents ran unconditionally ahead
+  // of it. Every other adapter's payload measured well under this
+  // (RjIspAdapter's ~7MB text was the previous largest, confirmed working)
+  // — skip raw persistence above that, rather than lower the bar for
+  // everyone. The source file itself stays downloadable from SSP-RS's own
+  // site if a raw copy is ever needed, unlike a live API response.
+  const RAW_PAYLOAD_SIZE_LIMIT = 8_000_000;
+
+  const rows = (
+    await Promise.all(
+      records.map(async (record) => {
+        const bytes = toBytes(record.payload);
+        if (bytes.length > RAW_PAYLOAD_SIZE_LIMIT) {
+          console.warn(
+            `raw_events: skipping ${adapterName}/${record.sourceRecordId} — ${bytes.length} bytes exceeds the ${RAW_PAYLOAD_SIZE_LIMIT}-byte raw-persistence limit`,
+          );
+          return null;
+        }
+        return {
+          source_id: sourceId,
+          source_record_id: record.sourceRecordId,
+          payload: `\\x${toHex(bytes)}`,
+          checksum: await sha256Hex(bytes),
+          adapter_name: adapterName,
+        };
+      }),
+    )
+  ).filter((row) => row !== null);
+
+  if (rows.length === 0) return;
 
   const { error } = await supabase.from("raw_events").insert(rows);
   if (error) console.error(`raw_events insert failed for ${adapterName}:`, error.message);
