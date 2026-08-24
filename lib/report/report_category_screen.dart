@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'report_subcategory_screen.dart';
 import 'report_draft.dart';
 import 'report_icons.dart';
 import 'report_labels.dart';
-import 'report_step_indicator.dart';
+import 'report_step_scaffold.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_card.dart';
 import '../theme/beeaware_theme.dart';
@@ -25,71 +24,36 @@ class ReportCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.whatHappenedTitle),
-      ),
-      body: Column(
-        children: [
-          const ReportStepIndicator(step: 1),
-          Expanded(
-            child: Stack(
-              children: [
-                // ================= WATERMARK =================
-                Center(
-                  child: Opacity(
-                    opacity: 0.05, // Apple-level
-                    child: SvgPicture.asset(
-                      'assets/logo/beeaware_symbol.svg',
-                      width: MediaQuery.of(context).size.width * 0.9,
-                    ),
-                  ),
-                ),
+    return ReportStepScaffold(
+      step: 1,
+      title: AppLocalizations.of(context)!.whatHappenedTitle,
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 140,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.95,
+        ),
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          final item = _categories[index];
+          return FadeInUp(
+            delay: Duration(milliseconds: 40 * index),
+            child: _CategoryCard(
+              item: item,
+              onTap: () {
+                final draft = ReportDraft()..category = item.label;
 
-                // ================= CONTENT =================
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 140,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.95,
-                        ),
-                        itemCount: _categories.length,
-                        itemBuilder: (context, index) {
-                          final item = _categories[index];
-                          return FadeInUp(
-                            delay: Duration(milliseconds: 40 * index),
-                            child: _CategoryCard(
-                              item: item,
-                              onTap: () {
-                                final draft = ReportDraft()
-                                  ..category = item.label;
-
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        ReportSubcategoryScreen(draft: draft),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReportSubcategoryScreen(draft: draft),
                   ),
-                ),
-              ],
+                );
+              },
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -121,7 +85,7 @@ class _CategoryCard extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: BeeAwareTheme.primary.withOpacity(0.08),
+              color: BeeAwareTheme.primary.withValues(alpha: 0.08),
             ),
             child: Icon(
               item.icon,

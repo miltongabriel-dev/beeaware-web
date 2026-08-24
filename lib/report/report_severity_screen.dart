@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../map/map_incident.dart'; // ✅ AQUI está o IncidentSeverity
 import '../l10n/app_localizations.dart';
@@ -7,7 +6,7 @@ import '../theme/beeaware_theme.dart';
 import '../theme/fade_in.dart';
 import 'report_description_screen.dart';
 import 'report_draft.dart';
-import 'report_step_indicator.dart';
+import 'report_step_scaffold.dart';
 
 class ReportSeverityScreen extends StatelessWidget {
   final ReportDraft draft;
@@ -41,66 +40,33 @@ class ReportSeverityScreen extends StatelessWidget {
       ),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(loc.howSeriousWasItTitle),
-      ),
-      body: Column(
-        children: [
-          const ReportStepIndicator(step: 3),
-          Expanded(
-            child: Stack(
-              children: [
-                // ================= WATERMARK =================
-                Center(
-                  child: Opacity(
-                    opacity: 0.05,
-                    child: SvgPicture.asset(
-                      'assets/logo/beeaware_symbol.svg',
-                      width: MediaQuery.of(context).size.width * 0.9,
-                    ),
-                  ),
-                ),
+    return ReportStepScaffold(
+      step: 3,
+      title: loc.howSeriousWasItTitle,
+      child: Column(
+        children: items.asMap().entries.map((entry) {
+          final item = entry.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: FadeInUp(
+              delay: Duration(milliseconds: 80 * entry.key),
+              child: _SeverityCard(
+                item: item,
+                onTap: () {
+                  // ✅ Grava severidade no draft
+                  draft.severity = item.value.name;
 
-                // ================= CONTENT =================
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: items.asMap().entries.map((entry) {
-                          final item = entry.value;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: FadeInUp(
-                              delay: Duration(milliseconds: 80 * entry.key),
-                              child: _SeverityCard(
-                                item: item,
-                                onTap: () {
-                                  // ✅ Grava severidade no draft
-                                  draft.severity = item.value.name;
-
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          ReportDescriptionScreen(draft: draft),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ReportDescriptionScreen(draft: draft),
                     ),
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }

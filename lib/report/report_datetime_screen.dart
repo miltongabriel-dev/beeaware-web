@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'report_draft.dart';
-import 'report_step_indicator.dart';
+import 'report_step_scaffold.dart';
 import 'report_summary_screen.dart';
 import '../config/app_config.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_card.dart';
+import '../theme/beeaware_theme.dart';
+import '../theme/fade_in.dart';
 
 class ReportDateTimeScreen extends StatefulWidget {
   final ReportDraft draft;
@@ -67,63 +70,120 @@ class _ReportDateTimeScreenState extends State<ReportDateTimeScreen> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(loc.whenDidItHappenTitle)),
-      body: Column(
+    return ReportStepScaffold(
+      step: 5,
+      title: loc.whenDidItHappenTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ReportStepIndicator(step: 5),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(loc.adjustDateTimeHint),
-                  const SizedBox(height: 16),
-                  ListTile(
-                    leading: const Icon(Icons.calendar_today),
-                    title: Text(loc.dateLabel),
-                    subtitle: Text(
-                      '${selectedDateTime.day}/${selectedDateTime.month}/${selectedDateTime.year}',
-                    ),
-                    onTap: _pickDate,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.access_time),
-                    title: Text(loc.timeLabel),
-                    subtitle: Text(
-                      '${selectedDateTime.hour.toString().padLeft(2, '0')}:${selectedDateTime.minute.toString().padLeft(2, '0')}',
-                    ),
-                    onTap: _pickTime,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    loc.reportVisibilityNotice(
-                        AppConfig.incidentVisibilityDelay.inMinutes),
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        widget.draft.dateTime = selectedDateTime;
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ReportSummaryScreen(draft: widget.draft),
-                          ),
-                        );
-                      },
-                      child: Text(loc.confirmReport),
-                    ),
-                  ),
-                ],
-              ),
+          Text(loc.adjustDateTimeHint),
+          const SizedBox(height: 16),
+          FadeInUp(
+            child: _DateTimeCard(
+              icon: Icons.calendar_today,
+              label: loc.dateLabel,
+              value:
+                  '${selectedDateTime.day}/${selectedDateTime.month}/${selectedDateTime.year}',
+              onTap: _pickDate,
             ),
           ),
+          const SizedBox(height: AppSpacing.md),
+          FadeInUp(
+            delay: const Duration(milliseconds: 80),
+            child: _DateTimeCard(
+              icon: Icons.access_time,
+              label: loc.timeLabel,
+              value:
+                  '${selectedDateTime.hour.toString().padLeft(2, '0')}:${selectedDateTime.minute.toString().padLeft(2, '0')}',
+              onTap: _pickTime,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            loc.reportVisibilityNotice(
+                AppConfig.incidentVisibilityDelay.inMinutes),
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                widget.draft.dateTime = selectedDateTime;
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReportSummaryScreen(draft: widget.draft),
+                  ),
+                );
+              },
+              child: Text(loc.confirmReport),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ================= CARD =================
+
+class _DateTimeCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  const _DateTimeCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: BeeAwareTheme.primary.withValues(alpha: 0.08),
+            ),
+            child: Icon(icon, size: 18, color: BeeAwareTheme.primary),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: BeeAwareTheme.textSecondary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right,
+              size: 20, color: BeeAwareTheme.textAux),
         ],
       ),
     );

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'report_draft.dart';
 import 'report_location_screen.dart';
-import 'report_step_indicator.dart';
+import 'report_step_scaffold.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/beeaware_theme.dart';
 
@@ -56,113 +55,77 @@ class _ReportDescriptionScreenState extends State<ReportDescriptionScreen> {
     final theme = Theme.of(context);
     final loc = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(loc.describeWhatHappenedTitle),
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
-      ),
-      body: Column(
+    return ReportStepScaffold(
+      step: 4,
+      title: loc.describeWhatHappenedTitle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ReportStepIndicator(step: 4),
+          Text(
+            loc.addShortDescription,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            loc.descriptionHelperText,
+            style: theme.textTheme.bodySmall,
+          ),
+
+          const SizedBox(height: 20),
+
+          // ===== Text field =====
           Expanded(
-            child: Stack(
-              children: [
-                // ===== BeeAware watermark (background) =====
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.04,
-                    child: Center(
-                      child: SvgPicture.asset(
-                        'assets/logo/beeaware_symbol.svg',
-                        width: 320,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: BeeAwareTheme.surface,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: BeeAwareTheme.cardShadow,
+              ),
+              child: TextField(
+                controller: _controller,
+                maxLines: null,
+                expands: true,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  hintText: loc.descriptionHint,
+                  border: InputBorder.none,
                 ),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ),
 
-                // ===== Content =====
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
+          const SizedBox(height: 16),
 
-                      Text(
-                        loc.addShortDescription,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Text(
-                        loc.descriptionHelperText,
-                        style: theme.textTheme.bodySmall,
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // ===== Text field =====
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: BeeAwareTheme.surface,
-                            borderRadius: BorderRadius.circular(AppRadius.lg),
-                            boxShadow: BeeAwareTheme.cardShadow,
-                          ),
-                          child: TextField(
-                            controller: _controller,
-                            maxLines: null,
-                            expands: true,
-                            textInputAction: TextInputAction.newline,
-                            decoration: InputDecoration(
-                              hintText: loc.descriptionHint,
-                              border: InputBorder.none,
-                            ),
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // ===== Continue button =====
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _canContinue ? _continue : null,
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: BeeAwareTheme.textPrimary,
-                            disabledForegroundColor:
-                                BeeAwareTheme.textPrimary.withValues(alpha: 0.6),
-                            backgroundColor: theme.colorScheme.primary,
-                            disabledBackgroundColor:
-                                theme.colorScheme.primary.withValues(alpha: 0.3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.lg),
-                            ),
-                          ),
-                          child: Text(
-                            loc.continueButton,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-                    ],
-                  ),
+          // ===== Continue button =====
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _canContinue ? _continue : null,
+              style: ElevatedButton.styleFrom(
+                foregroundColor: BeeAwareTheme.textPrimary,
+                disabledForegroundColor:
+                    BeeAwareTheme.textPrimary.withValues(alpha: 0.6),
+                backgroundColor: theme.colorScheme.primary,
+                disabledBackgroundColor:
+                    theme.colorScheme.primary.withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
-              ],
+              ),
+              child: Text(
+                loc.continueButton,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ],

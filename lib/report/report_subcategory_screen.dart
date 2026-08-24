@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'report_severity_screen.dart';
 import 'report_draft.dart';
 import 'report_icons.dart';
 import 'report_labels.dart';
-import 'report_step_indicator.dart';
+import 'report_step_scaffold.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_card.dart';
 import '../theme/beeaware_theme.dart';
@@ -23,70 +22,36 @@ class ReportSubcategoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final subcategories = _getSubcategories(draft.category!);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.tellUsMoreTitle),
-      ),
-      body: Column(
-        children: [
-          const ReportStepIndicator(step: 2),
-          Expanded(
-            child: Stack(
-              children: [
-                // ================= WATERMARK =================
-                Center(
-                  child: Opacity(
-                    opacity: 0.05,
-                    child: SvgPicture.asset(
-                      'assets/logo/beeaware_symbol.svg',
-                      width: MediaQuery.of(context).size.width * 0.9,
-                    ),
-                  ),
-                ),
+    return ReportStepScaffold(
+      step: 2,
+      title: AppLocalizations.of(context)!.tellUsMoreTitle,
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 140,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.95,
+        ),
+        itemCount: subcategories.length,
+        itemBuilder: (context, index) {
+          final item = subcategories[index];
+          return FadeInUp(
+            delay: Duration(milliseconds: 40 * index),
+            child: _SubcategoryCard(
+              label: item,
+              onTap: () {
+                draft.subcategory = item;
 
-                // ================= CONTENT =================
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 140,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.95,
-                        ),
-                        itemCount: subcategories.length,
-                        itemBuilder: (context, index) {
-                          final item = subcategories[index];
-                          return FadeInUp(
-                            delay: Duration(milliseconds: 40 * index),
-                            child: _SubcategoryCard(
-                              label: item,
-                              onTap: () {
-                                draft.subcategory = item;
-
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        ReportSeverityScreen(draft: draft),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReportSeverityScreen(draft: draft),
                   ),
-                ),
-              ],
+                );
+              },
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -168,7 +133,7 @@ class _SubcategoryCard extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: BeeAwareTheme.primary.withOpacity(0.08),
+              color: BeeAwareTheme.primary.withValues(alpha: 0.08),
             ),
             child: Icon(
               ReportIcons.subcategory(label),
