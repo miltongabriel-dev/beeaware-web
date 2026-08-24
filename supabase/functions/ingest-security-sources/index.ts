@@ -45,16 +45,11 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
 // SinespAdapter (sinesp.ts) is built and correct — real bulk-download URL
 // found, real parsing verified locally against the actual file — but not
-// registered: fetch() has failed 3/3 real production attempts, each
-// dying inside fetch() itself before normalize() even runs. See the
-// file's own header for the full diagnosis, including a likely shared
-// root cause with SpVehicleAdapter below.
-// SinespAdapter (sinesp.ts) is built and correct but not registered —
-// fetch() has never completed within budget, even pinned to sa-east-1
-// (São Paulo) via the x-region header — see the file's own header for
-// the full diagnostic trail, including why region-pinning alone (a real,
-// substantial improvement, ~43-46s down to ~14-15s) wasn't enough on its
-// own for this file's size.
+// registered. fetch() has never completed in production despite three
+// rounds of mitigation (default region, sa-east-1 pinning, chunked
+// downloading); see the file's own header for the full diagnostic trail
+// and why the remaining bottleneck looks like the origin server's own
+// fixed overhead rather than anything fixable from this project's side.
 // import { SinespAdapter } from "../_shared/adapters/br/sinesp.ts";
 import { RenaestAdapter } from "../_shared/adapters/br/renaest.ts";
 import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
@@ -70,10 +65,11 @@ import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 // SpVehicleAdapter (sp_vehicle.ts) is built and correct but not
-// registered — the source server (dados.ssp.sp.gov.br) is slow and
-// unreliable enough (confirmed via instrumented production timing runs,
-// see the file's own header) that no real attempt has ever completed a
-// full fetch()+normalize() within one invocation's time budget.
+// registered — every real attempt (default region, sa-east-1, chunked
+// downloading) has failed fast (~2-4s), a different and still-unexplained
+// shape of failure from SinespAdapter's (likely a connection-level
+// rejection rather than a resource/timing limit — see the file's own
+// header).
 // import { SpVehicleAdapter } from "../_shared/adapters/br/sp_vehicle.ts";
 import type {
   RawSecurityRecord,

@@ -102,12 +102,31 @@
 //      ~20MB file from the same origin, same region, is not — points to
 //      a per-fetch time constraint distinct from pure network-distance
 //      latency, not just "closer region fixes everything."
-// The real fix is very likely the same one already flagged for
-// SpVehicleAdapter and RsSspAdapter: a genuinely chunked/multi-part
-// download (e.g. HTTP Range requests split across smaller fetches, or
-// persisting partial bytes across multiple invocations) rather than one
-// fetch() call for the whole file. Ready to register the moment fetch()
-// can reliably complete within budget.
+//   3. Tried chunked/multi-part downloading (chunked_fetch.ts —
+//      confirmed live this source honors HTTP Range, real 206 Partial
+//      Content responses with a real Content-Range) — both a parallel
+//      version (every remaining chunk fetched via Promise.all once the
+//      total size was known) and a sequential one (one chunk at a time,
+//      after the parallel version showed no improvement and one run
+//      even surfaced a genuine JS-level error instead of a resource
+//      crash, suggesting concurrent large buffers might themselves be a
+//      contributor). Neither helped: every real run stayed in the same
+//      ~12-16s failure band regardless of chunk count/concurrency. That
+//      null result is itself informative — it means the ~14-15s floor
+//      isn't request-size-bound (chunking a slow transfer into pieces
+//      normally helps exactly that), which points instead at this
+//      specific origin's own fixed per-connection overhead (its
+//      Server header identifies an old Zope/Plone backend behind
+//      Varnish — plausibly slow to establish/serve regardless of how the
+//      byte range is sliced) as the real floor, not this project's
+//      client-side fetch strategy.
+// Given that, the more promising remaining path isn't further Edge-
+// Function-side cleverness — it's moving this specific download outside
+// the Edge Function's own execution window entirely (a longer-running
+// external trigger, e.g. a scheduled job with a more generous timeout
+// that posts the parsed result to Supabase, rather than the Edge
+// Function doing the fetch itself). Ready to register as-is the moment
+// fetch() can reliably complete within budget, by whatever means.
 
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import { forEachRowRaw, parseRowCells, buildCellRegex, locateZipEntries } from "../../xlsx_lite.ts";

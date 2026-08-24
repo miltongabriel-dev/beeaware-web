@@ -110,7 +110,19 @@
 // datacenter IP ranges, even Brazilian ones — a real, documented pattern
 // for some government anti-scraping setups) is failing before this
 // adapter's own code runs at all. A genuinely different, deeper problem
-// than the network-distance one — not re-diagnosed further this pass.
+// than the network-distance one.
+//
+// Also tried chunked/multi-part downloading (chunked_fetch.ts, built for
+// SinespAdapter — confirmed live this source honors HTTP Range too, real
+// 206 Partial Content responses) from sa-east-1: no change, still a
+// consistent ~3-4s failure regardless of chunk count. Consistent with
+// the theory above — a fetch-duration problem responds to chunking
+// (SINESP's didn't either, for a different reason — see its own header —
+// but at least showed the *expected* shape of a slow-transfer symptom);
+// a ~3-4s failure that chunking doesn't change at all looks like
+// whatever's wrong happens before meaningful data transfer starts,
+// supporting IP-blocking (or some other connection-level rejection) over
+// a resource/timing constraint. Not re-diagnosed further this pass.
 
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import {
