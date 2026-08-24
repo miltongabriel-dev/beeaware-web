@@ -53,46 +53,49 @@
 // date (one static file per calendar year), but nothing requires writing
 // every historical row on every run.
 //
-// IMPORTANT — the real bottleneck here, found the hard way: this
-// adapter's WORKER_RESOURCE_LIMIT crashes (three real production
-// attempts, all failing at a suspiciously consistent ~11.3-11.5s) turned
-// out NOT to be about parsing cost at all. A version that built a full
-// SecurityEvent per matched row, a version that deferred object-building
-// to a cheap scan, and a version using the buffered-tail approach below
-// (only ever doing 2 tiny single-column regex checks per row during the
-// full streaming pass) all failed at the same ~11.5s — proof the crash
-// wasn't downstream of parsing. A direct diagnostic that threw
-// immediately after fetch()+zip-setup+sharedStrings (before touching the
-// big sheet at all) still took ~10s to even reach that point. Direct
-// `curl` timing of the source file confirmed why: dados.ssp.sp.gov.br
-// serves this file at a consistent ~250KB/s (verified twice, from two
-// different points in time) — a 30MB file takes 100+ seconds to
-// download, full stop, regardless of what the adapter does with it
-// afterwards. That's the actual constraint: a slow origin server, not
-// slow client-side code — the same class of problem as SSP-BA's broken
-// TLS chain (ba_ssp.ts), just a different symptom. No fetch-side
-// optimization in this codebase can make a government file server serve
-// bytes faster.
+// IMPORTANT — the real bottleneck here, found via instrumented timing
+// runs against production (not guessed): this adapter's
+// WORKER_RESOURCE_LIMIT crashes are NOT about parsing cost. Three
+// different normalize() strategies (full object-building, a cheap
+// scan-first pass, and the buffered-tail approach below) all failed at
+// a similar ~11-12.5s — the tell that parsing logic wasn't the variable.
+// A performance.now()-instrumented run that returned cleanly (rather
+// than crashing) confirmed why: zip-setup + sharedStrings parsing is
+// genuinely fast (85ms) — the time is spent in fetch() itself, and it is
+// NOT a stable slow rate. Across several real attempts: one full request
+// (setup-only) completed in 13s total; full-pipeline attempts failed at
+// 10.9s and 12.5s; one attempt didn't even fail — it hung past 100s with
+// no response at all. `curl` from outside Supabase measured this same
+// file downloading at a consistent ~250KB/s (100+ seconds for 30MB), so
+// dados.ssp.sp.gov.br is a genuinely slow/unreliable server — the
+// question is only whether a given attempt's connection happens to be
+// fast enough to finish before something (the platform's own timeout, or
+// the slow transfer itself) cuts it off. This is a real external
+// constraint, the same class of problem as SSP-BA's broken TLS chain
+// (ba_ssp.ts) — a slow/unreliable origin server, not slow client-side
+// code. No fetch-side optimization in this codebase can make a
+// government file server serve bytes faster or more consistently.
 //
 // The buffered-tail parsing below (xlsx_lite.ts's forEachRowRaw, only
 // running the expensive full 55-column parseRowCells on the most recent
 // ~25k of ~104k rows, found via confirming the file is chronologically
 // ordered by registration month ascending) is kept anyway — it's a real
-// efficiency win for whenever this file *does* finish downloading (e.g.
-// a longer-running batch/cron context rather than a single interactive
-// Edge Function invocation), and this source's unusually wide 55-column
-// rows make it broadly useful, but it was not what turned out to be
-// broken here.
+// efficiency win for whenever this file *does* finish downloading, and
+// this source's unusually wide 55-column rows make it broadly useful,
+// but it was not what turned out to be broken here.
 //
-// NOT REGISTERED in index.ts's eventAdapters — every real invocation so
-// far has failed (0% success, not RS-SSP's ~12.5%), so unlike RS-SSP a
-// retry cadence buys nothing here; this is the same "built correctly,
-// blocked externally" situation as BaAdapter, not a flaky-but-sometimes-
-// working source. Worth revisiting with a genuinely chunked/multi-
-// invocation download (the same "bigger lift" flagged in rs_ssp.ts's own
-// header) before concluding it's unfixable — the adapter logic itself is
-// otherwise correct and ready to register the moment fetch() can pull
-// this file within one invocation's time budget.
+// NOT REGISTERED in index.ts's eventAdapters — unlike RS-SSP's ~12.5%
+// nonzero real-mode success rate (where a retry cadence is a legitimate
+// mitigation), every full-pipeline attempt against this source has
+// failed outright (crash or hang, never a completion), so a cron retry
+// cadence has no confirmed chance of ever succeeding as currently
+// architected. Worth revisiting with a genuinely chunked/multi-invocation
+// download (the same "bigger lift" flagged in rs_ssp.ts's own header) —
+// e.g. persisting partial downloaded bytes across invocations via
+// Storage, or moving the fetch outside the Edge Function's own execution
+// window entirely — before concluding it's unfixable. The adapter logic
+// itself is otherwise correct and ready to register the moment fetch()
+// can reliably pull this file within one invocation's time budget.
 
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import {

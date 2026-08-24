@@ -56,6 +56,11 @@ import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 // download it (30MB, 100+ seconds) before hitting WORKER_RESOURCE_LIMIT.
 // Same "built correctly, blocked externally" situation as BaAdapter — see
 // the file's own header for the full diagnosis.
+// SpVehicleAdapter (sp_vehicle.ts) is built and correct but not
+// registered — the source server (dados.ssp.sp.gov.br) is slow and
+// unreliable enough (confirmed via instrumented production timing runs,
+// see the file's own header) that no real attempt has ever completed a
+// full fetch()+normalize() within one invocation's time budget.
 // import { SpVehicleAdapter } from "../_shared/adapters/br/sp_vehicle.ts";
 import type {
   RawSecurityRecord,
