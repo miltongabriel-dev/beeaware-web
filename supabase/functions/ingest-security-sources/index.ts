@@ -25,8 +25,9 @@
 // right at this Edge Function's memory ceiling (~12.5% real-mode success
 // per attempt, measured), so it's scheduled daily rather than monthly and
 // leans on idempotent upserts to retry safely (see
-// rs_ssp_cron_daily.sql's comment). SinespAdapter and RenaestAdapter
-// still have working fetch() (real discovery against their live sources) but
+// rs_ssp_cron_daily.sql's comment). SinespAdapter and
+// RenaestAdapter still have working fetch() (real discovery against their
+// live sources) but
 // normalize() returns [] (see each adapter's file header for why) — so
 // their scheduled runs today only keep security_sources health metadata
 // current. That's not nothing (it's exactly what the roadmap's source-
@@ -49,6 +50,13 @@ import { AlAdapter } from "../_shared/adapters/br/al_seds.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
+// SpVehicleAdapter (sp_vehicle.ts) is built and correct but not
+// registered — the source server (dados.ssp.sp.gov.br) serves this file
+// at a consistent ~250KB/s, so a single Edge Function invocation cannot
+// download it (30MB, 100+ seconds) before hitting WORKER_RESOURCE_LIMIT.
+// Same "built correctly, blocked externally" situation as BaAdapter — see
+// the file's own header for the full diagnosis.
+// import { SpVehicleAdapter } from "../_shared/adapters/br/sp_vehicle.ts";
 import type {
   RawSecurityRecord,
   SecurityEvent,

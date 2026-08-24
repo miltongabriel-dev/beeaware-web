@@ -127,13 +127,33 @@ export async function forEachRow(
   sharedStrings: string[],
   onRow: (cells: (string | undefined)[]) => void,
 ): Promise<void> {
+  const cellRe = buildCellRegex();
+  await forEachRowRaw(zipBytes, entry, (rowInnerXml) => {
+    onRow(parseRowCells(rowInnerXml, cellRe, sharedStrings));
+  });
+}
+
+// Same chunked row-boundary streaming as forEachRow, but hands the caller
+// the raw <row>...</row> inner XML instead of a fully cell-parsed array.
+// Exists for sp_vehicle.ts: parseRowCells' per-cell regex (cellRe below)
+// costs real CPU per column it has to consider, and that source's rows
+// are unusually wide (55 columns, vs every other adapter's much narrower
+// sheets) — expensive enough per row, at this source's real row count, to
+// have measurably hit this Edge Function's resource ceiling running the
+// full parse on every row just to inspect two of them. Skipping the
+// per-cell parse for rows a caller can already tell (via a much cheaper
+// targeted check on the raw XML) it doesn't need avoids paying that cost
+// on rows it will discard anyway.
+export async function forEachRowRaw(
+  zipBytes: Uint8Array,
+  entry: ZipEntry,
+  onRawRow: (rowInnerXml: string) => void,
+): Promise<void> {
   const stream = await decompressStream(zipBytes, entry);
   const reader = stream.getReader();
   const decoder = new TextDecoder();
 
   const rowRe = /<row[^>]*>(.*?)<\/row>/gs;
-  const cellRe = /<c r="([A-Z]+)\d+"[^>]*?(?:\st="(\w+)")?[^>]*>(?:<f>.*?<\/f>)?<v>(.*?)<\/v><\/c>/gs;
-
   let leftover = "";
 
   while (true) {
@@ -153,14 +173,21 @@ export async function forEachRow(
     rowRe.lastIndex = 0;
     let rowMatch: RegExpExecArray | null;
     while ((rowMatch = rowRe.exec(processable))) {
-      onRow(parseRowCells(rowMatch[1], cellRe, sharedStrings));
+      onRawRow(rowMatch[1]);
     }
   }
 
   if (leftover.trim().length > 0) {
     const finalMatch = /<row[^>]*>(.*?)<\/row>/s.exec(leftover);
-    if (finalMatch) onRow(parseRowCells(finalMatch[1], cellRe, sharedStrings));
+    if (finalMatch) onRawRow(finalMatch[1]);
   }
+}
+
+// A fresh cellRe instance per caller — global regexes carry lastIndex
+// state, so forEachRow and any direct parseRowCells caller (sp_vehicle.ts)
+// each need their own instance rather than sharing one.
+export function buildCellRegex(): RegExp {
+  return /<c r="([A-Z]+)\d+"[^>]*?(?:\st="(\w+)")?[^>]*>(?:<f>.*?<\/f>)?<v>(.*?)<\/v><\/c>/gs;
 }
 
 function columnIndex(columnLetters: string): number {
@@ -177,7 +204,7 @@ function decodeXmlEntities(text: string): string {
   return text.replace(/&(amp|lt|gt|quot|apos);/g, (_, name) => XML_ENTITIES[name]);
 }
 
-function parseRowCells(
+export function parseRowCells(
   rowInnerXml: string,
   cellRe: RegExp,
   sharedStrings: string[],
