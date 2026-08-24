@@ -5,17 +5,29 @@
 // geo_areas) joins against. This is real, working code — verified live
 // against https://servicodados.ibge.gov.br on 2026-08-21 — not a stub.
 //
-// Population lives on a separate IBGE endpoint (SIDRA aggregates) and is
-// still left out. Municipality polygons (the /malhas GeoJSON API) are
-// now covered by fetchAndNormalizeGeometry() below — added when the
-// RJ-ISP violence choropleth needed real municipality boundaries to
-// color. Verified live: GET /api/v3/malhas/estados/{UF}?formato=
-// application/vnd.geo+json&intrarregiao=municipio&qualidade=minima
-// returns every municipality in that state as one GeoJSON
-// FeatureCollection (92 features / 47KB for RJ) with the IBGE code in
-// `properties.codarea` — one HTTP call per state rather than one per
-// municipality (5570 individual calls would be impractical from a
-// single Edge Function invocation).
+// Municipality polygons (the /malhas GeoJSON API) are covered by
+// fetchAndNormalizeGeometry() below — added when the RJ-ISP violence
+// choropleth needed real municipality boundaries to color. Verified
+// live: GET /api/v3/malhas/estados/{UF}?formato=application/vnd.geo+json
+// &intrarregiao=municipio&qualidade=minima returns every municipality in
+// that state as one GeoJSON FeatureCollection (92 features / 47KB for
+// RJ) with the IBGE code in `properties.codarea` — one HTTP call per
+// state rather than one per municipality (5570 individual calls would
+// be impractical from a single Edge Function invocation).
+//
+// Population (Safety Pulse / Historical Safety) is covered by
+// fetchAndNormalizePopulation() below — IBGE's SIDRA aggregates API,
+// table 6579 ("População residente estimada"), variable 9324. Verified
+// live 2026-08-24: GET /api/v3/agregados/6579/periodos/-1/variaveis/9324
+// ?localidades=N6[N3[{numericUfCode}]] returns every municipality in one
+// state with its latest population estimate in one call (confirmed: 52
+// municipalities for Rondônia in one response; São Paulo municipality
+// alone read 11,904,961 for 2025). Two real quirks found by testing, not
+// assumed: the N3 filter needs the numeric IBGE UF code, not the sigla
+// (N3[RJ] 500s; N3[33] works — UF_NUMERIC_CODE below) — and there is no
+// single national call (N6[N1[1]] returns []), so this needs the same
+// per-state loop fetchAndNormalizeGeometry() already uses, not a single
+// request.
 
 import type {
   GeoArea,
@@ -32,6 +44,22 @@ export interface MunicipalityGeometry {
   geometry: unknown;
   sourceVersion: string;
 }
+
+export interface MunicipalityPopulation {
+  cityIbgeCode: string;
+  population: number;
+}
+
+// IBGE's own numeric UF codes — stable, well-known government codes
+// (not a guess), needed because the SIDRA aggregates API's N3 locality
+// filter rejects UF sigla (confirmed live: N3[RJ] 500s, N3[33] works).
+const UF_NUMERIC_CODE: Record<string, number> = {
+  RO: 11, AC: 12, AM: 13, RR: 14, PA: 15, AP: 16, TO: 17,
+  MA: 21, PI: 22, CE: 23, RN: 24, PB: 25, PE: 26, AL: 27, SE: 28, BA: 29,
+  MG: 31, ES: 32, RJ: 33, SP: 35,
+  PR: 41, SC: 42, RS: 43,
+  MS: 50, MT: 51, GO: 52, DF: 53,
+};
 
 interface IbgeMunicipio {
   id: number;
@@ -131,6 +159,44 @@ export class IbgeAdapter implements TerritorialSourceAdapter {
       geometry: f.geometry,
       sourceVersion,
     }));
+  }
+
+  // Not part of TerritorialSourceAdapter — same reasoning as
+  // fetchAndNormalizeGeometry above: backfills onto existing geo_areas
+  // rows rather than creating new ones. One state at a time, matching
+  // the geometry method's shape (called from index.ts's
+  // backfill-population action, looping all 27 UFs).
+  async fetchAndNormalizePopulation(stateCode: string): Promise<MunicipalityPopulation[]> {
+    const ufCode = UF_NUMERIC_CODE[stateCode];
+    if (!ufCode) {
+      throw new Error(`IBGE population: unknown UF sigla "${stateCode}"`);
+    }
+
+    const url =
+      `https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/-1/variaveis/9324` +
+      `?localidades=N6[N3[${ufCode}]]`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`IBGE population request failed for ${stateCode}: ${res.status} ${res.statusText}`);
+    }
+
+    const data = (await res.json()) as {
+      resultados: { series: { localidade: { id: string }; serie: Record<string, string> }[] }[];
+    }[];
+
+    const series = data[0]?.resultados[0]?.series ?? [];
+    const results: MunicipalityPopulation[] = [];
+    for (const s of series) {
+      // `serie` is keyed by year (periodos=-1 asks for the single latest
+      // one, but the key itself varies year to year — read whichever key
+      // is actually present rather than hardcoding a year).
+      const [population] = Object.values(s.serie);
+      const n = Number(population);
+      if (!Number.isFinite(n) || n <= 0) continue; // skip rather than write a bad value
+      results.push({ cityIbgeCode: s.localidade.id, population: n });
+    }
+    return results;
   }
 
   async healthCheck(): Promise<SourceHealth> {

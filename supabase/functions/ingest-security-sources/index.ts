@@ -458,6 +458,51 @@ async function backfillGeometry(supabase: SupabaseClient, stateCode: string) {
   return { stateCode, municipalitiesSeen: rows.length, geometryWritten: written };
 }
 
+// One-off (not cron-scheduled) backfill: populates geo_areas.population
+// (Safety Pulse / Historical Safety, roadmap Phase 5) via IBGE's SIDRA
+// aggregates. Same shape as backfillGeometry above, but loops all 27 UFs
+// when stateCode is omitted — unlike geometry (only needed where a
+// choropleth already consumes it), Historical Safety needs population
+// everywhere security_events has data, and 27 lightweight JSON calls
+// comfortably fits one invocation. Triggered with
+// {"action": "backfill-population"} (all UFs) or
+// {"action": "backfill-population", "stateCode": "RJ"} (one).
+const ALL_UF_CODES = [
+  "RO", "AC", "AM", "RR", "PA", "AP", "TO",
+  "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA",
+  "MG", "ES", "RJ", "SP",
+  "PR", "SC", "RS",
+  "MS", "MT", "GO", "DF",
+];
+
+async function backfillPopulation(supabase: SupabaseClient, stateCode?: string) {
+  const ibge = new IbgeAdapter();
+  const stateCodes = stateCode ? [stateCode] : ALL_UF_CODES;
+
+  // One bulk_update_population() RPC call per state (27 total for a
+  // national run), not one .update() per municipality — an earlier
+  // version did exactly that (~5570 sequential round trips for a
+  // national run) and hit WORKER_RESOURCE_LIMIT for real, the same
+  // "one round trip per row" problem this project already fixed for
+  // PRF's events (see EVENT_BATCH_SIZE above). bulk_update_population
+  // does the whole state's worth of rows in one UPDATE...FROM statement.
+  let municipalitiesSeen = 0;
+  let populationWritten = 0;
+  for (const uf of stateCodes) {
+    const rows = await ibge.fetchAndNormalizePopulation(uf);
+    municipalitiesSeen += rows.length;
+    if (rows.length === 0) continue;
+
+    const { data, error } = await supabase.rpc("bulk_update_population", {
+      updates: rows.map((r) => ({ city_ibge_code: r.cityIbgeCode, population: r.population })),
+    });
+    if (!error) populationWritten += (data as number) ?? 0;
+    else console.error(`bulk_update_population failed for ${uf}:`, error.message);
+  }
+
+  return { stateCodes, municipalitiesSeen, populationWritten };
+}
+
 Deno.serve(async (req) => {
   // This runs real external HTTP fetches and DB writes on every call —
   // it must only be triggerable by pg_cron (via Vault, see the
@@ -495,6 +540,13 @@ Deno.serve(async (req) => {
       });
     }
     const result = await backfillGeometry(supabase, body.stateCode);
+    return new Response(JSON.stringify({ ok: true, result }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (body.action === "backfill-population") {
+    const result = await backfillPopulation(supabase, body.stateCode);
     return new Response(JSON.stringify({ ok: true, result }), {
       headers: { "Content-Type": "application/json" },
     });
