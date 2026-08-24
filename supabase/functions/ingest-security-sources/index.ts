@@ -41,6 +41,9 @@ import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
 import { PaSegupAdapter } from "../_shared/adapters/br/pa_segup.ts";
 import { MgAdapter } from "../_shared/adapters/br/mg_ssp.ts";
 import { EsSespAdapter } from "../_shared/adapters/br/es_sesp.ts";
+// BaAdapter (ba_ssp.ts) is built and correct but not registered — the
+// source server's TLS certificate chain is genuinely broken, see the
+// file's own header for the openssl-verified detail.
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
