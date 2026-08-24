@@ -746,65 +746,11 @@ abstract class AppLocalizations {
   /// **'Cluster numbers explained'**
   String get clusterNumbersExplained;
 
-  /// No description provided for @coverageSheetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Data coverage here'**
-  String get coverageSheetTitle;
-
-  /// No description provided for @coverageBadgeTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Data coverage'**
-  String get coverageBadgeTooltip;
-
-  /// No description provided for @coverageCategoryViolence.
-  ///
-  /// In en, this message translates to:
-  /// **'Violence'**
-  String get coverageCategoryViolence;
-
-  /// No description provided for @coverageCategoryProperty.
-  ///
-  /// In en, this message translates to:
-  /// **'Property crime'**
-  String get coverageCategoryProperty;
-
-  /// No description provided for @coverageCategoryPublicSafety.
-  ///
-  /// In en, this message translates to:
-  /// **'Public safety'**
-  String get coverageCategoryPublicSafety;
-
-  /// No description provided for @coverageCategoryRoadSafety.
-  ///
-  /// In en, this message translates to:
-  /// **'Road safety'**
-  String get coverageCategoryRoadSafety;
-
-  /// No description provided for @coverageFreshness.
-  ///
-  /// In en, this message translates to:
-  /// **'{days, plural, =0{Updated today} one{Updated {days} day ago} other{Updated {days} days ago}}'**
-  String coverageFreshness(int days);
-
-  /// No description provided for @coverageSourceCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one{{count} record} other{{count} records}}'**
-  String coverageSourceCount(int count);
-
   /// No description provided for @coverageGlobalBaselineOnly.
   ///
   /// In en, this message translates to:
   /// **'Only global baseline data is available here — that\'s not a guarantee of safety, just the best we have.'**
   String get coverageGlobalBaselineOnly;
-
-  /// No description provided for @coverageNoData.
-  ///
-  /// In en, this message translates to:
-  /// **'No data sources found for this area yet.'**
-  String get coverageNoData;
 
   /// No description provided for @choroplethLegendTooltip.
   ///

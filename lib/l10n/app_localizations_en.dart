@@ -419,52 +419,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clusterNumbersExplained => 'Cluster numbers explained';
 
   @override
-  String get coverageSheetTitle => 'Data coverage here';
-
-  @override
-  String get coverageBadgeTooltip => 'Data coverage';
-
-  @override
-  String get coverageCategoryViolence => 'Violence';
-
-  @override
-  String get coverageCategoryProperty => 'Property crime';
-
-  @override
-  String get coverageCategoryPublicSafety => 'Public safety';
-
-  @override
-  String get coverageCategoryRoadSafety => 'Road safety';
-
-  @override
-  String coverageFreshness(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: 'Updated $days days ago',
-      one: 'Updated $days day ago',
-      zero: 'Updated today',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String coverageSourceCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count records',
-      one: '$count record',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get coverageGlobalBaselineOnly =>
       'Only global baseline data is available here — that\'s not a guarantee of safety, just the best we have.';
-
-  @override
-  String get coverageNoData => 'No data sources found for this area yet.';
 
   @override
   String get choroplethLegendTooltip => 'Map legend';

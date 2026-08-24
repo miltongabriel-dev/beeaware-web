@@ -126,22 +126,7 @@
 
   "reportingHintText": "Viu algo? Toque na abelha.",
   "clusterNumbersExplained": "Como funcionam os números dos agrupamentos",
-  "coverageSheetTitle": "Cobertura de dados aqui",
-  "coverageBadgeTooltip": "Cobertura de dados",
-  "coverageCategoryViolence": "Violência",
-  "coverageCategoryProperty": "Crimes contra o patrimônio",
-  "coverageCategoryPublicSafety": "Segurança pública",
-  "coverageCategoryRoadSafety": "Segurança viária",
-  "coverageFreshness": "{days, plural, =0{Atualizado hoje} one{Atualizado há {days} dia} other{Atualizado há {days} dias}}",
-  "@coverageFreshness": {
-    "placeholders": { "days": { "type": "int" } }
-  },
-  "coverageSourceCount": "{count, plural, one{{count} registro} other{{count} registros}}",
-  "@coverageSourceCount": {
-    "placeholders": { "count": { "type": "int" } }
-  },
   "coverageGlobalBaselineOnly": "Só há dado global de base aqui — isso não é garantia de segurança, é só o que temos disponível.",
-  "coverageNoData": "Nenhuma fonte de dados encontrada para esta área ainda.",
   "choroplethLegendTooltip": "Legenda do mapa",
   "choroplethLegendTitle": "O que as cores mostram",
   "choroplethNoDataDisclaimer": "Áreas sem cor no mapa não têm fonte pública de dados de segurança. A ausência de cor não significa que o local é seguro — só que a polícia ou o governo local ainda não divulgam esses dados.",

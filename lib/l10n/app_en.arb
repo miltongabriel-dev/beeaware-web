@@ -165,22 +165,7 @@
 
   "reportingHintText": "Spot something? Tap the Bee.",
   "clusterNumbersExplained": "Cluster numbers explained",
-  "coverageSheetTitle": "Data coverage here",
-  "coverageBadgeTooltip": "Data coverage",
-  "coverageCategoryViolence": "Violence",
-  "coverageCategoryProperty": "Property crime",
-  "coverageCategoryPublicSafety": "Public safety",
-  "coverageCategoryRoadSafety": "Road safety",
-  "coverageFreshness": "{days, plural, =0{Updated today} one{Updated {days} day ago} other{Updated {days} days ago}}",
-  "@coverageFreshness": {
-    "placeholders": { "days": { "type": "int" } }
-  },
-  "coverageSourceCount": "{count, plural, one{{count} record} other{{count} records}}",
-  "@coverageSourceCount": {
-    "placeholders": { "count": { "type": "int" } }
-  },
   "coverageGlobalBaselineOnly": "Only global baseline data is available here — that's not a guarantee of safety, just the best we have.",
-  "coverageNoData": "No data sources found for this area yet.",
   "choroplethLegendTooltip": "Map legend",
   "choroplethLegendTitle": "What the colors mean",
   "choroplethNoDataDisclaimer": "Areas with no color on the map have no public security data source. The absence of color doesn't mean the area is safe — only that police or local government haven't published that data yet.",
