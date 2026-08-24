@@ -184,10 +184,15 @@ export async function forEachRowRaw(
 }
 
 // A fresh cellRe instance per caller — global regexes carry lastIndex
-// state, so forEachRow and any direct parseRowCells caller (sp_vehicle.ts)
-// each need their own instance rather than sharing one.
+// state, so forEachRow and any direct parseRowCells caller (sp_vehicle.ts,
+// sinesp.ts) each need their own instance rather than sharing one.
+// Matches either a <v>value</v> cell (shared-string index or a plain
+// number/date serial) or an inline-string cell (<is><t>text</t></is>,
+// used by sources with no sharedStrings.xml at all, e.g. sinesp.ts) —
+// group 3 is the <v> capture, group 4 the inline-string capture;
+// parseRowCells picks whichever one matched.
 export function buildCellRegex(): RegExp {
-  return /<c r="([A-Z]+)\d+"[^>]*?(?:\st="(\w+)")?[^>]*>(?:<f>.*?<\/f>)?<v>(.*?)<\/v><\/c>/gs;
+  return /<c r="([A-Z]+)\d+"[^>]*?(?:\st="(\w+)")?[^>]*>(?:<f>.*?<\/f>)?(?:<v>(.*?)<\/v>|<is><t[^>]*>(.*?)<\/t><\/is>)<\/c>/gs;
 }
 
 function columnIndex(columnLetters: string): number {
@@ -213,9 +218,19 @@ export function parseRowCells(
   cellRe.lastIndex = 0;
   let cellMatch: RegExpExecArray | null;
   while ((cellMatch = cellRe.exec(rowInnerXml))) {
-    const [, columnLetters, type, rawValue] = cellMatch;
+    const [, columnLetters, type, vValue, inlineValue] = cellMatch;
     const idx = columnIndex(columnLetters);
-    cells[idx] = type === "s" ? sharedStrings[Number(rawValue)] : decodeXmlEntities(rawValue);
+    if (type === "s") {
+      cells[idx] = sharedStrings[Number(vValue)];
+    } else if (type === "inlineStr") {
+      // <c t="inlineStr"><is><t>text</t></is></c> — a cell that carries its
+      // own string inline rather than through the shared-strings table.
+      // First seen in SINESP's bancovde export (sinesp.ts), which has no
+      // sharedStrings.xml at all.
+      cells[idx] = inlineValue !== undefined ? decodeXmlEntities(inlineValue) : undefined;
+    } else {
+      cells[idx] = vValue !== undefined ? decodeXmlEntities(vValue) : undefined;
+    }
   }
   return cells;
 }

@@ -25,18 +25,31 @@
 // right at this Edge Function's memory ceiling (~12.5% real-mode success
 // per attempt, measured), so it's scheduled daily rather than monthly and
 // leans on idempotent upserts to retry safely (see
-// rs_ssp_cron_daily.sql's comment). SinespAdapter and
-// RenaestAdapter still have working fetch() (real discovery against their
-// live sources) but
-// normalize() returns [] (see each adapter's file header for why) — so
-// their scheduled runs today only keep security_sources health metadata
+// rs_ssp_cron_daily.sql's comment). SinespAdapter's parsing logic is now
+// genuinely real too (a real bulk-download URL was found — not the
+// dados.gov.br REST API, whose every listed resource points at a dead
+// domain, but a file hosted directly on gov.br, found via web search —
+// and real per-occurrence-cell parsing verified locally against the
+// actual file), but it is NOT REGISTERED below: fetch() has failed 3/3
+// real attempts in production. See sinesp.ts's own header for the full
+// diagnosis, including a likely shared root cause with SpVehicleAdapter
+// (also built, also not registered, see sp_vehicle.ts). RenaestAdapter
+// still has working fetch() (real discovery against its live source) but
+// normalize() returns [] (see the adapter's file header for why) — so
+// its scheduled runs today only keep security_sources health metadata
 // current. That's not nothing (it's exactly what the roadmap's source-
 // health dashboard, section 12.5, is meant to show), but it's not event
 // data yet either.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
-import { SinespAdapter } from "../_shared/adapters/br/sinesp.ts";
+// SinespAdapter (sinesp.ts) is built and correct — real bulk-download URL
+// found, real parsing verified locally against the actual file — but not
+// registered: fetch() has failed 3/3 real production attempts, each
+// dying inside fetch() itself before normalize() even runs. See the
+// file's own header for the full diagnosis, including a likely shared
+// root cause with SpVehicleAdapter below.
+// import { SinespAdapter } from "../_shared/adapters/br/sinesp.ts";
 import { RenaestAdapter } from "../_shared/adapters/br/renaest.ts";
 import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
 import { RjIspAdapter } from "../_shared/adapters/br/rj_isp.ts";
@@ -50,12 +63,6 @@ import { AlAdapter } from "../_shared/adapters/br/al_seds.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
-// SpVehicleAdapter (sp_vehicle.ts) is built and correct but not
-// registered — the source server (dados.ssp.sp.gov.br) serves this file
-// at a consistent ~250KB/s, so a single Edge Function invocation cannot
-// download it (30MB, 100+ seconds) before hitting WORKER_RESOURCE_LIMIT.
-// Same "built correctly, blocked externally" situation as BaAdapter — see
-// the file's own header for the full diagnosis.
 // SpVehicleAdapter (sp_vehicle.ts) is built and correct but not
 // registered — the source server (dados.ssp.sp.gov.br) is slow and
 // unreliable enough (confirmed via instrumented production timing runs,
@@ -82,7 +89,6 @@ const advisoryAdapters: Record<string, TravelAdvisoryAdapter> = {
 };
 
 const eventAdapters: Record<string, SecuritySourceAdapter> = {
-  SinespAdapter: new SinespAdapter(),
   RenaestAdapter: new RenaestAdapter(),
   PrfAccidentsAdapter: new PrfAccidentsAdapter(),
   RjIspAdapter: new RjIspAdapter(),
