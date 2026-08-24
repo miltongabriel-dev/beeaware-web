@@ -71,33 +71,43 @@
 // national scope since this adapter (unlike any single-state adapter)
 // covers all 27 UFs in one file.
 //
-// Scope: most recent 3 months by data_referencia — this is national
-// aggregate data across ~5300 municipalities and up to 20 mapped event
-// types; even after abrangencia/evento/zero-count filtering, a full
-// year is far more than the map/baseline use case (roadmap 1.2's
-// "Recent Activity" dimension) needs on every run.
+// Scope: most recent 2 months by data_referencia (allowing for real
+// reporting lag), filtered via a cheap 3-regex pre-check against each
+// row's raw XML (abrangencia/evento/data) before paying for the full
+// 14-column parseRowCells — this is national aggregate data across
+// ~5300 municipalities and up to 20 mapped event types, so even after
+// filtering a full year is far more than the map/baseline use case
+// (roadmap 1.2's "Recent Activity" dimension) needs on every run.
 //
-// NOT REGISTERED in index.ts's eventAdapters — the adapter logic is
-// correct (parsing verified against the real file's actual structure
-// locally: inline strings, column layout, evento/abrangencia value
-// sets, municipality-name matching), but fetch() has failed 3/3 real
-// attempts in production, each dying inside fetch() itself (confirmed —
-// a version that returned immediately after fetch(), before touching
-// the sheet, still failed at the same ~43-46s) at a consistent time
-// unlike SP-Vehicle's high-variance failures. The likely cause: this
-// Supabase project runs in West Europe (London) — every fetch to a
-// Brazilian government server crosses the Atlantic, and this project now
-// has two large Brazilian sources (this one, ~20MB; SpVehicleAdapter,
-// ~30MB) both failing to complete a single-invocation download, plus
-// RsSspAdapter (already known flaky before this session, ~9-123MB)
-// showing the same shape of problem at a smaller scale. Every source
-// under ~3MB in this project (ES-SESP, SEDS-AL) has always worked
-// cleanly. That's circumstantial, not proven, but consistent enough
-// across three independent sources to treat as a real infrastructure
-// constraint — worth raising with the user directly (region migration,
-// or a chunked/multi-invocation download architecture) rather than
-// re-diagnosing per-adapter again. Ready to register the moment fetch()
-// can reliably complete within one invocation's time budget.
+// NOT REGISTERED in index.ts's eventAdapters. The adapter logic itself
+// is correct (parsing verified against the real file's actual structure
+// locally), but fetch() has never completed in production. Full
+// diagnostic trail, in order:
+//   1. From this project's default region (this Supabase project runs
+//      in West Europe/London — every request crosses the Atlantic to
+//      reach a Brazilian server), fetch() failed 3/3 attempts at a
+//      consistent ~43-46s, confirmed (via a version that returned
+//      immediately after fetch(), before touching the sheet at all) to
+//      be failing inside fetch() itself.
+//   2. Pinning execution to Supabase's sa-east-1 (São Paulo) region via
+//      the x-region header — Edge Functions support per-invocation
+//      regional routing, confirmed live via the x-sb-edge-region
+//      response header — cut that to a consistent ~14-15s. A real,
+//      substantial improvement (worth applying broadly to Brazilian
+//      sources; see the migrations this finding produced), but not a
+//      complete fix on its own: 14-15s still crosses whatever the
+//      platform's real ceiling is for this specific fetch, even though
+//      other Brazilian sources in this project (AlAdapter, 2.5MB) return
+//      in ~5s from the same region. That gap — a small file is fine, a
+//      ~20MB file from the same origin, same region, is not — points to
+//      a per-fetch time constraint distinct from pure network-distance
+//      latency, not just "closer region fixes everything."
+// The real fix is very likely the same one already flagged for
+// SpVehicleAdapter and RsSspAdapter: a genuinely chunked/multi-part
+// download (e.g. HTTP Range requests split across smaller fetches, or
+// persisting partial bytes across multiple invocations) rather than one
+// fetch() call for the whole file. Ready to register the moment fetch()
+// can reliably complete within budget.
 
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import { forEachRowRaw, parseRowCells, buildCellRegex, locateZipEntries } from "../../xlsx_lite.ts";
@@ -271,12 +281,33 @@ export class SinespAdapter implements SecuritySourceAdapter {
       totalVitima: 10, total: 11, abrangencia: 13,
     };
 
+    // Most recent month only (not 3) — narrowed after real-world testing
+    // showed the full parseRowCells() pass over all 485k rows was itself
+    // a real cost once fetch() stopped being the dominant one (see file
+    // header's sa-east-1 findings). Also, unlike the first version, the
+    // heavy per-row work (full 14-column parseRowCells, IBGE lookup) now
+    // only runs for rows that already pass three cheap single-column
+    // regex checks (abrangencia/evento/data) run directly against the
+    // raw row XML — same "cheap pass filters, full parse only for
+    // survivors" pattern sp_vehicle.ts's buffered-tail approach uses,
+    // adapted here since SINESP's real rows aren't chronologically
+    // ordered the way SP's are (this file interleaves months within each
+    // municipality×evento block, not globally), so a tail buffer isn't
+    // usable — a per-row cheap-filter is the equivalent for this shape.
+    // A 2-month window, not just the current month — SINESP has real
+    // reporting lag (other sources in this project lag 1-2 months too),
+    // so the file's most recent actual data may not be the current
+    // calendar month yet.
     const now = new Date();
     const recentYearMonths = new Set<string>();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
       recentYearMonths.add(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
     }
+
+    const abrangenciaRe = /<c r="N\d+"[^>]*><is><t[^>]*>(.*?)<\/t><\/is><\/c>/;
+    const eventoRe = /<c r="C\d+"[^>]*><is><t[^>]*>(.*?)<\/t><\/is><\/c>/;
+    const dataRe = /<c r="D\d+"[^>]*><v>(.*?)<\/v><\/c>/;
 
     const events: SecurityEvent[] = [];
     const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
@@ -286,18 +317,25 @@ export class SinespAdapter implements SecuritySourceAdapter {
       rowIndex++;
       if (rowIndex === 1) return; // header row
 
+      // Cheap pre-filter: 3 single-column regexes against raw XML,
+      // cheaper than the full 14-column parseRowCells this project's
+      // other adapters call unconditionally per row.
+      if (abrangenciaRe.exec(rowInnerXml)?.[1] !== "Estadual") return;
+      const mappedPre = NORMALIZED_EVENTO_MAP.get(stripAccentsUpper(eventoRe.exec(rowInnerXml)?.[1] ?? ""));
+      if (!mappedPre) return;
+      const occurredDatePre = excelSerialToIsoDate(dataRe.exec(rowInnerXml)?.[1]);
+      if (!occurredDatePre || !recentYearMonths.has(occurredDatePre.slice(0, 7))) return;
+
+      // Survived the cheap filter — now worth the full per-cell parse.
       const cells = parseRowCells(rowInnerXml, cellRe, []);
 
-      if (cells[COL.abrangencia] !== "Estadual") return; // federal/PRF scope excluded — see file header
-
       const mapped = NORMALIZED_EVENTO_MAP.get(stripAccentsUpper(cells[COL.evento] ?? ""));
-      if (!mapped) return; // unmapped evento — administrative/sensitive, skip rather than guess
+      if (!mapped) return; // re-checked against the full parse, belt and suspenders
       const [eventCategory, eventType] = mapped;
 
       const occurredDate = excelSerialToIsoDate(cells[COL.dataReferencia]);
       if (!occurredDate) return;
       const yearMonth = occurredDate.slice(0, 7);
-      if (!recentYearMonths.has(yearMonth)) return;
 
       const total = Number(cells[COL.total]);
       const totalVitima = Number(cells[COL.totalVitima]);

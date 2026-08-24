@@ -96,6 +96,21 @@
 // window entirely — before concluding it's unfixable. The adapter logic
 // itself is otherwise correct and ready to register the moment fetch()
 // can reliably pull this file within one invocation's time budget.
+//
+// Tried pinning execution to Supabase's sa-east-1 (São Paulo) region via
+// the x-region header — this dramatically fixed SinespAdapter's identical
+// symptom (a gov.br fetch went from a consistent ~43-46s failure to 13.9s,
+// see sinesp.ts's header), confirming the general "this project runs in
+// London, Brazilian downloads are network-bound" theory. It did NOT fix
+// this adapter, though: even from sa-east-1, every attempt failed in
+// ~2-4s — too fast to be the same slow-download symptom, and a version
+// that wrapped fetch() in try/catch to surface the real error never got
+// control before the platform-level crash, meaning something (possibly
+// dados.ssp.sp.gov.br itself blocking traffic from recognized cloud/
+// datacenter IP ranges, even Brazilian ones — a real, documented pattern
+// for some government anti-scraping setups) is failing before this
+// adapter's own code runs at all. A genuinely different, deeper problem
+// than the network-distance one — not re-diagnosed further this pass.
 
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import {

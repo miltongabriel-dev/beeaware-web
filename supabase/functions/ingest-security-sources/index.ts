@@ -49,6 +49,12 @@ import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
 // dying inside fetch() itself before normalize() even runs. See the
 // file's own header for the full diagnosis, including a likely shared
 // root cause with SpVehicleAdapter below.
+// SinespAdapter (sinesp.ts) is built and correct but not registered —
+// fetch() has never completed within budget, even pinned to sa-east-1
+// (São Paulo) via the x-region header — see the file's own header for
+// the full diagnostic trail, including why region-pinning alone (a real,
+// substantial improvement, ~43-46s down to ~14-15s) wasn't enough on its
+// own for this file's size.
 // import { SinespAdapter } from "../_shared/adapters/br/sinesp.ts";
 import { RenaestAdapter } from "../_shared/adapters/br/renaest.ts";
 import { PrfAccidentsAdapter } from "../_shared/adapters/br/prf.ts";
