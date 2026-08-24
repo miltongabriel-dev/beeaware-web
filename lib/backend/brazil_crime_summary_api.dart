@@ -68,7 +68,7 @@ class BrazilCrimeSummaryApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
   static Future<List<MunicipalityCrimeSummary>> fetchSummary(
-      {int monthsBack = 3}) async {
+      {int monthsBack = 12}) async {
     try {
       final rows = await _client.rpc('municipality_crime_summary', params: {
         'months_back': monthsBack,

@@ -51,14 +51,18 @@ class IncidentApi {
   }
 
   /// 🔍 busca incidentes já visíveis (cross-device)
+  ///
+  /// Scoped to the last ~2 months — the map is meant to show recent,
+  /// actionable reports, not the full history (older data is still used
+  /// for the regional trend charts, via separate longer-window queries).
   static Future<List<MapIncident>> fetchVisibleIncidents() async {
     try {
-      // REMOVEMOS o filtro .lte('visible_at') temporariamente para teste
-      // Se o ponto aparecer agora, confirmamos que o problema era o relógio do telemóvel
+      final cutoff = DateTime.now().toUtc().subtract(const Duration(days: 60));
       final res = await _client
           .from(_table)
           .select()
           .eq('status', 'visible')
+          .gte('created_at', cutoff.toIso8601String())
           .order('created_at', ascending: false);
 
       return (res as List)
