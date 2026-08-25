@@ -269,8 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text(AppLocalizations.of(context)!.locationPermissionError),
+          content: Text(AppLocalizations.of(context)!.locationPermissionError),
         ),
       );
     }
@@ -501,10 +500,10 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
       case 'google':
       default:
-        final waypointsParam =
-            waypoint != null ? '&waypoints=${waypoint.latitude},${waypoint.longitude}' : '';
-        uri = Uri.parse(
-            'https://www.google.com/maps/dir/?api=1'
+        final waypointsParam = waypoint != null
+            ? '&waypoints=${waypoint.latitude},${waypoint.longitude}'
+            : '';
+        uri = Uri.parse('https://www.google.com/maps/dir/?api=1'
             '&origin=${from.latitude},${from.longitude}'
             '&destination=${to.latitude},${to.longitude}'
             '$waypointsParam&travelmode=walking');
@@ -525,148 +524,167 @@ class _HomeScreenState extends State<HomeScreen> {
   // over one Positioned slot.
   Widget _buildRouteSearchBar() {
     final loc = AppLocalizations.of(context)!;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Ponto + linha ligando origem e destino, mesmo padrão visual
-          // de Google Maps/Uber — o ícone já diz "de"/"para", então o
-          // campo não precisa de um labelText próprio. labelText + border:
-          // InputBorder.none era a causa real da distorção: um rótulo
-          // flutuante do Material precisa de uma borda pra "pousar" nela,
-          // e sem isso ele fica espremido em cima do texto digitado.
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      decoration: const BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        width: 1,
-                        color: BeeAwareTheme.border,
-                      ),
-                    ),
-                    Icon(PhosphorIconsRegular.flagCheckered,
-                        size: 14, color: BeeAwareTheme.textSecondary),
-                  ],
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _routeFromController,
-                              onChanged: _onRouteFromChanged,
-                              decoration: InputDecoration(
-                                hintText: loc.routeAwarenessFromHint,
-                                isDense: true,
-                                border: InputBorder.none,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: loc.routeAwarenessUseMyLocation,
-                            icon: const Icon(PhosphorIconsRegular.crosshair,
-                                color: Colors.blue, size: 20),
-                            onPressed: _useMyLocationForRoute,
-                          ),
-                        ],
-                      ),
-                      if (_routeFromSuggestions.isNotEmpty)
-                        _RouteFieldSuggestions(
-                          suggestions: _routeFromSuggestions,
-                          onSelected: _selectRouteFromSuggestion,
-                        ),
-                      const Divider(height: 1),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _routeToController,
-                              onChanged: _onRouteToChanged,
-                              decoration: InputDecoration(
-                                hintText: loc.routeAwarenessToHint,
-                                isDense: true,
-                                border: InputBorder.none,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            tooltip: loc.close,
-                            icon: const Icon(PhosphorIconsRegular.x,
-                                color: BeeAwareTheme.textSecondary, size: 20),
-                            onPressed: _exitRouteMode,
-                          ),
-                        ],
-                      ),
-                      if (_routeToSuggestions.isNotEmpty)
-                        _RouteFieldSuggestions(
-                          suggestions: _routeToSuggestions,
-                          onSelected: _selectRouteToSuggestion,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton(
-              onPressed: _routeLoading ? null : _searchRoutes,
-              child: _routeLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(loc.routeAwarenessSearchButton),
-            ),
-          ),
-          if (_routeError != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _routeError!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 12, color: BeeAwareTheme.textSecondary),
+
+    // The panel sits in a Positioned(top: 60, ...) with no bottom bound,
+    // inside a Stack — a Stack never scrolls, so content taller than the
+    // remaining screen space was previously just unreachable: the To
+    // suggestions dropdown (up to 180px) plus both fields could push the
+    // search button below the visible area entirely, with no way to
+    // reach it (confirmed by the report: "buscar" cut off, To
+    // suggestions not tappable — both are the same root cause, not two
+    // separate bugs). Capping the panel's height and making it scroll
+    // internally means the button and every suggestion stay reachable
+    // regardless of how much content is open above them.
+    final maxHeight = MediaQuery.of(context).size.height - 140;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight > 200 ? maxHeight : 200),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
-        ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Ponto + linha ligando origem e destino, mesmo padrão visual
+              // de Google Maps/Uber — o ícone já diz "de"/"para", então o
+              // campo não precisa de um labelText próprio. labelText + border:
+              // InputBorder.none era a causa real da distorção: um rótulo
+              // flutuante do Material precisa de uma borda pra "pousar" nela,
+              // e sem isso ele fica espremido em cima do texto digitado.
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: const BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            width: 1,
+                            color: BeeAwareTheme.border,
+                          ),
+                        ),
+                        Icon(PhosphorIconsRegular.flagCheckered,
+                            size: 14, color: BeeAwareTheme.textSecondary),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _routeFromController,
+                                  onChanged: _onRouteFromChanged,
+                                  decoration: InputDecoration(
+                                    hintText: loc.routeAwarenessFromHint,
+                                    isDense: true,
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                tooltip: loc.routeAwarenessUseMyLocation,
+                                icon: const Icon(PhosphorIconsRegular.crosshair,
+                                    color: Colors.blue, size: 20),
+                                onPressed: _useMyLocationForRoute,
+                              ),
+                            ],
+                          ),
+                          if (_routeFromSuggestions.isNotEmpty)
+                            _RouteFieldSuggestions(
+                              suggestions: _routeFromSuggestions,
+                              onSelected: _selectRouteFromSuggestion,
+                            ),
+                          const Divider(height: 1),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _routeToController,
+                                  onChanged: _onRouteToChanged,
+                                  decoration: InputDecoration(
+                                    hintText: loc.routeAwarenessToHint,
+                                    isDense: true,
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                tooltip: loc.close,
+                                icon: const Icon(PhosphorIconsRegular.x,
+                                    color: BeeAwareTheme.textSecondary,
+                                    size: 20),
+                                onPressed: _exitRouteMode,
+                              ),
+                            ],
+                          ),
+                          if (_routeToSuggestions.isNotEmpty)
+                            _RouteFieldSuggestions(
+                              suggestions: _routeToSuggestions,
+                              onSelected: _selectRouteToSuggestion,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: ElevatedButton(
+                  onPressed: _routeLoading ? null : _searchRoutes,
+                  child: _routeLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(loc.routeAwarenessSearchButton),
+                ),
+              ),
+              if (_routeError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _routeError!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 12, color: BeeAwareTheme.textSecondary),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1135,8 +1153,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Polyline(
                         points: _routeOptions[_selectedRouteIndex].points,
                         strokeWidth: 6,
-                        color:
-                            _routeColors[_selectedRouteIndex % _routeColors.length],
+                        color: _routeColors[
+                            _selectedRouteIndex % _routeColors.length],
                       ),
                   ],
                 ),
@@ -1778,8 +1796,8 @@ class _HomeScreenState extends State<HomeScreen> {
             right: 16,
             child: FadeInUp(
               child: _SosButton(
-                label: AppLocalizations.of(context)!
-                    .sosBarLabel(emergencyNumbersFor(_preferredCountryCode()).primary),
+                label: AppLocalizations.of(context)!.sosBarLabel(
+                    emergencyNumbersFor(_preferredCountryCode()).primary),
                 onTap: () => _showPoliceSheet(context),
               ),
             ),
@@ -4142,8 +4160,8 @@ class _RouteResultsCard extends StatelessWidget {
     final loc = AppLocalizations.of(context)!;
     final fastest =
         routes.reduce((a, b) => a.durationSeconds <= b.durationSeconds ? a : b);
-    final fewerSignals =
-        routes.reduce((a, b) => a.totalSignalCount <= b.totalSignalCount ? a : b);
+    final fewerSignals = routes
+        .reduce((a, b) => a.totalSignalCount <= b.totalSignalCount ? a : b);
     final signalsTie = routes
         .every((r) => r.totalSignalCount == routes.first.totalSignalCount);
 
@@ -4184,8 +4202,7 @@ class _RouteResultsCard extends StatelessWidget {
               signalsTie
                   ? loc.routeAwarenessSimilarSignals
                   : loc.routeAwarenessFewerSignals(loc.routeAwarenessRouteLabel(
-                      String.fromCharCode(
-                          65 + routes.indexOf(fewerSignals)))),
+                      String.fromCharCode(65 + routes.indexOf(fewerSignals)))),
               style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
