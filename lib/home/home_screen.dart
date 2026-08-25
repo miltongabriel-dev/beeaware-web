@@ -99,6 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _routeFromDebounce;
   Timer? _routeToDebounce;
   List<RouteOption> _routeOptions = [];
+  int _selectedRouteIndex = 0;
   bool _routeLoading = false;
   String? _routeError;
   static const List<Color> _routeColors = [
@@ -310,8 +311,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _routeFromSuggestions = [];
       _routeToSuggestions = [];
       _routeOptions = [];
+      _selectedRouteIndex = 0;
       _routeError = null;
     });
+  }
+
+  void _selectRoute(int index) {
+    setState(() => _selectedRouteIndex = index);
   }
 
   void _onRouteFromChanged(String value) {
@@ -434,6 +440,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _routeFromPoint = from;
         _routeToPoint = to;
         _routeOptions = routes;
+        _selectedRouteIndex = 0;
         _routeLoading = false;
       });
 
@@ -457,14 +464,29 @@ class _HomeScreenState extends State<HomeScreen> {
   // BeeAware itself has no turn-by-turn navigation (roadmap 11.12's
   // Route Awareness is explicitly a comparison/awareness layer, not a
   // navigator) — this hands off to the app the user already navigates
-  // with. Waze's URL scheme (waze.com/ul) only accepts a destination, no
-  // custom origin — it always navigates from wherever the device
-  // currently is, so _routeFromPoint is unused for that branch on
-  // purpose, not an oversight.
+  // with, honouring whichever route they picked in _RouteResultsCard
+  // (not always Route A). Waze's URL scheme (waze.com/ul) only accepts a
+  // destination, no custom origin or via-point — it always navigates
+  // from wherever the device currently is, so the selected route can't
+  // actually steer it; _routeFromPoint is unused for that branch on
+  // purpose, not an oversight. Google Maps' directions URL does support
+  // a `waypoints` param, so when the selected route isn't just the
+  // straight A-to-B line, a point roughly midway along its own geometry
+  // is passed as a soft hint to bias Google's own routing toward a
+  // similar path — not exact fidelity (Google still computes its own
+  // route), but closer to the path the user actually reviewed than
+  // giving it only origin/destination would be.
   Future<void> _openInExternalMaps(String app) async {
     final from = _routeFromPoint;
     final to = _routeToPoint;
     if (from == null || to == null) return;
+
+    final selected = _selectedRouteIndex < _routeOptions.length
+        ? _routeOptions[_selectedRouteIndex]
+        : null;
+    final waypoint = (selected != null && selected.points.length > 2)
+        ? selected.points[selected.points.length ~/ 2]
+        : null;
 
     final Uri uri;
     switch (app) {
@@ -479,10 +501,13 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
       case 'google':
       default:
+        final waypointsParam =
+            waypoint != null ? '&waypoints=${waypoint.latitude},${waypoint.longitude}' : '';
         uri = Uri.parse(
             'https://www.google.com/maps/dir/?api=1'
             '&origin=${from.latitude},${from.longitude}'
-            '&destination=${to.latitude},${to.longitude}&travelmode=walking');
+            '&destination=${to.latitude},${to.longitude}'
+            '$waypointsParam&travelmode=walking');
     }
 
     if (await canLaunchUrl(uri)) {
@@ -516,61 +541,107 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _routeFromController,
-                  onChanged: _onRouteFromChanged,
-                  decoration: InputDecoration(
-                    labelText: loc.routeAwarenessFromLabel,
-                    hintText: loc.routeAwarenessFromHint,
-                    isDense: true,
-                    border: InputBorder.none,
+          // Ponto + linha ligando origem e destino, mesmo padrão visual
+          // de Google Maps/Uber — o ícone já diz "de"/"para", então o
+          // campo não precisa de um labelText próprio. labelText + border:
+          // InputBorder.none era a causa real da distorção: um rótulo
+          // flutuante do Material precisa de uma borda pra "pousar" nela,
+          // e sem isso ele fica espremido em cima do texto digitado.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: const BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        width: 1,
+                        color: BeeAwareTheme.border,
+                      ),
+                    ),
+                    Icon(PhosphorIconsRegular.flagCheckered,
+                        size: 14, color: BeeAwareTheme.textSecondary),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _routeFromController,
+                              onChanged: _onRouteFromChanged,
+                              decoration: InputDecoration(
+                                hintText: loc.routeAwarenessFromHint,
+                                isDense: true,
+                                border: InputBorder.none,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: loc.routeAwarenessUseMyLocation,
+                            icon: const Icon(PhosphorIconsRegular.crosshair,
+                                color: Colors.blue, size: 20),
+                            onPressed: _useMyLocationForRoute,
+                          ),
+                        ],
+                      ),
+                      if (_routeFromSuggestions.isNotEmpty)
+                        _RouteFieldSuggestions(
+                          suggestions: _routeFromSuggestions,
+                          onSelected: _selectRouteFromSuggestion,
+                        ),
+                      const Divider(height: 1),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _routeToController,
+                              onChanged: _onRouteToChanged,
+                              decoration: InputDecoration(
+                                hintText: loc.routeAwarenessToHint,
+                                isDense: true,
+                                border: InputBorder.none,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: loc.close,
+                            icon: const Icon(PhosphorIconsRegular.x,
+                                color: BeeAwareTheme.textSecondary, size: 20),
+                            onPressed: _exitRouteMode,
+                          ),
+                        ],
+                      ),
+                      if (_routeToSuggestions.isNotEmpty)
+                        _RouteFieldSuggestions(
+                          suggestions: _routeToSuggestions,
+                          onSelected: _selectRouteToSuggestion,
+                        ),
+                    ],
                   ),
                 ),
-              ),
-              IconButton(
-                tooltip: loc.routeAwarenessUseMyLocation,
-                icon: const Icon(PhosphorIconsRegular.crosshair,
-                    color: Colors.blue),
-                onPressed: _useMyLocationForRoute,
-              ),
-            ],
-          ),
-          if (_routeFromSuggestions.isNotEmpty)
-            _RouteFieldSuggestions(
-              suggestions: _routeFromSuggestions,
-              onSelected: _selectRouteFromSuggestion,
+              ],
             ),
-          const Divider(height: 1),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _routeToController,
-                  onChanged: _onRouteToChanged,
-                  decoration: InputDecoration(
-                    labelText: loc.routeAwarenessToLabel,
-                    hintText: loc.routeAwarenessToHint,
-                    isDense: true,
-                    border: InputBorder.none,
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: loc.close,
-                icon: const Icon(PhosphorIconsRegular.x,
-                    color: BeeAwareTheme.textSecondary),
-                onPressed: _exitRouteMode,
-              ),
-            ],
           ),
-          if (_routeToSuggestions.isNotEmpty)
-            _RouteFieldSuggestions(
-              suggestions: _routeToSuggestions,
-              onSelected: _selectRouteToSuggestion,
-            ),
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
@@ -1046,13 +1117,26 @@ class _HomeScreenState extends State<HomeScreen> {
               // de uma tela separada, para as rotas nunca perderem
               // contexto do que já está visível.
               if (_routeOptions.isNotEmpty) ...[
+                // A rota selecionada desenha por cima (mais grossa, cor
+                // cheia); as outras ficam finas e translúcidas — o
+                // usuário escolhe qual seguir tocando no card de
+                // resultado (_RouteResultsCard), e o mapa reflete isso.
                 PolylineLayer(
                   polylines: [
                     for (var i = 0; i < _routeOptions.length; i++)
+                      if (i != _selectedRouteIndex)
+                        Polyline(
+                          points: _routeOptions[i].points,
+                          strokeWidth: 4,
+                          color: _routeColors[i % _routeColors.length]
+                              .withValues(alpha: 0.35),
+                        ),
+                    if (_selectedRouteIndex < _routeOptions.length)
                       Polyline(
-                        points: _routeOptions[i].points,
-                        strokeWidth: 5,
-                        color: _routeColors[i % _routeColors.length],
+                        points: _routeOptions[_selectedRouteIndex].points,
+                        strokeWidth: 6,
+                        color:
+                            _routeColors[_selectedRouteIndex % _routeColors.length],
                       ),
                   ],
                 ),
@@ -1712,6 +1796,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _RouteResultsCard(
                 routes: _routeOptions,
                 colors: _routeColors,
+                selectedIndex: _selectedRouteIndex,
+                onSelect: _selectRoute,
                 onOpenInApp: _openInExternalMaps,
               ),
             ),
@@ -4039,11 +4125,15 @@ class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
 class _RouteResultsCard extends StatelessWidget {
   final List<RouteOption> routes;
   final List<Color> colors;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
   final ValueChanged<String> onOpenInApp;
 
   const _RouteResultsCard({
     required this.routes,
     required this.colors,
+    required this.selectedIndex,
+    required this.onSelect,
     required this.onOpenInApp,
   });
 
@@ -4074,6 +4164,8 @@ class _RouteResultsCard extends StatelessWidget {
               color: colors[i % colors.length],
               label: loc.routeAwarenessRouteLabel(String.fromCharCode(65 + i)),
               route: routes[i],
+              selected: i == selectedIndex,
+              onTap: routes.length > 1 ? () => onSelect(i) : null,
             ),
             if (i < routes.length - 1) const Divider(height: 14),
           ],
@@ -4164,11 +4256,15 @@ class _RouteResultRow extends StatelessWidget {
   final Color color;
   final String label;
   final RouteOption route;
+  final bool selected;
+  final VoidCallback? onTap;
 
   const _RouteResultRow({
     required this.color,
     required this.label,
     required this.route,
+    required this.selected,
+    required this.onTap,
   });
 
   @override
@@ -4180,40 +4276,57 @@ class _RouteResultRow extends StatelessWidget {
         ? '${km.toStringAsFixed(1)} km'
         : '${route.distanceMeters.round()} m';
 
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.08) : null,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: onTap != null
+              ? Border.all(
+                  color: selected ? color : Colors.transparent, width: 1.5)
+              : null,
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style:
-                      const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              Text(
-                '$minutes min · $distanceLabel',
-                style: const TextStyle(
-                    fontSize: 12, color: BeeAwareTheme.textSecondary),
+        child: Row(
+          children: [
+            Icon(
+              selected
+                  ? PhosphorIconsRegular.checkCircle
+                  : PhosphorIconsRegular.circle,
+              size: 18,
+              color: selected ? color : BeeAwareTheme.textAux,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text(
+                    '$minutes min · $distanceLabel',
+                    style: const TextStyle(
+                        fontSize: 12, color: BeeAwareTheme.textSecondary),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Text(
+              loc.areaIntelligenceSignalCount(route.totalSignalCount),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: route.totalSignalCount > 0
+                    ? BeeAwareTheme.textPrimary
+                    : BeeAwareTheme.textAux,
+              ),
+            ),
+          ],
         ),
-        Text(
-          loc.areaIntelligenceSignalCount(route.totalSignalCount),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: route.totalSignalCount > 0
-                ? BeeAwareTheme.textPrimary
-                : BeeAwareTheme.textAux,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
