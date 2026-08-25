@@ -40,6 +40,29 @@ class RecentActivity {
 class RecentActivityApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
+  /// Single-municipality lookup (recent_activity_for_city RPC) — same
+  /// 1000-row PostgREST cap reasoning as HistoricalSafetyApi.fetchForCity.
+  static Future<RecentActivity?> fetchForCity(
+    String cityIbgeCode, {
+    int recentDays = 30,
+    int baselineMonths = 12,
+  }) async {
+    try {
+      final rows = await _client.rpc('recent_activity_for_city', params: {
+        'target_city_ibge_code': cityIbgeCode,
+        'recent_days': recentDays,
+        'baseline_months': baselineMonths,
+      });
+
+      if (rows is! List || rows.isEmpty) return null;
+      final row = rows.first;
+      if (row is! Map<String, dynamic>) return null;
+      return _toRecentActivity(row);
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<List<RecentActivity>> fetchWithinStateScores({
     int recentDays = 30,
     int baselineMonths = 12,

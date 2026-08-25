@@ -1191,6 +1191,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Location not specified'**
   String get locationNotSpecified;
+
+  /// No description provided for @areaIntelligenceSafetyPulse.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety Pulse'**
+  String get areaIntelligenceSafetyPulse;
+
+  /// No description provided for @areaIntelligenceHistorical.
+  ///
+  /// In en, this message translates to:
+  /// **'Historical Safety'**
+  String get areaIntelligenceHistorical;
+
+  /// No description provided for @areaIntelligenceHistoricalCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'12-month baseline, ranked against other cities in {state}'**
+  String areaIntelligenceHistoricalCaption(String state);
+
+  /// No description provided for @areaIntelligenceRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Activity'**
+  String get areaIntelligenceRecent;
+
+  /// No description provided for @areaIntelligenceRecentCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days vs. this city\'s own baseline'**
+  String get areaIntelligenceRecentCaption;
+
+  /// No description provided for @areaIntelligenceLive.
+  ///
+  /// In en, this message translates to:
+  /// **'Live Awareness'**
+  String get areaIntelligenceLive;
+
+  /// No description provided for @areaIntelligenceLiveCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Signals in the last 24h within {radius}'**
+  String areaIntelligenceLiveCaption(String radius);
+
+  /// No description provided for @areaIntelligenceNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough recent data yet'**
+  String get areaIntelligenceNoData;
+
+  /// No description provided for @areaIntelligenceSignalCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No signals} one{{count} signal} other{{count} signals}}'**
+  String areaIntelligenceSignalCount(int count);
+
+  /// No description provided for @areaIntelligenceDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'An intelligence indicator built from official records — not a probability of personal safety. Coverage varies by source and is still being validated.'**
+  String get areaIntelligenceDisclaimer;
+
+  /// No description provided for @areaIntelligenceLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this area\'s data right now.'**
+  String get areaIntelligenceLoadError;
+
+  /// No description provided for @locationPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Location access is off — allow it to centre the map on you.'**
+  String get locationPermissionDenied;
+
+  /// No description provided for @locationPermissionBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is blocked for this site. Enable it in your browser\'s site settings.'**
+  String get locationPermissionBlocked;
+
+  /// No description provided for @locationPermissionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get your location right now.'**
+  String get locationPermissionError;
 }
 
 class _AppLocalizationsDelegate

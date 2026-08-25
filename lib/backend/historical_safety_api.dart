@@ -88,6 +88,31 @@ class HistoricalSafetyApi {
     }
   }
 
+  /// Single-municipality lookup (historical_safety_for_city RPC) — the
+  /// one fetchWithinStateScores/fetchNationalScores above should NOT be
+  /// used for: both return every Brazilian municipality in one call,
+  /// silently capped at PostgREST's 1000-row default, so a client-side
+  /// filter for one arbitrary tapped municipality could miss it entirely
+  /// depending on ordering. This RPC filters server-side instead.
+  static Future<HistoricalSafetyWithinState?> fetchForCity(
+    String cityIbgeCode, {
+    int monthsBack = 12,
+  }) async {
+    try {
+      final rows = await _client.rpc('historical_safety_for_city', params: {
+        'target_city_ibge_code': cityIbgeCode,
+        'months_back': monthsBack,
+      });
+
+      if (rows is! List || rows.isEmpty) return null;
+      final row = rows.first;
+      if (row is! Map<String, dynamic>) return null;
+      return _toHistoricalSafetyWithinState(row);
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<List<HistoricalSafetyWithinState>> fetchWithinStateScores(
       {int monthsBack = 12}) async {
     try {

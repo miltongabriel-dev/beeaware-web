@@ -694,4 +694,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationNotSpecified => 'Location not specified';
+
+  @override
+  String get areaIntelligenceSafetyPulse => 'Safety Pulse';
+
+  @override
+  String get areaIntelligenceHistorical => 'Historical Safety';
+
+  @override
+  String areaIntelligenceHistoricalCaption(String state) {
+    return '12-month baseline, ranked against other cities in $state';
+  }
+
+  @override
+  String get areaIntelligenceRecent => 'Recent Activity';
+
+  @override
+  String get areaIntelligenceRecentCaption =>
+      'Last 30 days vs. this city\'s own baseline';
+
+  @override
+  String get areaIntelligenceLive => 'Live Awareness';
+
+  @override
+  String areaIntelligenceLiveCaption(String radius) {
+    return 'Signals in the last 24h within $radius';
+  }
+
+  @override
+  String get areaIntelligenceNoData => 'Not enough recent data yet';
+
+  @override
+  String areaIntelligenceSignalCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count signals',
+      one: '$count signal',
+      zero: 'No signals',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get areaIntelligenceDisclaimer =>
+      'An intelligence indicator built from official records — not a probability of personal safety. Coverage varies by source and is still being validated.';
+
+  @override
+  String get areaIntelligenceLoadError =>
+      'Couldn\'t load this area\'s data right now.';
+
+  @override
+  String get locationPermissionDenied =>
+      'Location access is off — allow it to centre the map on you.';
+
+  @override
+  String get locationPermissionBlocked =>
+      'Location is blocked for this site. Enable it in your browser\'s site settings.';
+
+  @override
+  String get locationPermissionError =>
+      'Couldn\'t get your location right now.';
 }

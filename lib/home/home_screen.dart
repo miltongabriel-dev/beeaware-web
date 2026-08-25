@@ -42,6 +42,7 @@ import 'package:aware/backend/uk_police_api.dart';
 import 'package:aware/backend/brazil_crime_summary_api.dart';
 import 'package:aware/backend/location_coverage_api.dart';
 import '../map/municipality_choropleth_layer.dart';
+import '../area/area_intelligence_screen.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -195,6 +196,18 @@ class _HomeScreenState extends State<HomeScreen> {
   OverlayEntry? _hintOverlay;
 
   // 📍 Função que tira de Epsom e vai para sua rua
+  //
+  // Previously swallowed every outcome silently (bare `catch (_) {}`, no
+  // branch at all for a denied/unavailable permission) — a user tapping
+  // this button while location access was blocked saw literally nothing
+  // happen, with no way to tell "permission denied" apart from "just
+  // slow" or "broken". Now surfaces a SnackBar for both cases, same
+  // pattern _handleSearchSubmitted already uses for addressNotFound.
+  // Once a browser origin has permanently denied geolocation, the Web
+  // Geolocation API won't show its native prompt again on
+  // requestPermission() — the browser only lets the user re-grant it
+  // from its own site-settings UI — so deniedForever's message says that
+  // explicitly instead of implying a retry will help.
   Future<void> _centerMapOnUser() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -206,14 +219,35 @@ class _HomeScreenState extends State<HomeScreen> {
           permission == LocationPermission.whileInUse) {
         final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 10),
         );
 
         _mapController.move(
           LatLng(position.latitude, position.longitude),
           15.0,
         );
+        return;
       }
-    } catch (_) {}
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            permission == LocationPermission.deniedForever
+                ? AppLocalizations.of(context)!.locationPermissionBlocked
+                : AppLocalizations.of(context)!.locationPermissionDenied,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(AppLocalizations.of(context)!.locationPermissionError),
+        ),
+      );
+    }
   }
 
   Future<void> _loadUserLocation() async {
@@ -476,6 +510,53 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Tapping a colored municipality on MunicipalityChoroplethLayer opens
+  // Area Intelligence (roadmap wireframe 9.2) for it. No hit-testing API
+  // on the polygon layer itself is used here (flutter_map 7's
+  // PolygonLayer.hitNotifier would need wrapping the map in its own
+  // GestureDetector, on top of the one MapOptions.onTap already covers) —
+  // instead this reuses the tapped LatLng MapOptions.onTap already
+  // provides and does a plain point-in-polygon test against the same
+  // _crimeSummary list the choropleth itself renders, so "which
+  // municipality did they tap" can never disagree with what's on screen.
+  void _openAreaIntelligenceIfTapped(LatLng point) {
+    for (final summary in _crimeSummary) {
+      for (final ring in summary.polygons) {
+        if (_pointInPolygon(point, ring)) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => AreaIntelligenceScreen(
+                cityIbgeCode: summary.cityIbgeCode,
+                cityName: summary.cityName,
+                stateCode: summary.stateCode,
+                tapLat: point.latitude,
+                tapLng: point.longitude,
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    }
+  }
+
+  // Standard ray-casting point-in-polygon test (even-odd rule) — the
+  // municipality boundaries here are simple rings (holes already dropped
+  // by BrazilCrimeSummaryApi._parsePolygons, see its own doc comment),
+  // so this doesn't need to handle holes either.
+  static bool _pointInPolygon(LatLng point, List<LatLng> ring) {
+    var inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      final xi = ring[i].longitude, yi = ring[i].latitude;
+      final xj = ring[j].longitude, yj = ring[j].latitude;
+      final intersects = ((yi > point.latitude) != (yj > point.latitude)) &&
+          (point.longitude <
+              (xj - xi) * (point.latitude - yi) / (yj - yi) + xi);
+      if (intersects) inside = !inside;
+    }
+    return inside;
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -576,10 +657,11 @@ class _HomeScreenState extends State<HomeScreen> {
               // Só uma superfície flutuante aberta por vez: tocar no mapa
               // fecha as sugestões de busca, como tocar fora fecharia
               // qualquer outro painel.
-              onTap: (_, __) {
+              onTap: (_, point) {
                 if (_suggestions.isNotEmpty) {
                   setState(() => _suggestions = []);
                 }
+                _openAreaIntelligenceIfTapped(point);
               },
               onMapReady: () {
                 _loadUserLocation(); // keep (helps web/PWA)
