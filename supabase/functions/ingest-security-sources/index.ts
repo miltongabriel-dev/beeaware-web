@@ -44,7 +44,14 @@
 // its scheduled runs today only keep security_sources health metadata
 // current. That's not nothing (it's exactly what the roadmap's source-
 // health dashboard, section 12.5, is meant to show), but it's not event
-// data yet either.
+// data yet either. FbspAnuarioAdapter (added 2026-08-25) is also fully
+// real — a plain unauthenticated XLSX download, no session/CSRF/Power-BI
+// wall like PA-SEGUP or the SSP-SP dead end documented in its own file
+// header — and writes actual security_events rows, but at geo_precision
+// 'STATE' only (annual totals per UF from the FBSP's own yearbook, not
+// per-occurrence or per-municipality): it fills in the 18 states that had
+// zero coverage from every other adapter here, but coarser than all of
+// them. See fbsp_anuario.ts's header for the full sourcing story.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
@@ -70,6 +77,7 @@ import { MtAdapter } from "../_shared/adapters/br/mt_sesp.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
+import { FbspAnuarioAdapter } from "../_shared/adapters/br/fbsp_anuario.ts";
 // SpVehicleAdapter (sp_vehicle.ts) is built and correct but not
 // registered — every real attempt (default region, sa-east-1, chunked
 // downloading) has failed fast (~2-4s), a different and still-unexplained
@@ -107,6 +115,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   MtAdapter: new MtAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   RsSspAdapter: new RsSspAdapter(),
+  FbspAnuarioAdapter: new FbspAnuarioAdapter(),
 };
 
 async function upsertSourceRegistry(
