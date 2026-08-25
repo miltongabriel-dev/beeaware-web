@@ -1162,6 +1162,18 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _buildActiveFilterChips(context),
             ),
 
+          // Controle de zoom — meio-transparente, centralizado
+          // verticalmente na borda direita, entre a busca e a bússola.
+          Positioned(
+            top: 0,
+            bottom: 0,
+            right: 16,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _ZoomControl(mapController: _mapController),
+            ),
+          ),
+
 // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
           Positioned(
             right: 16,
@@ -2942,6 +2954,113 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             value.toString(),
             style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Controle de zoom flutuante — pill meio-transparente com um slider
+// vertical "graduado" entre os limites de zoom do mapa, mais os botões
+// +/- nas pontas. Reflete zoom feito por pinça/scroll (via
+// mapEventStream), não só o que o próprio slider disparou.
+class _ZoomControl extends StatefulWidget {
+  final MapController mapController;
+
+  const _ZoomControl({required this.mapController});
+
+  @override
+  State<_ZoomControl> createState() => _ZoomControlState();
+}
+
+class _ZoomControlState extends State<_ZoomControl> {
+  static const double _minZoom = 3;
+  static const double _maxZoom = 18;
+
+  late double _zoom =
+      widget.mapController.camera.zoom.clamp(_minZoom, _maxZoom);
+  StreamSubscription<MapEvent>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = widget.mapController.mapEventStream.listen((event) {
+      final z = event.camera.zoom.clamp(_minZoom, _maxZoom);
+      if (mounted && (z - _zoom).abs() > 0.01) {
+        setState(() => _zoom = z);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  void _setZoom(double value) {
+    final clamped = value.clamp(_minZoom, _maxZoom);
+    setState(() => _zoom = clamped);
+    widget.mapController.move(widget.mapController.camera.center, clamped);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(PhosphorIconsRegular.plus, size: 16),
+            color: BeeAwareTheme.primary,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: _zoom < _maxZoom ? () => _setZoom(_zoom + 1) : null,
+          ),
+          SizedBox(
+            height: 140,
+            width: 32,
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 2,
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  overlayShape: SliderComponentShape.noOverlay,
+                  activeTrackColor: BeeAwareTheme.primary,
+                  inactiveTrackColor:
+                      BeeAwareTheme.primary.withValues(alpha: 0.25),
+                  thumbColor: BeeAwareTheme.primary,
+                ),
+                child: Slider(
+                  min: _minZoom,
+                  max: _maxZoom,
+                  value: _zoom,
+                  onChanged: _setZoom,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(PhosphorIconsRegular.minus, size: 16),
+            color: BeeAwareTheme.primary,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: _zoom > _minZoom ? () => _setZoom(_zoom - 1) : null,
           ),
         ],
       ),
