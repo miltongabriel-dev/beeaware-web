@@ -19,15 +19,31 @@
 // count per police district, not a per-occurrence record with a real
 // location — individual violent-crime records with addresses aren't
 // published anywhere (understandably, for victim safety). So there is
-// no lat/lon here, geoPrecision is MUNICIPALITY, and occurrenceCount
-// carries the actual count. `mcirc` is the real IBGE municipality code
-// (e.g. "3304557" = Rio de Janeiro), which is what lets this join onto
-// the geo_areas rows IbgeAdapter already populated — no separate
-// geocoding step needed. Several CISPs can belong to the same
-// municipality, so normalize() sums across CISPs to one row per
-// (municipality, month, event type) rather than emitting one event per
-// CISP row, since there's no CISP-level geometry loaded to make finer
-// granularity meaningful yet.
+// no lat/lon here, and occurrenceCount carries the actual count.
+//
+// One row per (CISP, month, event type) — not aggregated up to
+// municipality — now that real CISP boundaries exist in geo_areas
+// (20260825210000/220000/230000_rj_*_geometry.sql, from ISP's own
+// RISPkml/AISPkml/CISPkml exports). `district` is set to "CISP {id}",
+// the exact string those migrations used for geo_areas.name, so the
+// security_events_resolve_geo_area trigger (20260825250000) links each
+// event to its real polygon automatically on insert — no lookup needed
+// here. Verified live 2026-08-25 against the real CSV's most recent
+// 24-month window (what MONTHS_WINDOW below actually processes): all
+// 137 CISPs in that window have a matching KML polygon and vice versa
+// (exact 1:1), and every CISP maps to exactly one municipality (`mcirc`)
+// throughout the window — so cityIbgeCode/cityName are kept alongside
+// the new district/CISP fields, not replaced by them; both a
+// municipality-level and (once geo_area_id resolves) a CISP-level query
+// stay meaningful.
+//
+// This is a scope change from the previous municipality-aggregated
+// version: existing MUNICIPALITY-precision rows from RjIspAdapter are
+// deleted by 20260825260000_rj_isp_reprocess_cleanup.sql alongside this
+// change, since their sourceRecordId format (keyed by municipality) has
+// no relationship to the new CISP-keyed one and would otherwise sit
+// alongside the new rows as stale duplicates, double-counting anything
+// that aggregates by municipality.
 //
 // Only the last 24 months are ingested — the file's full 23-year history
 // is real but not useful for a "how risky is this area right now"
@@ -133,6 +149,7 @@ function yearMonth(row: Record<string, string>): string {
 }
 
 interface AggregateGroup {
+  cispId: string;
   cityIbgeCode: string;
   cityName: string;
   yearMonth: string;
@@ -151,7 +168,7 @@ export class RjIspAdapter implements SecuritySourceAdapter {
       sourceType: "official",
       sourceUrl: SOURCE_URL,
       adapterName: "RjIspAdapter",
-      adapterVersion: "0.1.0",
+      adapterVersion: "0.2.0", // CISP-level rows instead of municipality-aggregated
       refreshFrequency: "monthly", // ISP publishes a monthly update
     };
   }
@@ -194,9 +211,10 @@ export class RjIspAdapter implements SecuritySourceAdapter {
       const ym = yearMonth(row);
       if (ym < cutoffYm) continue;
 
+      const cispId = row.cisp;
       const cityIbgeCode = row.mcirc;
       const cityName = row.munic;
-      if (!cityIbgeCode) continue;
+      if (!cispId || !cityIbgeCode) continue;
 
       for (const [column, [eventCategory, eventType]] of Object.entries(COLUMN_MAP)) {
         const raw = row[column];
@@ -204,12 +222,13 @@ export class RjIspAdapter implements SecuritySourceAdapter {
         const n = Number(raw);
         if (!Number.isFinite(n) || n <= 0) continue;
 
-        const key = `${cityIbgeCode}|${ym}|${eventCategory}|${eventType}`;
+        const key = `${cispId}|${ym}|${eventCategory}|${eventType}`;
         const existing = groups.get(key);
         if (existing) {
           existing.occurrenceCount += n;
         } else {
           groups.set(key, {
+            cispId,
             cityIbgeCode,
             cityName,
             yearMonth: ym,
@@ -221,26 +240,27 @@ export class RjIspAdapter implements SecuritySourceAdapter {
       }
     }
 
-    const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
+    const districtLocationConfidence = defaultLocationConfidence("DISTRICT");
 
     const events: SecurityEvent[] = Array.from(groups.values()).map((g) => ({
       countryCode: "BR",
       stateCode: "RJ",
       cityIbgeCode: g.cityIbgeCode,
-      sourceRecordId: `${g.cityIbgeCode}-${g.yearMonth}-${g.eventType}`,
+      sourceRecordId: `cisp${g.cispId}-${g.yearMonth}-${g.eventType}`,
       sourceType: "official",
       eventCategory: g.eventCategory as SecurityEvent["eventCategory"],
       eventType: g.eventType,
       occurredAt: `${g.yearMonth}-01T00:00:00-03:00`,
-      geoPrecision: "MUNICIPALITY",
-      locationConfidence: municipalityLocationConfidence,
+      geoPrecision: "DISTRICT",
+      locationConfidence: districtLocationConfidence,
+      district: `CISP ${g.cispId}`,
       city: g.cityName,
       state: "RJ",
       occurrenceCount: g.occurrenceCount,
       severity: severityFor(g.eventType),
       confidenceScore: computeConfidenceScore({
         reliabilityGrade: "official_confirmed_record",
-        locationConfidence: municipalityLocationConfidence,
+        locationConfidence: districtLocationConfidence,
       }),
     }));
 
