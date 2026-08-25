@@ -67,8 +67,16 @@ List<List<LatLng>> _parsePolygons(Map<String, dynamic> geometry) {
 class BrazilCrimeSummaryApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
+  // 12 months (the value this briefly used) makes the underlying
+  // municipality_crime_summary RPC scan enough security_events rows to
+  // blow Postgres's statement timeout — confirmed live: months_back=12
+  // times out ("57014 canceling statement due to statement timeout"),
+  // months_back=3 returns RJ+RS choropleth data in ~3.5s. Silently swallowed
+  // by the try/catch below, so the whole choropleth (every state, not just
+  // one) went dark with no visible error. Widening this again needs a
+  // supporting index on security_events first, not just a bigger window.
   static Future<List<MunicipalityCrimeSummary>> fetchSummary(
-      {int monthsBack = 12}) async {
+      {int monthsBack = 3}) async {
     try {
       final rows = await _client.rpc('municipality_crime_summary', params: {
         'months_back': monthsBack,
