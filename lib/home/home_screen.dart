@@ -965,11 +965,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               textInputAction: TextInputAction.search,
                               onChanged: (value) {
                                 // Só uma superfície flutuante por vez: abrir
-                                // sugestões fecha o painel de filtros.
+                                // sugestões fecha o painel de filtros e o
+                                // menu.
                                 if (_filterOverlay != null) {
                                   _filterOverlay!.remove();
                                   _filterOverlay = null;
                                 }
+                                _closeMenu();
                                 _debounce?.cancel();
                                 _debounce = Timer(
                                   const Duration(milliseconds: 250),
@@ -1441,15 +1443,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   OverlayEntry? _filterOverlay;
+  OverlayEntry? _menuOverlay;
+
+  void _closeMenu() {
+    _menuOverlay?.remove();
+    _menuOverlay = null;
+  }
 
   void _showFiltersOverlay() {
     if (!mounted) return;
 
     // Só uma superfície flutuante por vez: abrir o painel de filtros fecha
-    // as sugestões de busca, se houver.
+    // as sugestões de busca e o menu, se houver.
     if (_suggestions.isNotEmpty) {
       setState(() => _suggestions = []);
     }
+    _closeMenu();
 
     if (_filterOverlay != null) {
       _filterOverlay!.remove();
@@ -1982,225 +1991,274 @@ class _HomeScreenState extends State<HomeScreen> {
     _clearHint();
     final rootContext = context; // 👈 importante para evitar erros
 
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-      ),
-      builder: (sheetContext) {
-        final loc = AppLocalizations.of(sheetContext)!;
-        final tokens = rootContext.read<TokenState>().tokens;
-        final user = Supabase.instance.client.auth.currentUser;
+    // Só uma superfície flutuante por vez: abrir o menu fecha sugestões e
+    // o painel de filtros, se houver — mesma disciplina do resto do mapa.
+    if (_suggestions.isNotEmpty) {
+      setState(() => _suggestions = []);
+    }
+    if (_filterOverlay != null) {
+      _filterOverlay!.remove();
+      _filterOverlay = null;
+    }
+    _closeMenu();
 
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ================= HEADER =================
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.pop(rootContext);
-
-                      if (user == null) {
-                        Navigator.push(
-                          rootContext,
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(),
-                          ),
-                        );
-                      } else {
-                        // FUTURO: profile
-                      }
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        gradient: user == null
-                            ? null
-                            : const LinearGradient(
-                                colors: [
-                                  Color(0xFFFFF2CC),
-                                  Color(0xFFFDE68A),
-                                ],
-                              ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          // Avatar
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  BeeAwareTheme.accent,
-                                  const Color(0xFFFBBF24),
-                                ],
-                              ),
-                            ),
-                            child: CircleAvatar(
-                              radius: 22,
-                              backgroundColor: Colors.transparent,
-                              child: user == null
-                                  ? const Icon(PhosphorIconsRegular.person,
-                                      color: Colors.black)
-                                  : const Icon(PhosphorIconsRegular.sealCheck,
-                                      color: Colors.black),
-                            ),
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          // Text
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user == null
-                                      ? loc.signInToBeeAware
-                                      : (user.email ?? loc.signedIn),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                if (user == null || AppConfig.tokensEnabled)
-                                  Text(
-                                    user == null
-                                        ? loc.secureLoginGoogleEmail
-                                        : loc.tokensAvailable(tokens),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: BeeAwareTheme.textSecondary,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-
-                          // Arrow
-                          const Icon(
-                            PhosphorIconsRegular.caretRight,
-                            size: 20,
-                            color: BeeAwareTheme.textAux,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-                const Divider(),
-
-                _menuSectionLabel(loc.menuSectionAccount),
-
-                // ================= BUY =================
-                if (AppConfig.tokensEnabled)
-                  _menuItem(
-                    icon: PhosphorIconsRegular.creditCard,
-                    label: loc.buyMoreCredits,
-                    onTap: () {
-                      Navigator.pop(rootContext);
-                      Navigator.push(
-                        rootContext,
-                        MaterialPageRoute(
-                          builder: (_) => const BuyTokensScreen(),
+    _menuOverlay = OverlayEntry(
+      builder: (overlayContext) {
+        return GestureDetector(
+          onTap: _closeMenu,
+          child: Material(
+            color: Colors.black.withValues(alpha: 0.25),
+            child: Center(
+              child: GestureDetector(
+                onTap: () {}, // evita fechar ao clicar dentro
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 250),
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: 0.95 + (0.05 * value),
+                      child: Opacity(opacity: value, child: child),
+                    );
+                  },
+                  child: Container(
+                    width: 380,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 20,
                         ),
-                      );
-                    },
+                      ],
+                    ),
+                    child: _buildMenuContent(overlayContext, rootContext),
                   ),
-
-                // ================= ALERTS =================
-                _menuItem(
-                  icon: PhosphorIconsRegular.bellRinging,
-                  label: loc.alertsMonitoring,
-                  onTap: () {
-                    Navigator.pop(rootContext);
-                  },
                 ),
-
-                const Divider(height: 30),
-
-                _menuSectionLabel(loc.menuSectionSupport),
-
-                // ================= DATA =================
-                _menuItem(
-                  icon: PhosphorIconsRegular.chartBar,
-                  label: loc.dataSources,
-                  onTap: () {
-                    Navigator.pop(rootContext);
-                    _showOfficialLegendSheet(rootContext);
-                  },
-                ),
-
-                _menuItem(
-                  icon: PhosphorIconsRegular.globe,
-                  label: loc.languageLabel,
-                  onTap: () {
-                    Navigator.pop(rootContext);
-                    _showLanguagePicker(rootContext);
-                  },
-                ),
-
-                _menuItem(
-                  icon: PhosphorIconsRegular.shieldCheck,
-                  label: loc.privacyLabel,
-                  onTap: () async {
-                    Navigator.pop(rootContext);
-
-                    final uri =
-                        Uri.parse('https://www.beeaware.io/privacy.html');
-
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri,
-                          mode: LaunchMode.externalApplication);
-                    }
-                  },
-                ),
-
-                _menuItem(
-                  icon: PhosphorIconsRegular.info,
-                  label: loc.aboutBeeAware,
-                  onTap: () {
-                    Navigator.pop(rootContext);
-                    _showAboutSheet(rootContext);
-                  },
-                ),
-
-                // ================= LOGOUT =================
-                if (user != null) ...[
-                  const Divider(height: 30),
-                  _menuItem(
-                    icon: PhosphorIconsRegular.signOut,
-                    label: loc.signOut,
-                    onTap: () async {
-                      await Supabase.instance.client.auth.signOut();
-                      Navigator.pop(rootContext);
-                      setState(() {}); // ou atualize o state do menu
-                      context.read<TokenState>().clear();
-                    },
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
         );
       },
+    );
+
+    Overlay.of(context).insert(_menuOverlay!);
+  }
+
+  Widget _buildMenuContent(
+      BuildContext overlayContext, BuildContext rootContext) {
+    final loc = AppLocalizations.of(overlayContext)!;
+    final tokens = rootContext.read<TokenState>().tokens;
+    final user = Supabase.instance.client.auth.currentUser;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(overlayContext).size.height * 0.8,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ================= HEADER =================
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () {
+                  _closeMenu();
+
+                  if (user == null) {
+                    Navigator.push(
+                      rootContext,
+                      MaterialPageRoute(
+                        builder: (_) => const LoginScreen(),
+                      ),
+                    );
+                  } else {
+                    // FUTURO: profile
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    gradient: user == null
+                        ? null
+                        : const LinearGradient(
+                            colors: [
+                              Color(0xFFFFF2CC),
+                              Color(0xFFFDE68A),
+                            ],
+                          ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Avatar
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              BeeAwareTheme.accent,
+                              const Color(0xFFFBBF24),
+                            ],
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Colors.transparent,
+                          child: user == null
+                              ? const Icon(PhosphorIconsRegular.person,
+                                  color: Colors.black)
+                              : const Icon(PhosphorIconsRegular.sealCheck,
+                                  color: Colors.black),
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Text
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user == null
+                                  ? loc.signInToBeeAware
+                                  : (user.email ?? loc.signedIn),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
+                            if (user == null || AppConfig.tokensEnabled)
+                              Text(
+                                user == null
+                                    ? loc.secureLoginGoogleEmail
+                                    : loc.tokensAvailable(tokens),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: BeeAwareTheme.textSecondary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                      // Arrow
+                      const Icon(
+                        PhosphorIconsRegular.caretRight,
+                        size: 20,
+                        color: BeeAwareTheme.textAux,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+            const Divider(),
+
+            _menuSectionLabel(loc.menuSectionAccount),
+
+            // ================= BUY =================
+            if (AppConfig.tokensEnabled)
+              _menuItem(
+                icon: PhosphorIconsRegular.creditCard,
+                label: loc.buyMoreCredits,
+                onTap: () {
+                  _closeMenu();
+                  Navigator.push(
+                    rootContext,
+                    MaterialPageRoute(
+                      builder: (_) => const BuyTokensScreen(),
+                    ),
+                  );
+                },
+              ),
+
+            // ================= ALERTS =================
+            _menuItem(
+              icon: PhosphorIconsRegular.bellRinging,
+              label: loc.alertsMonitoring,
+              onTap: () {
+                _closeMenu();
+              },
+            ),
+
+            const Divider(height: 30),
+
+            _menuSectionLabel(loc.menuSectionSupport),
+
+            // ================= DATA =================
+            _menuItem(
+              icon: PhosphorIconsRegular.chartBar,
+              label: loc.dataSources,
+              onTap: () {
+                _closeMenu();
+                _showOfficialLegendSheet(rootContext);
+              },
+            ),
+
+            _menuItem(
+              icon: PhosphorIconsRegular.globe,
+              label: loc.languageLabel,
+              onTap: () {
+                _closeMenu();
+                _showLanguagePicker(rootContext);
+              },
+            ),
+
+            _menuItem(
+              icon: PhosphorIconsRegular.shieldCheck,
+              label: loc.privacyLabel,
+              onTap: () async {
+                _closeMenu();
+
+                final uri = Uri.parse('https://www.beeaware.io/privacy.html');
+
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+            ),
+
+            _menuItem(
+              icon: PhosphorIconsRegular.info,
+              label: loc.aboutBeeAware,
+              onTap: () {
+                _closeMenu();
+                _showAboutSheet(rootContext);
+              },
+            ),
+
+            // ================= LOGOUT =================
+            if (user != null) ...[
+              const Divider(height: 30),
+              _menuItem(
+                icon: PhosphorIconsRegular.signOut,
+                label: loc.signOut,
+                onTap: () async {
+                  await Supabase.instance.client.auth.signOut();
+                  _closeMenu();
+                  setState(() {}); // ou atualize o state do menu
+                  rootContext.read<TokenState>().clear();
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
