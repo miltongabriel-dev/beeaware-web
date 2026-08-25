@@ -2084,20 +2084,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadius.lg),
-                    gradient: user == null
-                        ? null
-                        : const LinearGradient(
-                            colors: [
-                              Color(0xFFFFF2CC),
-                              Color(0xFFFDE68A),
-                            ],
-                          ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                      ),
-                    ],
+                    color: BeeAwareTheme.primary.withValues(alpha: 0.06),
                   ),
                   child: Row(
                     children: [
@@ -2167,7 +2154,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             const SizedBox(height: 20),
-            const Divider(),
 
             _menuSectionLabel(loc.menuSectionAccount),
 
@@ -2196,7 +2182,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-            const Divider(height: 30),
+            const SizedBox(height: 20),
 
             _menuSectionLabel(loc.menuSectionSupport),
 
@@ -2244,7 +2230,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // ================= LOGOUT =================
             if (user != null) ...[
-              const Divider(height: 30),
+              const SizedBox(height: 20),
               _menuItem(
                 icon: PhosphorIconsRegular.signOut,
                 label: loc.signOut,
@@ -2262,36 +2248,68 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Mesma tipografia de título de seção do painel de filtros
+  // (_buildFiltersContent) — os dois cartões flutuantes da barra usam
+  // agora a mesma linguagem, em vez do rótulo pequeno em caixa alta que o
+  // menu tinha antes.
   Widget _menuSectionLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          label.toUpperCase(),
+          label,
           style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-            color: BeeAwareTheme.textAux,
+            fontWeight: FontWeight.w600,
+            color: BeeAwareTheme.textSecondary,
           ),
         ),
       ),
     );
   }
 
+  // Mesmo círculo com o ícone tingido de âmbar usado em ReportSummaryScreen
+  // e ReportDateTimeScreen — o menu usava um ListTile puro, sem nenhuma
+  // cor ou avatar, destoando do resto do app.
   Widget _menuItem({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: Icon(icon, size: 20),
-      title: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w500),
-      ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
       onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: BeeAwareTheme.primary.withValues(alpha: 0.08),
+              ),
+              child: Icon(icon, size: 18, color: BeeAwareTheme.primary),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const Icon(
+              PhosphorIconsRegular.caretRight,
+              size: 18,
+              color: BeeAwareTheme.textAux,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
