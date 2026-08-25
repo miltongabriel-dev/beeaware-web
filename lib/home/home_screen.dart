@@ -2479,7 +2479,12 @@ class _HomeScreenState extends State<HomeScreen> {
     policeTrend.sort((a, b) => a.month.compareTo(b.month));
 
 // 🔥 2. descobrir último mês
-    final last = policeTrend.last.month;
+    // UkPoliceApi só cobre o Reino Unido — fora dele (Brasil, etc.) isso
+    // sempre vem vazio. Sem esse fallback, `.last` lançava em lista vazia
+    // e a função inteira abortava antes de chamar _openTrendOverlay: o
+    // botão de tendência simplesmente não fazia nada.
+    final last =
+        policeTrend.isNotEmpty ? policeTrend.last.month : DateTime.now();
 
 // 🔥 3. criar base correta de 12 meses
     final months = _getTrendMonths(last);
