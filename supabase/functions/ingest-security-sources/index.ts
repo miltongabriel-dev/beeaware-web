@@ -38,7 +38,15 @@
 // actual file), but it is NOT REGISTERED below: fetch() has failed 3/3
 // real attempts in production. See sinesp.ts's own header for the full
 // diagnosis, including a likely shared root cause with SpVehicleAdapter
-// (also built, also not registered, see sp_vehicle.ts). RenaestAdapter
+// (also built, also not registered, see sp_vehicle.ts). Its data got into
+// security_events anyway, once (2026-08-25): a non-Edge-Function machine
+// doesn't hit whatever the Edge Function's timing ceiling is, so the same
+// bancovde-2026.xlsx GET that fails from here completed in seconds from
+// there — see supabase/migrations/20260825150000_sinesp_manual_
+// population.sql for the one-off population this produced (3,401 real
+// events, all 27 UFs, verified against the live file). Still not on any
+// schedule — that migration doesn't change why fetch() fails from this
+// Edge Function, so this data will not refresh on its own. RenaestAdapter
 // still has working fetch() (real discovery against its live source) but
 // normalize() returns [] (see the adapter's file header for why) — so
 // its scheduled runs today only keep security_sources health metadata
