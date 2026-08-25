@@ -681,8 +681,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roadAccidentCategory => 'Acidente de trânsito';
 
   @override
-  String roadAccidentDescription(String type, String city, String state) {
-    return '$type em $city, $state. Fonte: PRF.';
+  String officialEventDescription(String type, String city, String state) {
+    return '$type em $city, $state.';
   }
 
   @override

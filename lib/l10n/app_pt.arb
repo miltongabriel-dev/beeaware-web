@@ -210,8 +210,8 @@
 
   "policeReportCategory": "Relato da polícia",
   "roadAccidentCategory": "Acidente de trânsito",
-  "roadAccidentDescription": "{type} em {city}, {state}. Fonte: PRF.",
-  "@roadAccidentDescription": {
+  "officialEventDescription": "{type} em {city}, {state}.",
+  "@officialEventDescription": {
     "placeholders": {
       "type": { "type": "String" },
       "city": { "type": "String" },

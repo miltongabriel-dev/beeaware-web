@@ -25,6 +25,13 @@ class MapIncident {
   final bool isOfficial;
   final String? source;
 
+  /// Pre-resolved display label for an official event's coarse category
+  /// (e.g. "Traffic accident", "Violence") — resolved once where the
+  /// event_category enum is available (BrazilSecurityApi), since
+  /// MapIncident itself has no BuildContext/locale to resolve it later.
+  /// Null for community reports, which use ReportLabels.category instead.
+  final String? officialCategoryLabel;
+
   MapIncident({
     required this.id,
     required this.location,
@@ -38,6 +45,7 @@ class MapIncident {
     this.hash,
     this.isOfficial = false, // ✅ default seguro
     this.source,
+    this.officialCategoryLabel,
   });
 
   Map<String, dynamic> toJson() {

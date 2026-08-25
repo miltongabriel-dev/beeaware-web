@@ -676,8 +676,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roadAccidentCategory => 'Traffic accident';
 
   @override
-  String roadAccidentDescription(String type, String city, String state) {
-    return '$type in $city, $state. Source: PRF.';
+  String officialEventDescription(String type, String city, String state) {
+    return '$type in $city, $state.';
   }
 
   @override

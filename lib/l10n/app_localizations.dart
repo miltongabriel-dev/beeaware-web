@@ -1166,11 +1166,11 @@ abstract class AppLocalizations {
   /// **'Traffic accident'**
   String get roadAccidentCategory;
 
-  /// No description provided for @roadAccidentDescription.
+  /// No description provided for @officialEventDescription.
   ///
   /// In en, this message translates to:
-  /// **'{type} in {city}, {state}. Source: PRF.'**
-  String roadAccidentDescription(String type, String city, String state);
+  /// **'{type} in {city}, {state}.'**
+  String officialEventDescription(String type, String city, String state);
 
   /// No description provided for @officialDescriptionWithOutcome.
   ///

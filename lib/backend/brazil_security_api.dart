@@ -23,13 +23,13 @@ Future<AppLocalizations> _loadLocalizations() {
 /// called from the same IncidentStore.syncOfficialForBounds flow that
 /// already drives the UK official layer.
 ///
-/// Only ROAD_SAFETY events exist today (PRF's normalize() is the only one
-/// of the four Brazil adapters that's implemented) — VIOLENCE/PROPERTY/
-/// PUBLIC_SAFETY rows will start flowing through this same path once
-/// SINESP/RENAEST's normalize() is filled in, with no client change
-/// needed. Rows without a real point location never reach this table (the
-/// RPC excludes them), so there's no separate "don't invent precision"
-/// check needed client-side.
+/// Now backed by 11 Brazil adapters across VIOLENCE/PROPERTY/PUBLIC_SAFETY/
+/// ROAD_SAFETY, not just PRF's ROAD_SAFETY feed — nearby_security_events
+/// (20260825160000) joins security_sources and returns source_organisation
+/// per row so the client can attribute each pin to its real source instead
+/// of assuming PRF. Rows without a real point location never reach this
+/// table (the RPC excludes them), so there's no separate "don't invent
+/// precision" check needed client-side.
 class BrazilSecurityApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
@@ -81,6 +81,8 @@ class BrazilSecurityApi {
     final state = (row['state'] as String?) ?? '';
     final occurredAt = row['occurred_at'] as String?;
     final sourceType = (row['source_type'] as String?) ?? 'official';
+    final categoryLabel =
+        _categoryLabel(row['event_category'] as String?, loc);
 
     return MapIncident(
       id: 'br-security-event-$id',
@@ -88,16 +90,37 @@ class BrazilSecurityApi {
       severity: severity,
       category: eventType,
       subcategory: (row['original_category'] as String?) ?? eventType,
-      description: loc.roadAccidentDescription(
-        (row['original_category'] as String?) ?? loc.roadAccidentCategory,
+      description: loc.officialEventDescription(
+        (row['original_category'] as String?) ?? categoryLabel,
         city,
         state,
       ),
       dateTime:
           occurredAt != null ? DateTime.parse(occurredAt) : DateTime.now(),
       isOfficial: sourceType == 'official',
-      source: 'PRF',
+      source: row['source_organisation'] as String?,
+      officialCategoryLabel: categoryLabel,
     );
+  }
+
+  /// event_category (security_event_category enum) -> display label.
+  /// Reuses the community-report category strings where the concept lines
+  /// up (VIOLENCE/PROPERTY) rather than inventing a parallel set of
+  /// strings for the same real-world idea; PUBLIC_SAFETY falls back to the
+  /// generic "Police report" bucket since none of the existing labels fit
+  /// its mix (weapon/drugs/disturbance/fire/emergency) well enough to pick
+  /// just one.
+  static String _categoryLabel(String? eventCategory, AppLocalizations loc) {
+    switch (eventCategory) {
+      case 'ROAD_SAFETY':
+        return loc.roadAccidentCategory;
+      case 'VIOLENCE':
+        return loc.categoryViolence;
+      case 'PROPERTY':
+        return loc.categoryTheft;
+      default:
+        return loc.policeReportCategory;
+    }
   }
 
   static IncidentSeverity _mapSeverity(String? severity) {
