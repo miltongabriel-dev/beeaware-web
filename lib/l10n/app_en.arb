@@ -332,5 +332,35 @@
 
   "locationPermissionDenied": "Location access is off — allow it to centre the map on you.",
   "locationPermissionBlocked": "Location is blocked for this site. Enable it in your browser's site settings.",
-  "locationPermissionError": "Couldn't get your location right now."
+  "locationPermissionError": "Couldn't get your location right now.",
+
+  "routeAwarenessTitle": "Route Awareness",
+  "routeAwarenessFromLabel": "From",
+  "routeAwarenessToLabel": "To",
+  "routeAwarenessFromHint": "Starting point",
+  "routeAwarenessToHint": "Destination",
+  "routeAwarenessUseMyLocation": "Use my location",
+  "routeAwarenessSearchButton": "Find routes",
+  "routeAwarenessRouteLabel": "Route {letter}",
+  "@routeAwarenessRouteLabel": {
+    "placeholders": { "letter": { "type": "String" } }
+  },
+  "routeAwarenessFastest": "Faster: {route}",
+  "@routeAwarenessFastest": {
+    "placeholders": { "route": { "type": "String" } }
+  },
+  "routeAwarenessFewerSignals": "Fewer recent safety signals: {route}",
+  "@routeAwarenessFewerSignals": {
+    "placeholders": { "route": { "type": "String" } }
+  },
+  "routeAwarenessSimilarSignals": "Similar recent activity on both routes",
+  "routeAwarenessNoRoutes": "Couldn't find a route between these points.",
+  "routeAwarenessDisclaimer": "Compares routes by recent safety signals — not a guarantee that either route is safe.",
+  "routeAwarenessMenuLabel": "Route Awareness",
+  "myLocation": "My location",
+
+  "routeAwarenessOpenInApp": "Open this route in",
+  "routeAwarenessGoogleMaps": "Google Maps",
+  "routeAwarenessWaze": "Waze",
+  "routeAwarenessAppleMaps": "Apple Maps"
 }

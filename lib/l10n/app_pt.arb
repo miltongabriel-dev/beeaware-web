@@ -245,5 +245,35 @@
 
   "locationPermissionDenied": "A localização está desativada — permita o acesso para centralizar o mapa em você.",
   "locationPermissionBlocked": "A localização está bloqueada para este site. Ative nas configurações do seu navegador.",
-  "locationPermissionError": "Não foi possível obter sua localização agora."
+  "locationPermissionError": "Não foi possível obter sua localização agora.",
+
+  "routeAwarenessTitle": "Consciência de Rota",
+  "routeAwarenessFromLabel": "De",
+  "routeAwarenessToLabel": "Para",
+  "routeAwarenessFromHint": "Ponto de partida",
+  "routeAwarenessToHint": "Destino",
+  "routeAwarenessUseMyLocation": "Usar minha localização",
+  "routeAwarenessSearchButton": "Buscar rotas",
+  "routeAwarenessRouteLabel": "Rota {letter}",
+  "@routeAwarenessRouteLabel": {
+    "placeholders": { "letter": { "type": "String" } }
+  },
+  "routeAwarenessFastest": "Mais rápida: {route}",
+  "@routeAwarenessFastest": {
+    "placeholders": { "route": { "type": "String" } }
+  },
+  "routeAwarenessFewerSignals": "Menos sinais recentes de segurança: {route}",
+  "@routeAwarenessFewerSignals": {
+    "placeholders": { "route": { "type": "String" } }
+  },
+  "routeAwarenessSimilarSignals": "Atividade recente semelhante nas duas rotas",
+  "routeAwarenessNoRoutes": "Não foi possível encontrar uma rota entre esses pontos.",
+  "routeAwarenessDisclaimer": "Compara rotas pelos sinais de segurança recentes — não é garantia de que uma rota seja segura.",
+  "routeAwarenessMenuLabel": "Consciência de Rota",
+  "myLocation": "Minha localização",
+
+  "routeAwarenessOpenInApp": "Abrir esta rota em",
+  "routeAwarenessGoogleMaps": "Google Maps",
+  "routeAwarenessWaze": "Waze",
+  "routeAwarenessAppleMaps": "Apple Maps"
 }

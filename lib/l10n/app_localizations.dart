@@ -1275,6 +1275,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t get your location right now.'**
   String get locationPermissionError;
+
+  /// No description provided for @routeAwarenessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Route Awareness'**
+  String get routeAwarenessTitle;
+
+  /// No description provided for @routeAwarenessFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get routeAwarenessFromLabel;
+
+  /// No description provided for @routeAwarenessToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get routeAwarenessToLabel;
+
+  /// No description provided for @routeAwarenessFromHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting point'**
+  String get routeAwarenessFromHint;
+
+  /// No description provided for @routeAwarenessToHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination'**
+  String get routeAwarenessToHint;
+
+  /// No description provided for @routeAwarenessUseMyLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my location'**
+  String get routeAwarenessUseMyLocation;
+
+  /// No description provided for @routeAwarenessSearchButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Find routes'**
+  String get routeAwarenessSearchButton;
+
+  /// No description provided for @routeAwarenessRouteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Route {letter}'**
+  String routeAwarenessRouteLabel(String letter);
+
+  /// No description provided for @routeAwarenessFastest.
+  ///
+  /// In en, this message translates to:
+  /// **'Faster: {route}'**
+  String routeAwarenessFastest(String route);
+
+  /// No description provided for @routeAwarenessFewerSignals.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer recent safety signals: {route}'**
+  String routeAwarenessFewerSignals(String route);
+
+  /// No description provided for @routeAwarenessSimilarSignals.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar recent activity on both routes'**
+  String get routeAwarenessSimilarSignals;
+
+  /// No description provided for @routeAwarenessNoRoutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t find a route between these points.'**
+  String get routeAwarenessNoRoutes;
+
+  /// No description provided for @routeAwarenessDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Compares routes by recent safety signals — not a guarantee that either route is safe.'**
+  String get routeAwarenessDisclaimer;
+
+  /// No description provided for @routeAwarenessMenuLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Route Awareness'**
+  String get routeAwarenessMenuLabel;
+
+  /// No description provided for @myLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'My location'**
+  String get myLocation;
+
+  /// No description provided for @routeAwarenessOpenInApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open this route in'**
+  String get routeAwarenessOpenInApp;
+
+  /// No description provided for @routeAwarenessGoogleMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Maps'**
+  String get routeAwarenessGoogleMaps;
+
+  /// No description provided for @routeAwarenessWaze.
+  ///
+  /// In en, this message translates to:
+  /// **'Waze'**
+  String get routeAwarenessWaze;
+
+  /// No description provided for @routeAwarenessAppleMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Maps'**
+  String get routeAwarenessAppleMaps;
 }
 
 class _AppLocalizationsDelegate

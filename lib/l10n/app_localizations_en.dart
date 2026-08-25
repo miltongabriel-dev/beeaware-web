@@ -755,4 +755,70 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get locationPermissionError =>
       'Couldn\'t get your location right now.';
+
+  @override
+  String get routeAwarenessTitle => 'Route Awareness';
+
+  @override
+  String get routeAwarenessFromLabel => 'From';
+
+  @override
+  String get routeAwarenessToLabel => 'To';
+
+  @override
+  String get routeAwarenessFromHint => 'Starting point';
+
+  @override
+  String get routeAwarenessToHint => 'Destination';
+
+  @override
+  String get routeAwarenessUseMyLocation => 'Use my location';
+
+  @override
+  String get routeAwarenessSearchButton => 'Find routes';
+
+  @override
+  String routeAwarenessRouteLabel(String letter) {
+    return 'Route $letter';
+  }
+
+  @override
+  String routeAwarenessFastest(String route) {
+    return 'Faster: $route';
+  }
+
+  @override
+  String routeAwarenessFewerSignals(String route) {
+    return 'Fewer recent safety signals: $route';
+  }
+
+  @override
+  String get routeAwarenessSimilarSignals =>
+      'Similar recent activity on both routes';
+
+  @override
+  String get routeAwarenessNoRoutes =>
+      'Couldn\'t find a route between these points.';
+
+  @override
+  String get routeAwarenessDisclaimer =>
+      'Compares routes by recent safety signals — not a guarantee that either route is safe.';
+
+  @override
+  String get routeAwarenessMenuLabel => 'Route Awareness';
+
+  @override
+  String get myLocation => 'My location';
+
+  @override
+  String get routeAwarenessOpenInApp => 'Open this route in';
+
+  @override
+  String get routeAwarenessGoogleMaps => 'Google Maps';
+
+  @override
+  String get routeAwarenessWaze => 'Waze';
+
+  @override
+  String get routeAwarenessAppleMaps => 'Apple Maps';
 }

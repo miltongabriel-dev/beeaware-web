@@ -23,20 +23,76 @@
      background/badge as the native splash so there's no visible swap. */
   #loading-logo {
     transition: opacity 0.5s ease-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .logo-img {
     width: 140px;
     height: auto;
+    /* Gentle flight: a bob + slight tilt reads as "hovering" rather than
+       a generic bounce, closer to how a bee actually moves than a
+       straight up-down loop would. */
+    animation: bee-hover 2.2s ease-in-out infinite;
+  }
+
+  @keyframes bee-hover {
+    0%   { transform: translateY(0)    rotate(0deg); }
+    25%  { transform: translateY(-10px) rotate(-4deg); }
+    50%  { transform: translateY(0)    rotate(0deg); }
+    75%  { transform: translateY(-6px)  rotate(4deg); }
+    100% { transform: translateY(0)    rotate(0deg); }
+  }
+
+  #loading-message {
+    margin-top: 18px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #586274;
+    text-align: center;
+    min-height: 20px;
+    animation: message-pulse 2.2s ease-in-out infinite;
+  }
+
+  @keyframes message-pulse {
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .logo-img, #loading-message {
+      animation: none;
+    }
   }
 </style>
 
 <body>
   <div id="loading-logo">
     <img src="beeaware_badge.png" class="logo-img" alt="BeeAware">
+    <div id="loading-message"></div>
   </div>
 
   <script>
+    // Sem contexto do Flutter ainda (é HTML puro, antes do primeiro
+    // frame) — mesma checagem simples de idioma que o resto do app usa
+    // para decidir PT vs EN.
+    var isPt = (navigator.language || '').toLowerCase().startsWith('pt');
+    var messages = isPt
+      ? ['Preparando seu mapa de segurança...', 'Verificando fontes de dados...', 'Quase lá...']
+      : ['Preparing your safety map...', 'Checking data sources...', 'Almost there...'];
+
+    var messageEl = document.getElementById('loading-message');
+    var messageIndex = 0;
+    if (messageEl) {
+      messageEl.textContent = messages[0];
+      setInterval(function() {
+        messageIndex = (messageIndex + 1) % messages.length;
+        messageEl.textContent = messages[messageIndex];
+      }, 2200);
+    }
+
     // Quando o Flutter estiver pronto, ele avisa o navegador
     window.addEventListener('flutter-first-frame', function() {
       var loader = document.getElementById('loading-logo');

@@ -43,6 +43,8 @@ import 'package:aware/backend/brazil_crime_summary_api.dart';
 import 'package:aware/backend/location_coverage_api.dart';
 import '../map/municipality_choropleth_layer.dart';
 import '../area/area_intelligence_screen.dart';
+import '../backend/route_awareness_api.dart';
+import '../utils/geocoding.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -80,6 +82,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _debounce;
 
   final Map<String, List<Map<String, dynamic>>> _searchCache = {};
+
+  // Route Awareness (roadmap 9.5/11.12) — integrated directly into the
+  // main search bar rather than a separate screen: swaps the single
+  // search field into a compact From/To pair over the same map, so both
+  // candidate routes draw on the map the user is already looking at
+  // instead of a second, disconnected view. See _RouteSearchBar/
+  // _RouteResultsCard below.
+  bool _routeMode = false;
+  final _routeFromController = TextEditingController();
+  final _routeToController = TextEditingController();
+  LatLng? _routeFromPoint;
+  LatLng? _routeToPoint;
+  List<AddressSuggestion> _routeFromSuggestions = [];
+  List<AddressSuggestion> _routeToSuggestions = [];
+  Timer? _routeFromDebounce;
+  Timer? _routeToDebounce;
+  List<RouteOption> _routeOptions = [];
+  bool _routeLoading = false;
+  String? _routeError;
+  static const List<Color> _routeColors = [
+    BeeAwareTheme.primary,
+    Color(0xFF3B82F6),
+  ];
 
   String _preferredCountryCode() {
     if (_userCurrentLocation == null) return 'gb';
@@ -248,6 +273,331 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
+  }
+
+  // ================= ROTA (roadmap 9.5/11.12) =================
+  //
+  // Enters/exits the main search bar's From/To mode. Pre-fills From with
+  // the user's current location when already known (_userCurrentLocation
+  // is populated by _loadUserLocation on app start) — same default the
+  // wireframe assumes ("From: My location") — without forcing a fresh
+  // permission prompt just to open the panel; the crosshair button in
+  // _RouteSearchBar covers the case where it isn't known yet or the user
+  // wants to refresh it.
+  void _enterRouteMode() {
+    _closeMenu();
+    setState(() {
+      _routeMode = true;
+      _suggestions = [];
+      if (_filterOverlay != null) {
+        _filterOverlay!.remove();
+        _filterOverlay = null;
+      }
+      if (_userCurrentLocation != null) {
+        _routeFromPoint = _userCurrentLocation;
+        _routeFromController.text = AppLocalizations.of(context)!.myLocation;
+      }
+    });
+  }
+
+  void _exitRouteMode() {
+    setState(() {
+      _routeMode = false;
+      _routeFromController.clear();
+      _routeToController.clear();
+      _routeFromPoint = null;
+      _routeToPoint = null;
+      _routeFromSuggestions = [];
+      _routeToSuggestions = [];
+      _routeOptions = [];
+      _routeError = null;
+    });
+  }
+
+  void _onRouteFromChanged(String value) {
+    _routeFromPoint = null;
+    _routeFromDebounce?.cancel();
+    _routeFromDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final results = await fetchAddressSuggestions(value);
+      if (!mounted) return;
+      setState(() => _routeFromSuggestions = results);
+    });
+  }
+
+  void _onRouteToChanged(String value) {
+    _routeToPoint = null;
+    _routeToDebounce?.cancel();
+    _routeToDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final results = await fetchAddressSuggestions(value);
+      if (!mounted) return;
+      setState(() => _routeToSuggestions = results);
+    });
+  }
+
+  void _selectRouteFromSuggestion(AddressSuggestion s) {
+    _routeFromController.text = s.primary;
+    setState(() {
+      _routeFromPoint = s.point;
+      _routeFromSuggestions = [];
+    });
+  }
+
+  void _selectRouteToSuggestion(AddressSuggestion s) {
+    _routeToController.text = s.primary;
+    setState(() {
+      _routeToPoint = s.point;
+      _routeToSuggestions = [];
+    });
+  }
+
+  // Same permission-outcome handling as _centerMapOnUser (see its own
+  // header) — a separate method rather than reusing that one directly
+  // since this sets the route From field/point instead of moving the
+  // map.
+  Future<void> _useMyLocationForRoute() async {
+    final loc = AppLocalizations.of(context)!;
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission != LocationPermission.always &&
+          permission != LocationPermission.whileInUse) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              permission == LocationPermission.deniedForever
+                  ? loc.locationPermissionBlocked
+                  : loc.locationPermissionDenied,
+            ),
+          ),
+        );
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+      if (!mounted) return;
+      setState(() {
+        _routeFromPoint = LatLng(position.latitude, position.longitude);
+        _routeFromController.text = loc.myLocation;
+        _routeFromSuggestions = [];
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.locationPermissionError)),
+      );
+    }
+  }
+
+  Future<void> _searchRoutes() async {
+    final loc = AppLocalizations.of(context)!;
+    setState(() {
+      _routeLoading = true;
+      _routeError = null;
+      _routeOptions = [];
+      _routeFromSuggestions = [];
+      _routeToSuggestions = [];
+    });
+
+    final from =
+        _routeFromPoint ?? await geocodeAddress(_routeFromController.text);
+    final to = _routeToPoint ?? await geocodeAddress(_routeToController.text);
+
+    if (from == null || to == null) {
+      if (!mounted) return;
+      setState(() {
+        _routeLoading = false;
+        _routeError = loc.addressNotFound;
+      });
+      return;
+    }
+
+    try {
+      final routes =
+          await RouteAwarenessApi.fetchRoutes(origin: from, destination: to);
+
+      if (!mounted) return;
+
+      if (routes.isEmpty) {
+        setState(() {
+          _routeLoading = false;
+          _routeError = loc.routeAwarenessNoRoutes;
+        });
+        return;
+      }
+
+      setState(() {
+        _routeFromPoint = from;
+        _routeToPoint = to;
+        _routeOptions = routes;
+        _routeLoading = false;
+      });
+
+      final bounds =
+          LatLngBounds.fromPoints(routes.expand((r) => r.points).toList());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mapController.fitCamera(
+          CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(64)),
+        );
+      });
+    } catch (e) {
+      debugPrint('Route Awareness fetchRoutes failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _routeLoading = false;
+        _routeError = loc.routeAwarenessNoRoutes;
+      });
+    }
+  }
+
+  // BeeAware itself has no turn-by-turn navigation (roadmap 11.12's
+  // Route Awareness is explicitly a comparison/awareness layer, not a
+  // navigator) — this hands off to the app the user already navigates
+  // with. Waze's URL scheme (waze.com/ul) only accepts a destination, no
+  // custom origin — it always navigates from wherever the device
+  // currently is, so _routeFromPoint is unused for that branch on
+  // purpose, not an oversight.
+  Future<void> _openInExternalMaps(String app) async {
+    final from = _routeFromPoint;
+    final to = _routeToPoint;
+    if (from == null || to == null) return;
+
+    final Uri uri;
+    switch (app) {
+      case 'waze':
+        uri = Uri.parse(
+            'https://waze.com/ul?ll=${to.latitude},${to.longitude}&navigate=yes');
+        break;
+      case 'apple':
+        uri = Uri.parse(
+            'https://maps.apple.com/?saddr=${from.latitude},${from.longitude}'
+            '&daddr=${to.latitude},${to.longitude}&dirflg=w');
+        break;
+      case 'google':
+      default:
+        uri = Uri.parse(
+            'https://www.google.com/maps/dir/?api=1'
+            '&origin=${from.latitude},${from.longitude}'
+            '&destination=${to.latitude},${to.longitude}&travelmode=walking');
+    }
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  // Replaces the pill-shaped search bar in place when _routeMode is on —
+  // same top-left-right Positioned slot, just a taller card, so the map
+  // and the route it draws stay the single view the whole time (roadmap
+  // 9.5 as a panel over the map, not RouteAwarenessScreen's earlier
+  // separate full-screen form). Own inline suggestion dropdowns per
+  // field (_RouteFieldSuggestions below) rather than a shared overlay —
+  // simplest way to keep two independent lists (From/To) from fighting
+  // over one Positioned slot.
+  Widget _buildRouteSearchBar() {
+    final loc = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _routeFromController,
+                  onChanged: _onRouteFromChanged,
+                  decoration: InputDecoration(
+                    labelText: loc.routeAwarenessFromLabel,
+                    hintText: loc.routeAwarenessFromHint,
+                    isDense: true,
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: loc.routeAwarenessUseMyLocation,
+                icon: const Icon(PhosphorIconsRegular.crosshair,
+                    color: Colors.blue),
+                onPressed: _useMyLocationForRoute,
+              ),
+            ],
+          ),
+          if (_routeFromSuggestions.isNotEmpty)
+            _RouteFieldSuggestions(
+              suggestions: _routeFromSuggestions,
+              onSelected: _selectRouteFromSuggestion,
+            ),
+          const Divider(height: 1),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _routeToController,
+                  onChanged: _onRouteToChanged,
+                  decoration: InputDecoration(
+                    labelText: loc.routeAwarenessToLabel,
+                    hintText: loc.routeAwarenessToHint,
+                    isDense: true,
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: loc.close,
+                icon: const Icon(PhosphorIconsRegular.x,
+                    color: BeeAwareTheme.textSecondary),
+                onPressed: _exitRouteMode,
+              ),
+            ],
+          ),
+          if (_routeToSuggestions.isNotEmpty)
+            _RouteFieldSuggestions(
+              suggestions: _routeToSuggestions,
+              onSelected: _selectRouteToSuggestion,
+            ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton(
+              onPressed: _routeLoading ? null : _searchRoutes,
+              child: _routeLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(loc.routeAwarenessSearchButton),
+            ),
+          ),
+          if (_routeError != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _routeError!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 12, color: BeeAwareTheme.textSecondary),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Future<void> _loadUserLocation() async {
@@ -564,6 +914,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _subscription?.cancel();
     _syncTimer?.cancel();
     _boundsDebounce?.cancel();
+    _routeFromController.dispose();
+    _routeToController.dispose();
+    _routeFromDebounce?.cancel();
+    _routeToDebounce?.cancel();
 
     super.dispose();
   }
@@ -687,6 +1041,42 @@ class _HomeScreenState extends State<HomeScreen> {
               // Violência/crime por município (Brasil) — abaixo dos pins,
               // acima do mapa base.
               MunicipalityChoroplethLayer(summaries: _crimeSummary),
+
+              // Route Awareness — desenha direto no mapa principal em vez
+              // de uma tela separada, para as rotas nunca perderem
+              // contexto do que já está visível.
+              if (_routeOptions.isNotEmpty) ...[
+                PolylineLayer(
+                  polylines: [
+                    for (var i = 0; i < _routeOptions.length; i++)
+                      Polyline(
+                        points: _routeOptions[i].points,
+                        strokeWidth: 5,
+                        color: _routeColors[i % _routeColors.length],
+                      ),
+                  ],
+                ),
+                MarkerLayer(
+                  markers: [
+                    if (_routeFromPoint != null)
+                      Marker(
+                        point: _routeFromPoint!,
+                        width: 26,
+                        height: 26,
+                        child: const Icon(PhosphorIconsRegular.mapPinLine,
+                            color: Colors.blue, size: 26),
+                      ),
+                    if (_routeToPoint != null)
+                      Marker(
+                        point: _routeToPoint!,
+                        width: 26,
+                        height: 26,
+                        child: const Icon(PhosphorIconsRegular.flagCheckered,
+                            color: BeeAwareTheme.textPrimary, size: 26),
+                      ),
+                  ],
+                ),
+              ],
 
               //Pin temporario search
               if (_searchLocation != null)
@@ -964,6 +1354,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Builder(
                 builder: (context) {
                   final tokens = context.watch<TokenState>().tokens;
+
+                  if (_routeMode) return _buildRouteSearchBar();
 
                   return Container(
                     height: 58,
@@ -1272,6 +1664,58 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
+          // 🧭 ROTA — botão flutuante próprio na borda direita (padrão
+          // Google Maps/Waze de empilhar ações do mapa nessa borda), acima
+          // da bússola com espaço de sobra — antes vivia apertado dentro
+          // da bottom bar, "engolido" perto do botão central no mobile.
+          Positioned(
+            right: 16,
+            bottom: 200,
+            child: FloatingActionButton(
+              mini: true,
+              heroTag: 'route-fab',
+              backgroundColor: BeeAwareTheme.primary,
+              tooltip: AppLocalizations.of(context)!.routeAwarenessMenuLabel,
+              onPressed: _enterRouteMode,
+              child: const Icon(
+                PhosphorIconsRegular.signpost,
+                color: Colors.white,
+              ),
+            ),
+          ),
+
+          // 🚨 SOS — canto superior direito, espelhando o logo no canto
+          // superior esquerdo. Vermelho e com texto (nunca só ícone),
+          // sempre visível independente do estado da busca/rota, mesmo
+          // padrão de botão de emergência flutuante e inconfundível que
+          // apps de segurança usam.
+          Positioned(
+            top: 16,
+            right: 16,
+            child: FadeInUp(
+              child: _SosButton(
+                label: AppLocalizations.of(context)!
+                    .sosBarLabel(emergencyNumbersFor(_preferredCountryCode()).primary),
+                onTap: () => _showPoliceSheet(context),
+              ),
+            ),
+          ),
+
+          // Route Awareness — comparação das rotas encontradas, acima da
+          // bottom bar, só quando há resultado (roadmap 9.5's route list,
+          // integrada ao mapa em vez de uma tela própria).
+          if (_routeOptions.isNotEmpty)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 100,
+              child: _RouteResultsCard(
+                routes: _routeOptions,
+                colors: _routeColors,
+                onOpenInApp: _openInExternalMaps,
+              ),
+            ),
+
           // BOTTOM BAR (unchanged)
           Positioned(
             bottom: 20,
@@ -1287,11 +1731,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
-              onPolice: () => _showPoliceSheet(context),
               onFilters: () => _showFiltersOverlay(),
               onTrend: _showSafetyTrend,
-              emergencyNumber:
-                  emergencyNumbersFor(_preferredCountryCode()).primary,
             ),
           ),
         ],
@@ -3357,17 +3798,13 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
 
 class _BottomBar extends StatefulWidget {
   final VoidCallback onReport;
-  final VoidCallback onPolice;
   final VoidCallback onFilters;
   final VoidCallback onTrend;
-  final String emergencyNumber;
 
   const _BottomBar({
     required this.onReport,
-    required this.onPolice,
     required this.onFilters,
     required this.onTrend,
-    required this.emergencyNumber,
   });
 
   @override
@@ -3435,16 +3872,13 @@ class _BottomBarState extends State<_BottomBar> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Esquerda: ações sobre a visão atual do mapa.
+                    // Esquerda: ações sobre a visão atual do mapa. SOS e
+                    // Rota agora são botões flutuantes no canto superior
+                    // direito e na borda direita (ver o Stack principal) —
+                    // deixavam essa barra apertada no mobile, com o botão
+                    // central do bee "engolindo" o ícone de rota.
                     Row(
                       children: [
-                        // SOS: vermelho e com texto, nunca só um ícone —
-                        // é a única ação de emergência da barra.
-                        _SosButton(
-                          label: loc.sosBarLabel(widget.emergencyNumber),
-                          onTap: widget.onPolice,
-                        ),
-                        const SizedBox(width: 4),
                         _BarIcon(
                           icon: PhosphorIconsRegular.funnel,
                           tooltip: loc.filters,
@@ -3590,6 +4024,246 @@ class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Route Awareness comparison card (roadmap 9.5/13.3) — shown once
+/// _searchRoutes finds results. Naming rule enforced here, the one place
+/// route counts turn into words: only ever "Faster: X" and "Fewer recent
+/// safety signals: Y", never a third invented "Safest: X" label
+/// (RouteAwarenessApi/route-awareness itself never computes or returns
+/// anything like a safety score, on purpose — see that function's own
+/// header).
+class _RouteResultsCard extends StatelessWidget {
+  final List<RouteOption> routes;
+  final List<Color> colors;
+  final ValueChanged<String> onOpenInApp;
+
+  const _RouteResultsCard({
+    required this.routes,
+    required this.colors,
+    required this.onOpenInApp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final fastest =
+        routes.reduce((a, b) => a.durationSeconds <= b.durationSeconds ? a : b);
+    final fewerSignals =
+        routes.reduce((a, b) => a.totalSignalCount <= b.totalSignalCount ? a : b);
+    final signalsTie = routes
+        .every((r) => r.totalSignalCount == routes.first.totalSignalCount);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: BeeAwareTheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: BeeAwareTheme.border),
+        boxShadow: BeeAwareTheme.cardShadow,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < routes.length; i++) ...[
+            _RouteResultRow(
+              color: colors[i % colors.length],
+              label: loc.routeAwarenessRouteLabel(String.fromCharCode(65 + i)),
+              route: routes[i],
+            ),
+            if (i < routes.length - 1) const Divider(height: 14),
+          ],
+          if (routes.length > 1) ...[
+            const SizedBox(height: 8),
+            Text(
+              loc.routeAwarenessFastest(loc.routeAwarenessRouteLabel(
+                  String.fromCharCode(65 + routes.indexOf(fastest)))),
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: BeeAwareTheme.textPrimary),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              signalsTie
+                  ? loc.routeAwarenessSimilarSignals
+                  : loc.routeAwarenessFewerSignals(loc.routeAwarenessRouteLabel(
+                      String.fromCharCode(
+                          65 + routes.indexOf(fewerSignals)))),
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: BeeAwareTheme.textPrimary),
+            ),
+          ],
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          Text(
+            loc.routeAwarenessOpenInApp,
+            style: const TextStyle(
+                fontSize: 11, color: BeeAwareTheme.textSecondary),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              _ExternalMapButton(
+                label: loc.routeAwarenessGoogleMaps,
+                onTap: () => onOpenInApp('google'),
+              ),
+              const SizedBox(width: 8),
+              _ExternalMapButton(
+                label: loc.routeAwarenessWaze,
+                onTap: () => onOpenInApp('waze'),
+              ),
+              const SizedBox(width: 8),
+              _ExternalMapButton(
+                label: loc.routeAwarenessAppleMaps,
+                onTap: () => onOpenInApp('apple'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExternalMapButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _ExternalMapButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: const Icon(PhosphorIconsRegular.navigationArrow, size: 15),
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 12),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          side: const BorderSide(color: BeeAwareTheme.border),
+        ),
+      ),
+    );
+  }
+}
+
+class _RouteResultRow extends StatelessWidget {
+  final Color color;
+  final String label;
+  final RouteOption route;
+
+  const _RouteResultRow({
+    required this.color,
+    required this.label,
+    required this.route,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final minutes = (route.durationSeconds / 60).round();
+    final km = route.distanceMeters / 1000;
+    final distanceLabel = km >= 1
+        ? '${km.toStringAsFixed(1)} km'
+        : '${route.distanceMeters.round()} m';
+
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style:
+                      const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              Text(
+                '$minutes min · $distanceLabel',
+                style: const TextStyle(
+                    fontSize: 12, color: BeeAwareTheme.textSecondary),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          loc.areaIntelligenceSignalCount(route.totalSignalCount),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: route.totalSignalCount > 0
+                ? BeeAwareTheme.textPrimary
+                : BeeAwareTheme.textAux,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Live-as-you-type address results for one Route Awareness field
+/// (_buildRouteSearchBar) — same two-line primary/secondary display the
+/// main search's own suggestions dropdown uses, inline rather than a
+/// floating overlay since the route panel isn't itself floating loose
+/// over the map the way the plain search bar's dropdown is.
+class _RouteFieldSuggestions extends StatelessWidget {
+  final List<AddressSuggestion> suggestions;
+  final ValueChanged<AddressSuggestion> onSelected;
+
+  const _RouteFieldSuggestions({
+    required this.suggestions,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 180),
+      child: ListView.separated(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        itemCount: suggestions.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final s = suggestions[index];
+          return ListTile(
+            dense: true,
+            leading: const Icon(PhosphorIconsRegular.mapPin, size: 18),
+            title: Text(
+              s.primary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            subtitle: s.secondary.isEmpty
+                ? null
+                : Text(
+                    s.secondary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12, color: BeeAwareTheme.textSecondary),
+                  ),
+            onTap: () => onSelected(s),
+          );
+        },
       ),
     );
   }
