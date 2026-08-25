@@ -947,7 +947,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutDataSourcesBody.
   ///
   /// In en, this message translates to:
-  /// **'BeeAware displays safety information from two main sources:\n\n• Anonymous community reports submitted by users\n• Official open public data, including UK Police street-level crime datasets\n\nThese sources are used to improve situational awareness and do not represent real-time alerts.'**
+  /// **'BeeAware displays safety information from two main sources:\n\n• Anonymous community reports submitted by users\n• Official open public data — government sources across the UK and Brazil (police, traffic safety, and public safety agencies), plus a coarse global baseline where local data isn\'t available yet\n\nThese sources are used to improve situational awareness and do not represent real-time alerts.'**
   String get aboutDataSourcesBody;
 
   /// No description provided for @privacyAnonymityTitle.
@@ -983,7 +983,7 @@ abstract class AppLocalizations {
   /// No description provided for @officialLegendBody.
   ///
   /// In en, this message translates to:
-  /// **'BeeAware shows two types of reports:\n\n• Community reports (anonymous user submissions)\n• Official open data (UK Police street-level crime data)\n\nOfficial items are displayed with a distinct pin. They are included for situational awareness and are not real-time emergency alerts.'**
+  /// **'BeeAware shows two types of reports:\n\n• Community reports (anonymous user submissions)\n• Official open data — public safety records from government sources across the UK and Brazil (police, traffic safety, and public safety agencies), plus a coarse global baseline where local data isn\'t available yet\n\nOfficial items are displayed with a distinct pin. They are included for situational awareness and are not real-time emergency alerts.'**
   String get officialLegendBody;
 
   /// No description provided for @signInToBeeAware.

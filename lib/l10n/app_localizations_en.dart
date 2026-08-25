@@ -550,7 +550,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutDataSourcesBody =>
-      'BeeAware displays safety information from two main sources:\n\n• Anonymous community reports submitted by users\n• Official open public data, including UK Police street-level crime datasets\n\nThese sources are used to improve situational awareness and do not represent real-time alerts.';
+      'BeeAware displays safety information from two main sources:\n\n• Anonymous community reports submitted by users\n• Official open public data — government sources across the UK and Brazil (police, traffic safety, and public safety agencies), plus a coarse global baseline where local data isn\'t available yet\n\nThese sources are used to improve situational awareness and do not represent real-time alerts.';
 
   @override
   String get privacyAnonymityTitle => 'Privacy & anonymity';
@@ -570,7 +570,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get officialLegendBody =>
-      'BeeAware shows two types of reports:\n\n• Community reports (anonymous user submissions)\n• Official open data (UK Police street-level crime data)\n\nOfficial items are displayed with a distinct pin. They are included for situational awareness and are not real-time emergency alerts.';
+      'BeeAware shows two types of reports:\n\n• Community reports (anonymous user submissions)\n• Official open data — public safety records from government sources across the UK and Brazil (police, traffic safety, and public safety agencies), plus a coarse global baseline where local data isn\'t available yet\n\nOfficial items are displayed with a distinct pin. They are included for situational awareness and are not real-time emergency alerts.';
 
   @override
   String get signInToBeeAware => 'Sign in to BeeAware';

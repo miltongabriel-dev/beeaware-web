@@ -555,7 +555,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get aboutDataSourcesBody =>
-      'O BeeAware exibe informações de segurança a partir de duas fontes principais:\n\n• Relatos anônimos enviados pela comunidade\n• Dados públicos abertos oficiais, incluindo os conjuntos de dados de criminalidade por rua da polícia do Reino Unido\n\nEssas fontes são usadas para melhorar a percepção situacional e não representam alertas em tempo real.';
+      'O BeeAware exibe informações de segurança a partir de duas fontes principais:\n\n• Relatos anônimos enviados pela comunidade\n• Dados públicos abertos oficiais — fontes governamentais do Reino Unido e do Brasil (polícia, segurança viária e órgãos de segurança pública), além de uma base global mais genérica onde ainda não há dado local\n\nEssas fontes são usadas para melhorar a percepção situacional e não representam alertas em tempo real.';
 
   @override
   String get privacyAnonymityTitle => 'Privacidade e anonimato';
@@ -575,7 +575,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get officialLegendBody =>
-      'O BeeAware mostra dois tipos de relato:\n\n• Relatos da comunidade (envios anônimos de usuários)\n• Dados abertos oficiais (dados de criminalidade por rua da polícia do Reino Unido)\n\nItens oficiais são exibidos com um pino distinto. Eles são incluídos para percepção situacional e não são alertas de emergência em tempo real.';
+      'O BeeAware mostra dois tipos de relato:\n\n• Relatos da comunidade (envios anônimos de usuários)\n• Dados abertos oficiais — registros de segurança pública de fontes governamentais do Reino Unido e do Brasil (polícia, segurança viária e órgãos de segurança pública), além de uma base global mais genérica onde ainda não há dado local\n\nItens oficiais são exibidos com um pino distinto. Eles são incluídos para percepção situacional e não são alertas de emergência em tempo real.';
 
   @override
   String get signInToBeeAware => 'Entrar no BeeAware';

@@ -164,14 +164,14 @@
   "filterResultCount": "{count, plural, one{{count} incidente} other{{count} incidentes}}",
 
   "aboutBodyText": "BeeAware é uma plataforma comunitária de conscientização sobre segurança, feita para ajudar pessoas a se manterem informadas sobre incidentes não emergenciais na sua região.\n\nO app combina relatos da comunidade e dados oficiais publicamente disponíveis para melhorar a percepção situacional e apoiar decisões mais seguras no dia a dia.\n\nAs informações exibidas podem estar atrasadas, incompletas ou não verificadas, e não devem ser usadas como substituto dos serviços de emergência.\n\nO BeeAware não oferece monitoramento em tempo real e não é um sistema de resposta a emergências.",
-  "aboutDataSourcesBody": "O BeeAware exibe informações de segurança a partir de duas fontes principais:\n\n• Relatos anônimos enviados pela comunidade\n• Dados públicos abertos oficiais, incluindo os conjuntos de dados de criminalidade por rua da polícia do Reino Unido\n\nEssas fontes são usadas para melhorar a percepção situacional e não representam alertas em tempo real.",
+  "aboutDataSourcesBody": "O BeeAware exibe informações de segurança a partir de duas fontes principais:\n\n• Relatos anônimos enviados pela comunidade\n• Dados públicos abertos oficiais — fontes governamentais do Reino Unido e do Brasil (polícia, segurança viária e órgãos de segurança pública), além de uma base global mais genérica onde ainda não há dado local\n\nEssas fontes são usadas para melhorar a percepção situacional e não representam alertas em tempo real.",
   "privacyAnonymityTitle": "Privacidade e anonimato",
   "privacyAnonymityBody": "O BeeAware é projetado com privacidade por padrão.\nNenhuma informação de identificação pessoal é necessária.\nOs relatos são anônimos e os dados de localização se limitam ao necessário para exibir os incidentes no mapa.",
   "privacyPolicyButton": "Política de Privacidade",
   "termsOfServiceButton": "Termos de Serviço",
   "copyrightBeeAware": "© BeeAware",
 
-  "officialLegendBody": "O BeeAware mostra dois tipos de relato:\n\n• Relatos da comunidade (envios anônimos de usuários)\n• Dados abertos oficiais (dados de criminalidade por rua da polícia do Reino Unido)\n\nItens oficiais são exibidos com um pino distinto. Eles são incluídos para percepção situacional e não são alertas de emergência em tempo real.",
+  "officialLegendBody": "O BeeAware mostra dois tipos de relato:\n\n• Relatos da comunidade (envios anônimos de usuários)\n• Dados abertos oficiais — registros de segurança pública de fontes governamentais do Reino Unido e do Brasil (polícia, segurança viária e órgãos de segurança pública), além de uma base global mais genérica onde ainda não há dado local\n\nItens oficiais são exibidos com um pino distinto. Eles são incluídos para percepção situacional e não são alertas de emergência em tempo real.",
 
   "signInToBeeAware": "Entrar no BeeAware",
   "signedIn": "Conectado",
