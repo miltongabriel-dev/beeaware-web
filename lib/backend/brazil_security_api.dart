@@ -1,21 +1,7 @@
-import 'dart:ui' show PlatformDispatcher, Locale;
-
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../l10n/app_localizations.dart';
 import '../map/map_incident.dart';
-
-/// Loads strings for the device's current locale without a BuildContext —
-/// same pattern as UkPoliceApi, since this also runs from IncidentStore,
-/// outside the widget tree.
-Future<AppLocalizations> _loadLocalizations() {
-  final deviceLocale = PlatformDispatcher.instance.locale;
-  final resolved = deviceLocale.languageCode == 'en'
-      ? const Locale('en')
-      : const Locale('pt');
-  return AppLocalizations.delegate.load(resolved);
-}
 
 /// Brazil-side equivalent of UkPoliceApi.fetchForArea: bounded read of the
 /// BeeAware Brasil roadmap's security_events table (see
@@ -39,8 +25,6 @@ class BrazilSecurityApi {
     required double radiusMeters,
   }) async {
     try {
-      final loc = await _loadLocalizations();
-
       final rows = await _client.rpc('nearby_security_events', params: {
         'center_lat': lat,
         'center_lng': lng,
@@ -52,7 +36,7 @@ class BrazilSecurityApi {
 
       return rows
           .whereType<Map<String, dynamic>>()
-          .map((row) => _toMapIncident(row, loc))
+          .map(_toMapIncident)
           .whereType<MapIncident>()
           .toList();
     } catch (_) {
@@ -61,8 +45,7 @@ class BrazilSecurityApi {
     }
   }
 
-  static MapIncident? _toMapIncident(
-      Map<String, dynamic> row, AppLocalizations loc) {
+  static MapIncident? _toMapIncident(Map<String, dynamic> row) {
     final location = row['location'];
     if (location is! Map) return null;
     final coords = location['coordinates'];
@@ -81,8 +64,7 @@ class BrazilSecurityApi {
     final state = (row['state'] as String?) ?? '';
     final occurredAt = row['occurred_at'] as String?;
     final sourceType = (row['source_type'] as String?) ?? 'official';
-    final categoryLabel =
-        _categoryLabel(row['event_category'] as String?, loc);
+    final eventCategory = row['event_category'] as String?;
 
     return MapIncident(
       id: 'br-security-event-$id',
@@ -90,37 +72,21 @@ class BrazilSecurityApi {
       severity: severity,
       category: eventType,
       subcategory: (row['original_category'] as String?) ?? eventType,
-      description: loc.officialEventDescription(
-        (row['original_category'] as String?) ?? categoryLabel,
-        city,
-        state,
-      ),
+      // Left empty rather than pre-built here — IncidentBottomSheet
+      // builds the actual sentence at render time from officialCity/
+      // officialState/subcategory below, same reasoning as
+      // officialEventCategory's own header (the sentence's "in"/"em"
+      // connector is locale-dependent, so baking it in at fetch time had
+      // the exact same staleness bug the category label did).
+      description: '',
       dateTime:
           occurredAt != null ? DateTime.parse(occurredAt) : DateTime.now(),
       isOfficial: sourceType == 'official',
       source: row['source_organisation'] as String?,
-      officialCategoryLabel: categoryLabel,
+      officialEventCategory: eventCategory,
+      officialCity: city,
+      officialState: state,
     );
-  }
-
-  /// event_category (security_event_category enum) -> display label.
-  /// Reuses the community-report category strings where the concept lines
-  /// up (VIOLENCE/PROPERTY) rather than inventing a parallel set of
-  /// strings for the same real-world idea; PUBLIC_SAFETY falls back to the
-  /// generic "Police report" bucket since none of the existing labels fit
-  /// its mix (weapon/drugs/disturbance/fire/emergency) well enough to pick
-  /// just one.
-  static String _categoryLabel(String? eventCategory, AppLocalizations loc) {
-    switch (eventCategory) {
-      case 'ROAD_SAFETY':
-        return loc.roadAccidentCategory;
-      case 'VIOLENCE':
-        return loc.categoryViolence;
-      case 'PROPERTY':
-        return loc.categoryTheft;
-      default:
-        return loc.policeReportCategory;
-    }
   }
 
   static IncidentSeverity _mapSeverity(String? severity) {

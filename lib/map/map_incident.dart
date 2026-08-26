@@ -25,12 +25,29 @@ class MapIncident {
   final bool isOfficial;
   final String? source;
 
-  /// Pre-resolved display label for an official event's coarse category
-  /// (e.g. "Traffic accident", "Violence") — resolved once where the
-  /// event_category enum is available (BrazilSecurityApi), since
-  /// MapIncident itself has no BuildContext/locale to resolve it later.
-  /// Null for community reports, which use ReportLabels.category instead.
-  final String? officialCategoryLabel;
+  /// An official event's raw coarse category — the security_event_category
+  /// enum value (e.g. "PROPERTY", "VIOLENCE"), not a display string.
+  /// Deliberately kept raw rather than pre-resolving a label here the way
+  /// an earlier version did: that label got baked in at fetch time (the
+  /// only point a BuildContext/locale was available), so it silently kept
+  /// showing whatever language was active when the incident was first
+  /// loaded even after the user switched languages — nothing re-fetches
+  /// on a locale change. Resolving the label at render time instead
+  /// (IncidentBottomSheet, which has a fresh `loc` on every rebuild) is
+  /// what ReportLabels.category already does for community reports; this
+  /// keeps official events on the same footing. Null for community
+  /// reports, which use ReportLabels.category directly instead.
+  final String? officialEventCategory;
+
+  /// City/state for an official event's description sentence, rebuilt at
+  /// render time (IncidentBottomSheet) the same way and for the same
+  /// reason as officialEventCategory above — the sentence itself
+  /// ("{category} in {city}, {state}." / "... em ...") is locale-
+  /// dependent even though the category/city/state values it's built
+  /// from aren't. Null for community reports, which use their own
+  /// free-text `description` directly instead.
+  final String? officialCity;
+  final String? officialState;
 
   MapIncident({
     required this.id,
@@ -45,7 +62,9 @@ class MapIncident {
     this.hash,
     this.isOfficial = false, // ✅ default seguro
     this.source,
-    this.officialCategoryLabel,
+    this.officialEventCategory,
+    this.officialCity,
+    this.officialState,
   });
 
   Map<String, dynamic> toJson() {

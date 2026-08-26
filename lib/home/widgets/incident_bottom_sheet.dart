@@ -20,10 +20,23 @@ class IncidentBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final hasExternalDescription = incident.description.trim().isNotEmpty;
     final categoryLabel = incident.isOfficial
-        ? (incident.officialCategoryLabel ?? loc.policeReportCategory)
+        ? ReportLabels.officialCategory(context, incident.officialEventCategory)
         : ReportLabels.category(context, incident.category);
+    // Official events build their description sentence here rather than
+    // using the stored `description` field (left empty for them by
+    // BrazilSecurityApi) — same reasoning as categoryLabel above: the
+    // sentence's "in"/"em" connector is locale-dependent too.
+    final description = incident.isOfficial
+        ? (incident.officialCity != null && incident.officialState != null
+            ? loc.officialEventDescription(
+                incident.subcategory,
+                incident.officialCity!,
+                incident.officialState!,
+              )
+            : '')
+        : incident.description;
+    final hasExternalDescription = description.trim().isNotEmpty;
 
     return SafeArea(
       top: false,
@@ -128,7 +141,7 @@ class IncidentBottomSheet extends StatelessWidget {
             if (hasExternalDescription) ...[
               const SizedBox(height: 12),
               Text(
-                incident.description,
+                description,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium,
