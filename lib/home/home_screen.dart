@@ -535,7 +535,17 @@ class _HomeScreenState extends State<HomeScreen> {
     // separate bugs). Capping the panel's height and making it scroll
     // internally means the button and every suggestion stay reachable
     // regardless of how much content is open above them.
-    final maxHeight = MediaQuery.of(context).size.height - 140;
+    //
+    // MediaQuery.size stays the full device height even once the on-screen
+    // keyboard opens (Scaffold's resizeToAvoidBottomInset shrinks the body,
+    // not .size) — so the cap must subtract viewInsets.bottom itself, or on
+    // a phone with the keyboard up it allows more height than is actually
+    // visible above the keyboard, and the Stack's default hard-edge clip
+    // chops the button/suggestions off right at the keyboard line (the
+    // second report: "ainda esta cortando... o botao buscar fica cortado").
+    final mq = MediaQuery.of(context);
+    final availableHeight = mq.size.height - 60 - 24 - mq.viewInsets.bottom;
+    final maxHeight = availableHeight > 200 ? availableHeight : 200.0;
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight > 200 ? maxHeight : 200),
@@ -1738,53 +1748,67 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _buildActiveFilterChips(context),
             ),
 
-          // Controle de zoom — meio-transparente, centralizado
-          // verticalmente na borda direita, entre a busca e a bússola.
-          Positioned(
-            top: 0,
-            bottom: 0,
-            right: 16,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: _ZoomControl(mapController: _mapController),
-            ),
-          ),
-
-// 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
-          Positioned(
-            right: 16,
-            bottom:
-                138, // acima da bottom bar (que cresceu com o rótulo "Reportar")
-            child: FloatingActionButton(
-              mini: true,
-              backgroundColor: Colors.white,
-              onPressed: _centerMapOnUser,
-              child: const Icon(
-                PhosphorIconsRegular.crosshair,
-                color: Colors.blue,
+          // Controle de zoom, botão "centralizar no usuário" e o FAB de
+          // rota vivem todos na borda direita — o mesmo espaço horizontal
+          // onde o painel de rota (From/To) é desenhado quando _routeMode
+          // está ativo. O zoom control em especial ocupa a borda inteira
+          // (top: 0, bottom: 0), então com o painel aberto ele — e os dois
+          // FABs — ficavam desenhados por cima do botão "Buscar rotas" e
+          // da lista de sugestões, cortando-os visualmente (relatado como
+          // "botão buscar cortado" / "autopreenchimento overflow"). Nenhum
+          // dos três é útil com o painel aberto (ele já tem seu próprio
+          // "usar minha localização" por campo, e refazer uma rota não faz
+          // sentido dentro do próprio modo de rota), então somem enquanto
+          // _routeMode for true.
+          if (!_routeMode) ...[
+            // Controle de zoom — meio-transparente, centralizado
+            // verticalmente na borda direita, entre a busca e a bússola.
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: 16,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _ZoomControl(mapController: _mapController),
               ),
             ),
-          ),
 
-          // 🧭 ROTA — botão flutuante próprio na borda direita (padrão
-          // Google Maps/Waze de empilhar ações do mapa nessa borda), acima
-          // da bússola com espaço de sobra — antes vivia apertado dentro
-          // da bottom bar, "engolido" perto do botão central no mobile.
-          Positioned(
-            right: 16,
-            bottom: 200,
-            child: FloatingActionButton(
-              mini: true,
-              heroTag: 'route-fab',
-              backgroundColor: BeeAwareTheme.primary,
-              tooltip: AppLocalizations.of(context)!.routeAwarenessMenuLabel,
-              onPressed: _enterRouteMode,
-              child: const Icon(
-                PhosphorIconsRegular.signpost,
-                color: Colors.white,
+            // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
+            Positioned(
+              right: 16,
+              bottom:
+                  138, // acima da bottom bar (que cresceu com o rótulo "Reportar")
+              child: FloatingActionButton(
+                mini: true,
+                backgroundColor: Colors.white,
+                onPressed: _centerMapOnUser,
+                child: const Icon(
+                  PhosphorIconsRegular.crosshair,
+                  color: Colors.blue,
+                ),
               ),
             ),
-          ),
+
+            // 🧭 ROTA — botão flutuante próprio na borda direita (padrão
+            // Google Maps/Waze de empilhar ações do mapa nessa borda), acima
+            // da bússola com espaço de sobra — antes vivia apertado dentro
+            // da bottom bar, "engolido" perto do botão central no mobile.
+            Positioned(
+              right: 16,
+              bottom: 200,
+              child: FloatingActionButton(
+                mini: true,
+                heroTag: 'route-fab',
+                backgroundColor: BeeAwareTheme.primary,
+                tooltip: AppLocalizations.of(context)!.routeAwarenessMenuLabel,
+                onPressed: _enterRouteMode,
+                child: const Icon(
+                  PhosphorIconsRegular.signpost,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
 
           // 🚨 SOS — canto superior direito, espelhando o logo no canto
           // superior esquerdo. Vermelho e com texto (nunca só ícone),
