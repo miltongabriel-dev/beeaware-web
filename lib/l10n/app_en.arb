@@ -163,7 +163,6 @@
     "placeholders": { "count": { "type": "int" } }
   },
 
-  "reportingHintText": "Spot something? Tap the Bee.",
   "clusterNumbersExplained": "Cluster numbers explained",
   "coverageGlobalBaselineOnly": "Only global baseline data is available here — that's not a guarantee of safety, just the best we have.",
   "choroplethLegendTooltip": "Map legend",
@@ -371,5 +370,29 @@
   "routeAwarenessOpenInApp": "Open this route in",
   "routeAwarenessGoogleMaps": "Google Maps",
   "routeAwarenessWaze": "Waze",
-  "routeAwarenessAppleMaps": "Apple Maps"
+  "routeAwarenessAppleMaps": "Apple Maps",
+
+  "homeGreeting": "Hello, {name}!",
+  "@homeGreeting": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "homeGreetingGeneric": "Hello!",
+  "homeSubtitle": "Stay informed and help your community.",
+  "homeReportCta": "Share something important with the community.",
+  "exploreSectionTitle": "Explore",
+  "mapPreviewOpenHint": "Tap to open the map",
+  "homeLocationLoading": "Finding your location…",
+  "homeLocationUnavailable": "Location unavailable",
+  "recentActivityEmpty": "No recent activity near you yet.",
+  "distanceAway": "{distance} away",
+  "@distanceAway": {
+    "placeholders": { "distance": { "type": "String" } }
+  },
+  "bottomNavHome": "Home",
+  "bottomNavMap": "Map",
+  "bottomNavAlerts": "Alerts",
+  "bottomNavProfile": "Profile",
+  "alertsComingSoonTitle": "Alerts are coming soon",
+  "alertsComingSoonBody": "We're building notifications for new incidents near you. Check back soon.",
+  "profileTitle": "Profile"
 }

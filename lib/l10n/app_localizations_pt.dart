@@ -416,9 +416,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get reportingHintText => 'Viu algo? Toque na abelha.';
-
-  @override
   String get clusterNumbersExplained =>
       'Como funcionam os números dos agrupamentos';
 
@@ -847,4 +844,61 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get routeAwarenessAppleMaps => 'Apple Maps';
+
+  @override
+  String homeGreeting(String name) {
+    return 'Olá, $name!';
+  }
+
+  @override
+  String get homeGreetingGeneric => 'Olá!';
+
+  @override
+  String get homeSubtitle => 'Fique bem informado e ajude sua comunidade.';
+
+  @override
+  String get homeReportCta => 'Compartilhe algo importante com a comunidade.';
+
+  @override
+  String get exploreSectionTitle => 'Explorar';
+
+  @override
+  String get mapPreviewOpenHint => 'Toque para abrir o mapa';
+
+  @override
+  String get homeLocationLoading => 'Localizando você…';
+
+  @override
+  String get homeLocationUnavailable => 'Localização indisponível';
+
+  @override
+  String get recentActivityEmpty =>
+      'Nenhuma atividade recente perto de você ainda.';
+
+  @override
+  String distanceAway(String distance) {
+    return 'a $distance';
+  }
+
+  @override
+  String get bottomNavHome => 'Início';
+
+  @override
+  String get bottomNavMap => 'Mapa';
+
+  @override
+  String get bottomNavAlerts => 'Alertas';
+
+  @override
+  String get bottomNavProfile => 'Perfil';
+
+  @override
+  String get alertsComingSoonTitle => 'Alertas em breve';
+
+  @override
+  String get alertsComingSoonBody =>
+      'Estamos construindo as notificações de novos incidentes perto de você. Volte em breve.';
+
+  @override
+  String get profileTitle => 'Perfil';
 }

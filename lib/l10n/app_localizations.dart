@@ -734,12 +734,6 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{{count} token} other{{count} tokens}}'**
   String tokensCount(int count);
 
-  /// No description provided for @reportingHintText.
-  ///
-  /// In en, this message translates to:
-  /// **'Spot something? Tap the Bee.'**
-  String get reportingHintText;
-
   /// No description provided for @clusterNumbersExplained.
   ///
   /// In en, this message translates to:
@@ -1425,6 +1419,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apple Maps'**
   String get routeAwarenessAppleMaps;
+
+  /// No description provided for @homeGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, {name}!'**
+  String homeGreeting(String name);
+
+  /// No description provided for @homeGreetingGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello!'**
+  String get homeGreetingGeneric;
+
+  /// No description provided for @homeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay informed and help your community.'**
+  String get homeSubtitle;
+
+  /// No description provided for @homeReportCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Share something important with the community.'**
+  String get homeReportCta;
+
+  /// No description provided for @exploreSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore'**
+  String get exploreSectionTitle;
+
+  /// No description provided for @mapPreviewOpenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open the map'**
+  String get mapPreviewOpenHint;
+
+  /// No description provided for @homeLocationLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your location…'**
+  String get homeLocationLoading;
+
+  /// No description provided for @homeLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location unavailable'**
+  String get homeLocationUnavailable;
+
+  /// No description provided for @recentActivityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent activity near you yet.'**
+  String get recentActivityEmpty;
+
+  /// No description provided for @distanceAway.
+  ///
+  /// In en, this message translates to:
+  /// **'{distance} away'**
+  String distanceAway(String distance);
+
+  /// No description provided for @bottomNavHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get bottomNavHome;
+
+  /// No description provided for @bottomNavMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Map'**
+  String get bottomNavMap;
+
+  /// No description provided for @bottomNavAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts'**
+  String get bottomNavAlerts;
+
+  /// No description provided for @bottomNavProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get bottomNavProfile;
+
+  /// No description provided for @alertsComingSoonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts are coming soon'**
+  String get alertsComingSoonTitle;
+
+  /// No description provided for @alertsComingSoonBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'re building notifications for new incidents near you. Check back soon.'**
+  String get alertsComingSoonBody;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
 }
 
 class _AppLocalizationsDelegate

@@ -413,9 +413,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportingHintText => 'Spot something? Tap the Bee.';
-
-  @override
   String get clusterNumbersExplained => 'Cluster numbers explained';
 
   @override
@@ -841,4 +838,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routeAwarenessAppleMaps => 'Apple Maps';
+
+  @override
+  String homeGreeting(String name) {
+    return 'Hello, $name!';
+  }
+
+  @override
+  String get homeGreetingGeneric => 'Hello!';
+
+  @override
+  String get homeSubtitle => 'Stay informed and help your community.';
+
+  @override
+  String get homeReportCta => 'Share something important with the community.';
+
+  @override
+  String get exploreSectionTitle => 'Explore';
+
+  @override
+  String get mapPreviewOpenHint => 'Tap to open the map';
+
+  @override
+  String get homeLocationLoading => 'Finding your location…';
+
+  @override
+  String get homeLocationUnavailable => 'Location unavailable';
+
+  @override
+  String get recentActivityEmpty => 'No recent activity near you yet.';
+
+  @override
+  String distanceAway(String distance) {
+    return '$distance away';
+  }
+
+  @override
+  String get bottomNavHome => 'Home';
+
+  @override
+  String get bottomNavMap => 'Map';
+
+  @override
+  String get bottomNavAlerts => 'Alerts';
+
+  @override
+  String get bottomNavProfile => 'Profile';
+
+  @override
+  String get alertsComingSoonTitle => 'Alerts are coming soon';
+
+  @override
+  String get alertsComingSoonBody =>
+      'We\'re building notifications for new incidents near you. Check back soon.';
+
+  @override
+  String get profileTitle => 'Profile';
 }

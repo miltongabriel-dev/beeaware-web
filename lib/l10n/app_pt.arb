@@ -124,7 +124,6 @@
   "accountLabel": "Conta",
   "tokensCount": "{count, plural, one{{count} token} other{{count} tokens}}",
 
-  "reportingHintText": "Viu algo? Toque na abelha.",
   "clusterNumbersExplained": "Como funcionam os números dos agrupamentos",
   "coverageGlobalBaselineOnly": "Só há dado global de base aqui — isso não é garantia de segurança, é só o que temos disponível.",
   "choroplethLegendTooltip": "Legenda do mapa",
@@ -284,5 +283,23 @@
   "routeAwarenessOpenInApp": "Abrir esta rota em",
   "routeAwarenessGoogleMaps": "Google Maps",
   "routeAwarenessWaze": "Waze",
-  "routeAwarenessAppleMaps": "Apple Maps"
+  "routeAwarenessAppleMaps": "Apple Maps",
+
+  "homeGreeting": "Olá, {name}!",
+  "homeGreetingGeneric": "Olá!",
+  "homeSubtitle": "Fique bem informado e ajude sua comunidade.",
+  "homeReportCta": "Compartilhe algo importante com a comunidade.",
+  "exploreSectionTitle": "Explorar",
+  "mapPreviewOpenHint": "Toque para abrir o mapa",
+  "homeLocationLoading": "Localizando você…",
+  "homeLocationUnavailable": "Localização indisponível",
+  "recentActivityEmpty": "Nenhuma atividade recente perto de você ainda.",
+  "distanceAway": "a {distance}",
+  "bottomNavHome": "Início",
+  "bottomNavMap": "Mapa",
+  "bottomNavAlerts": "Alertas",
+  "bottomNavProfile": "Perfil",
+  "alertsComingSoonTitle": "Alertas em breve",
+  "alertsComingSoonBody": "Estamos construindo as notificações de novos incidentes perto de você. Volte em breve.",
+  "profileTitle": "Perfil"
 }

@@ -73,6 +73,40 @@ Future<List<AddressSuggestion>> fetchAddressSuggestions(String query) async {
 /// for the main search box (unchanged, out of scope here) — this is a
 /// second, Brazil-aware geocoder for Route Awareness, not a replacement
 /// for it.
+/// Reverse geocode a point into a short "City, State" label — used by the
+/// Início dashboard's location card. Same Nominatim host and
+/// UK/Brazil-only scoping as [geocodeAddress] above; falls back through
+/// city/town/village since Nominatim doesn't always populate `city`.
+Future<String?> reverseGeocode(LatLng point) async {
+  try {
+    final url = Uri.parse(
+      'https://nominatim.openstreetmap.org/reverse'
+      '?lat=${point.latitude}&lon=${point.longitude}&format=json&countrycodes=gb,br',
+    );
+
+    final response = await http.get(url, headers: {
+      'Accept': 'application/json',
+    });
+
+    if (response.statusCode != 200) return null;
+
+    final decoded = json.decode(response.body);
+    if (decoded is! Map<String, dynamic>) return null;
+
+    final address = decoded['address'];
+    if (address is! Map<String, dynamic>) return null;
+
+    final city = address['city'] ?? address['town'] ?? address['village'];
+    final state = address['state'];
+
+    if (city == null && state == null) return null;
+    if (city != null && state != null) return '$city, $state';
+    return (city ?? state) as String;
+  } catch (_) {
+    return null;
+  }
+}
+
 Future<LatLng?> geocodeAddress(String query) async {
   try {
     final url = Uri.parse(

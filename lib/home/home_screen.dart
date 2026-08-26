@@ -17,7 +17,7 @@ import '../map/bee_incident_pin.dart';
 import '../config/app_config.dart';
 import '../theme/beeaware_theme.dart';
 import '../theme/bee_loader.dart';
-import '../report/report_category_screen.dart';
+import '../theme/emergency_sos.dart';
 import '../report/report_icons.dart';
 import '../report/report_labels.dart';
 import '../l10n/app_localizations.dart';
@@ -28,8 +28,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:aware/auth/login_screen.dart';
 
-import 'package:pwa_install/pwa_install.dart' as pwa;
-import 'dart:js' as js;
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'widgets/incident_bottom_sheet.dart';
 import 'package:provider/provider.dart';
@@ -45,6 +43,7 @@ import '../map/municipality_choropleth_layer.dart';
 import '../area/area_intelligence_screen.dart';
 import '../backend/route_awareness_api.dart';
 import '../utils/geocoding.dart';
+import '../utils/preferred_country_code.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -106,26 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
     BeeAwareTheme.primary,
     Color(0xFF3B82F6),
   ];
-
-  String _preferredCountryCode() {
-    if (_userCurrentLocation == null) return 'gb';
-
-    final lat = _userCurrentLocation!.latitude;
-    final lng = _userCurrentLocation!.longitude;
-
-    // 🇬🇧 UK approx
-    if (lat > 49 && lat < 61) return 'gb';
-
-    // 🇧🇷 Brazil approx
-    if (lat < 5 && lat > -35) return 'br';
-
-    // 🇪🇸 Spain approx (mainland + Balearic Islands). A faixa de latitude
-    // sozinha também cobriria Itália/Grécia/Turquia, então a longitude
-    // entra aqui para não confundir o número de emergência do usuário.
-    if (lat > 36 && lat < 44 && lng > -9.5 && lng < 3.5) return 'es';
-
-    return 'gb';
-  }
 
   final List<LatLng> _recentSearches = [];
 
@@ -790,83 +769,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showReportingHint() {
-    if (!mounted ||
-        _hintOverlay != null ||
-        ModalRoute.of(context)?.isCurrent == false) return;
-
-    _hintOverlay = OverlayEntry(
-      builder: (context) => Positioned(
-        // 220 em vez de 115: a caixa da legenda de severidade (mais abaixo
-        // nesse mesmo Stack) ocupa de bottom:110 até ~bottom:210 — com 115
-        // esse aviso ficava por cima da legenda, cortando a linha "Cluster
-        // numbers explained".
-        bottom: 220,
-        left: 24,
-        right: 24,
-        child: Center(
-          child: Material(
-            color: Colors.transparent,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 800),
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 15 * (1 - value)),
-                    child: child,
-                  ),
-                );
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                decoration: BoxDecoration(
-                  color: BeeAwareTheme.accent,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text("🐝 ", style: TextStyle(fontSize: 16)),
-                    Flexible(
-                      child: Text(
-                        AppLocalizations.of(context)!.reportingHintText,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    Overlay.of(context).insert(_hintOverlay!);
-
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted && _hintOverlay != null) {
-        _clearHint();
-      }
-    });
-  }
-
   void _clearHint() {
     _hintOverlay?.remove();
     _hintOverlay = null;
@@ -1008,7 +910,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final coverage = await LocationCoverageApi.fetchCoverage(
         lat: center.latitude,
         lng: center.longitude,
-        countryCode: _preferredCountryCode().toUpperCase(),
+        countryCode: preferredCountryCode(_userCurrentLocation).toUpperCase(),
       );
 
       if (mounted) setState(() => _coverage = coverage);
@@ -1174,7 +1076,6 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               onMapReady: () {
                 _loadUserLocation(); // keep (helps web/PWA)
-                Future.delayed(const Duration(seconds: 3), _showReportingHint);
               },
               onPositionChanged: (position, hasGesture) {
                 if (_boundsDebounce?.isActive ?? false) return;
@@ -1852,11 +1753,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola)
+            // 📍 BOTÃO CENTRALIZAR NO USUÁRIO (bússola) — bottoms aqui não
+            // precisam mais compensar a altura de uma bottom bar própria
+            // desta tela: a navegação global agora vive em
+            // RootScreen.bottomNavigationBar, fora do Stack deste widget, e
+            // o Scaffold já exclui essa área do espaço disponível pro body.
             Positioned(
               right: 16,
-              bottom:
-                  138, // acima da bottom bar (que cresceu com o rótulo "Reportar")
+              bottom: 16,
               child: FloatingActionButton(
                 mini: true,
                 backgroundColor: Colors.white,
@@ -1869,12 +1773,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             // 🧭 ROTA — botão flutuante próprio na borda direita (padrão
-            // Google Maps/Waze de empilhar ações do mapa nessa borda), acima
-            // da bússola com espaço de sobra — antes vivia apertado dentro
-            // da bottom bar, "engolido" perto do botão central no mobile.
+            // Google Maps/Waze de empilhar ações do mapa nessa borda).
             Positioned(
               right: 16,
-              bottom: 200,
+              bottom: 76,
               child: FloatingActionButton(
                 mini: true,
                 heroTag: 'route-fab',
@@ -1884,6 +1786,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: const Icon(
                   PhosphorIconsRegular.signpost,
                   color: Colors.white,
+                ),
+              ),
+            ),
+
+            // 🔽 FILTROS — antes vivia dentro da bottom bar só do mapa;
+            // agora que essa barra virou a navegação global do app
+            // (Início/Mapa/Alertas/Perfil), filtro e tendência viram
+            // botões flutuantes próprios, empilhados com os outros
+            // controles do mapa na borda direita.
+            Positioned(
+              right: 16,
+              bottom: 136,
+              child: FloatingActionButton(
+                mini: true,
+                heroTag: 'filters-fab',
+                backgroundColor: Colors.white,
+                tooltip: AppLocalizations.of(context)!.filters,
+                onPressed: _showFiltersOverlay,
+                child: const Icon(
+                  PhosphorIconsRegular.funnel,
+                  color: BeeAwareTheme.primary,
+                ),
+              ),
+            ),
+
+            // 📈 TENDÊNCIA DE SEGURANÇA — mesma lógica do item acima.
+            Positioned(
+              right: 16,
+              bottom: 196,
+              child: FloatingActionButton(
+                mini: true,
+                heroTag: 'trend-fab',
+                backgroundColor: Colors.white,
+                tooltip: AppLocalizations.of(context)!.safetyTrendShort,
+                onPressed: _showSafetyTrend,
+                child: const Icon(
+                  PhosphorIconsRegular.chartLine,
+                  color: BeeAwareTheme.primary,
                 ),
               ),
             ),
@@ -1898,10 +1838,12 @@ class _HomeScreenState extends State<HomeScreen> {
             top: 16,
             right: 16,
             child: FadeInUp(
-              child: _SosButton(
+              child: SosButton(
                 label: AppLocalizations.of(context)!.sosBarLabel(
-                    emergencyNumbersFor(_preferredCountryCode()).primary),
-                onTap: () => _showPoliceSheet(context),
+                    emergencyNumbersFor(preferredCountryCode(_userCurrentLocation))
+                        .primary),
+                onTap: () => showEmergencySheet(
+                    context, preferredCountryCode(_userCurrentLocation)),
               ),
             ),
           ),
@@ -1923,25 +1865,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-          // BOTTOM BAR (unchanged)
-          Positioned(
-            bottom: 20,
-            left: 16,
-            right: 16,
-            child: _BottomBar(
-              onReport: () {
-                _clearHint();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ReportCategoryScreen(),
-                  ),
-                );
-              },
-              onFilters: () => _showFiltersOverlay(),
-              onTrend: _showSafetyTrend,
-            ),
-          ),
         ],
       ),
     );
@@ -2109,74 +2032,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 13, color: BeeAwareTheme.textSecondary),
               ),
               const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showPoliceSheet(BuildContext context) {
-    final numbers = emergencyNumbersFor(_preferredCountryCode());
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-      ),
-      builder: (sheetContext) {
-        final loc = AppLocalizations.of(sheetContext)!;
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                loc.emergencyServices,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(PhosphorIconsRegular.siren),
-                label: Text(loc.callEmergencyNumber(numbers.primary)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: SeverityColors.high,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () async {
-                  final uri = Uri.parse('tel:${numbers.primary}');
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  }
-                },
-              ),
-              if (numbers.secondary != null) ...[
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  icon: const Icon(PhosphorIconsRegular.phone),
-                  label: Text(loc.callNonEmergencyNumber(numbers.secondary!)),
-                  onPressed: () async {
-                    final uri = Uri.parse('tel:${numbers.secondary}');
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri);
-                    }
-                  },
-                ),
-              ],
-              const SizedBox(height: 12),
-              Text(
-                loc.emergencyDisclaimer,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: BeeAwareTheme.textSecondary,
-                  height: 1.4,
-                ),
-              ),
             ],
           ),
         );
@@ -3801,44 +3656,6 @@ class _ZoomControlState extends State<_ZoomControl> {
 // Botão de SOS da barra inferior — vermelho e com texto sempre visível,
 // nunca só um ícone de sirene: é a única ação de emergência da barra e
 // precisa ser reconhecível sem hover/tooltip.
-class _SosButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _SosButton({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: SeverityColors.high,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(PhosphorIconsRegular.siren,
-                  size: 16, color: Colors.white),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // Chip removível de filtro ativo, mostrado sobre o mapa (ver
 // _buildActiveFilterChips) — mesmo estilo pill branca já usado na legenda
 // de severidade e no badge de tokens da busca.
@@ -3881,39 +3698,6 @@ class _ActiveFilterChip extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// Ícone compacto padrão da barra inferior — Tooltip cobre tanto hover
-// (desktop) quanto toque longo (mobile), o que o _hover manual de cada
-// botão anterior não fazia: em celular o rótulo nunca aparecia. Tamanho
-// reduzido (~36px) de propósito — a barra passou a acomodar até 5 ícones
-// de cada lado do botão central, não cabe no alvo de toque padrão do
-// Material (48px).
-class _BarIcon extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  const _BarIcon({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: IconButton(
-        icon: Icon(icon, size: 20),
-        color: BeeAwareTheme.primary,
-        iconSize: 20,
-        padding: const EdgeInsets.all(8),
-        constraints: const BoxConstraints(),
-        onPressed: onTap,
       ),
     );
   }
@@ -3993,241 +3777,6 @@ class _AnimatedClusterState extends State<_AnimatedCluster>
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ================= BOTTOM BAR =================
-
-class _BottomBar extends StatefulWidget {
-  final VoidCallback onReport;
-  final VoidCallback onFilters;
-  final VoidCallback onTrend;
-
-  const _BottomBar({
-    required this.onReport,
-    required this.onFilters,
-    required this.onTrend,
-  });
-
-  @override
-  State<_BottomBar> createState() => _BottomBarState();
-}
-
-class _BottomBarState extends State<_BottomBar> {
-  bool canInstall = false;
-  Timer? _pwaTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    canInstall = false;
-
-    // optional: detect installability periodically
-    _pwaTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      bool ok = false;
-
-      try {
-        final hasMethod = js.context.hasProperty('isPwaInstallable');
-        if (hasMethod == true) {
-          ok = js.context.callMethod('isPwaInstallable') == true;
-        }
-      } catch (_) {
-        ok = false;
-      }
-
-      if (mounted && ok != canInstall) {
-        setState(() => canInstall = ok);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _pwaTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: 92,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Esquerda: ações sobre a visão atual do mapa. SOS e
-                    // Rota agora são botões flutuantes no canto superior
-                    // direito e na borda direita (ver o Stack principal) —
-                    // deixavam essa barra apertada no mobile, com o botão
-                    // central do bee "engolindo" o ícone de rota.
-                    Row(
-                      children: [
-                        _BarIcon(
-                          icon: PhosphorIconsRegular.funnel,
-                          tooltip: loc.filters,
-                          onTap: widget.onFilters,
-                        ),
-                      ],
-                    ),
-                    // Direita: informação sobre a área + ações de sistema.
-                    Row(
-                      children: [
-                        _BarIcon(
-                          icon: PhosphorIconsRegular.chartLine,
-                          tooltip: loc.safetyTrendShort,
-                          onTap: widget.onTrend,
-                        ),
-                        if (canInstall)
-                          _BarIcon(
-                            icon: PhosphorIconsRegular.downloadSimple,
-                            tooltip: loc.installAppTooltip,
-                            onTap: () {
-                              if (js.context.callMethod('isPwaInstallable') ==
-                                  true) {
-                                js.context.callMethod('triggerPwaInstall');
-                              } else {
-                                pwa.PWAInstall().promptInstall_();
-                              }
-                            },
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                bottom: 16,
-                child: _AnimatedCentralButton(onTap: widget.onReport),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        // Rótulo visível do botão central — "FAB com rótulo", não só um
-        // ícone com tooltip que some no toque.
-        Text(
-          loc.reportBarLabel,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: BeeAwareTheme.primary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AnimatedCentralButton extends StatefulWidget {
-  final VoidCallback onTap;
-
-  const _AnimatedCentralButton({required this.onTap});
-
-  @override
-  State<_AnimatedCentralButton> createState() => _AnimatedCentralButtonState();
-}
-
-class _AnimatedCentralButtonState extends State<_AnimatedCentralButton>
-    with SingleTickerProviderStateMixin {
-  double _scale = 1.0;
-
-  late final AnimationController _glowController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2500),
-  )..repeat(reverse: true);
-
-  void _setScale(double value) {
-    if (!mounted) return;
-    setState(() => _scale = value);
-  }
-
-  @override
-  void dispose() {
-    _glowController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.of(context).disableAnimations;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => _setScale(1.05),
-      onExit: (_) => _setScale(1.0),
-      child: GestureDetector(
-        onTapDown: (_) => _setScale(0.94),
-        onTapUp: (_) {
-          _setScale(1.05);
-          widget.onTap();
-        },
-        onTapCancel: () => _setScale(1.0),
-        child: AnimatedScale(
-          scale: _scale,
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOut,
-          child: AnimatedBuilder(
-            animation: _glowController,
-            builder: (context, child) {
-              final glow = reduceMotion ? 0.0 : _glowController.value;
-              return Container(
-                width: 66,
-                height: 66,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    // Subtle amber pulse — the one spot in the app where
-                    // the accent color calls attention to itself.
-                    BoxShadow(
-                      color: BeeAwareTheme.accent
-                          .withValues(alpha: 0.35 * (1 - glow)),
-                      blurRadius: 6,
-                      spreadRadius: 8 * glow,
-                    ),
-                    BoxShadow(
-                      color: BeeAwareTheme.primary.withValues(alpha: 0.10),
-                      blurRadius: 18,
-                      spreadRadius: 1,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.22),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(5),
-                child: child,
-              );
-            },
-            child: SvgPicture.asset(
-              'assets/logo/beeaware_symbol.svg',
-              fit: BoxFit.contain,
             ),
           ),
         ),
