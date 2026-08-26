@@ -750,6 +750,27 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não foi possível carregar os dados desta área agora.';
 
   @override
+  String get areaIntelligenceDistrictBreakdown =>
+      'Recorte por Distrito Policial';
+
+  @override
+  String areaIntelligenceDistrictCaption(String district) {
+    return '$district — últimos 3 meses';
+  }
+
+  @override
+  String get areaIntelligenceDistrictViolence => 'Violência';
+
+  @override
+  String get areaIntelligenceDistrictProperty => 'Patrimônio';
+
+  @override
+  String get areaIntelligenceDistrictPublicSafety => 'Segurança pública';
+
+  @override
+  String get areaIntelligenceDistrictTotal => 'Total de registros';
+
+  @override
   String get locationPermissionDenied =>
       'A localização está desativada — permita o acesso para centralizar o mapa em você.';
 

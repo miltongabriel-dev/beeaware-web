@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
+import '../backend/district_crime_api.dart';
 import '../backend/historical_safety_api.dart';
 import '../backend/live_awareness_api.dart';
 import '../backend/recent_activity_api.dart';
@@ -43,6 +44,7 @@ class _AreaIntelligenceScreenState extends State<AreaIntelligenceScreen> {
   HistoricalSafetyWithinState? _historical;
   RecentActivity? _recent;
   LiveAwareness? _live;
+  DistrictCrime? _district;
 
   @override
   void initState() {
@@ -60,6 +62,13 @@ class _AreaIntelligenceScreenState extends State<AreaIntelligenceScreen> {
           lng: widget.tapLng,
           radiusMeters: _liveRadiusMeters,
         ),
+        // Not municipality-level like the three above — only fills in
+        // when the tap landed inside a real police-district polygon
+        // (RJ's CISP, SP's DP so far). Fetched alongside the others
+        // rather than gating on them succeeding first: it's an
+        // independent, optional bonus section, not part of the core
+        // Safety Pulse the rest of this screen depends on.
+        DistrictCrimeApi.fetch(lat: widget.tapLat, lng: widget.tapLng),
       ]);
 
       if (!mounted) return;
@@ -67,6 +76,7 @@ class _AreaIntelligenceScreenState extends State<AreaIntelligenceScreen> {
         _historical = results[0] as HistoricalSafetyWithinState?;
         _recent = results[1] as RecentActivity?;
         _live = results[2] as LiveAwareness?;
+        _district = results[3] as DistrictCrime?;
         _loading = false;
       });
     } catch (_) {
@@ -112,6 +122,7 @@ class _AreaIntelligenceScreenState extends State<AreaIntelligenceScreen> {
                           recent: _recent,
                           live: _live,
                           liveRadiusMeters: _liveRadiusMeters,
+                          district: _district,
                         ),
             ),
           ],
@@ -171,6 +182,7 @@ class _Content extends StatelessWidget {
   final RecentActivity? recent;
   final LiveAwareness? live;
   final double liveRadiusMeters;
+  final DistrictCrime? district;
 
   const _Content({
     required this.stateCode,
@@ -178,6 +190,7 @@ class _Content extends StatelessWidget {
     required this.recent,
     required this.live,
     required this.liveRadiusMeters,
+    required this.district,
   });
 
   @override
@@ -234,6 +247,10 @@ class _Content extends StatelessWidget {
             ],
           ),
         ),
+        if (district != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          _DistrictBreakdown(district: district!),
+        ],
         const SizedBox(height: AppSpacing.lg),
         Text(
           loc.areaIntelligenceDisclaimer,
@@ -372,6 +389,131 @@ class _ScorePill extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: fg,
         ),
+      ),
+    );
+  }
+}
+
+/// Bonus section, only rendered when the tap landed inside a real police-
+/// district polygon (district_crime_for_point RPC) — a finer-grained
+/// look than the municipality-wide Safety Pulse above it, not a
+/// replacement for it (most taps still won't have this, since only
+/// RJ/SP have this geometry so far).
+class _DistrictBreakdown extends StatelessWidget {
+  final DistrictCrime district;
+
+  const _DistrictBreakdown({required this.district});
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          loc.areaIntelligenceDistrictBreakdown,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: BeeAwareTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          loc.areaIntelligenceDistrictCaption(district.districtName),
+          style: const TextStyle(
+            fontSize: 12,
+            color: BeeAwareTheme.textAux,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          decoration: BoxDecoration(
+            color: BeeAwareTheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: BeeAwareTheme.border),
+            boxShadow: BeeAwareTheme.cardShadow,
+          ),
+          child: Column(
+            children: [
+              _DistrictRow(
+                icon: PhosphorIconsRegular.handFist,
+                label: loc.areaIntelligenceDistrictViolence,
+                count: district.violenceCount,
+              ),
+              const Divider(height: 1, color: BeeAwareTheme.border),
+              _DistrictRow(
+                icon: PhosphorIconsRegular.bag,
+                label: loc.areaIntelligenceDistrictProperty,
+                count: district.propertyCount,
+              ),
+              const Divider(height: 1, color: BeeAwareTheme.border),
+              _DistrictRow(
+                icon: PhosphorIconsRegular.shieldWarning,
+                label: loc.areaIntelligenceDistrictPublicSafety,
+                count: district.publicSafetyCount,
+              ),
+              const Divider(height: 1, color: BeeAwareTheme.border),
+              _DistrictRow(
+                icon: PhosphorIconsRegular.listChecks,
+                label: loc.areaIntelligenceDistrictTotal,
+                count: district.totalCount,
+                emphasize: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DistrictRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int count;
+  final bool emphasize;
+
+  const _DistrictRow({
+    required this.icon,
+    required this.label,
+    required this.count,
+    this.emphasize = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      child: Row(
+        children: [
+          Icon(icon,
+              size: 16,
+              color: emphasize
+                  ? BeeAwareTheme.textPrimary
+                  : BeeAwareTheme.textSecondary),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
+                color: BeeAwareTheme.textPrimary,
+              ),
+            ),
+          ),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: emphasize ? FontWeight.w700 : FontWeight.w600,
+              color: BeeAwareTheme.textPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }

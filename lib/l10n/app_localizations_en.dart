@@ -745,6 +745,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load this area\'s data right now.';
 
   @override
+  String get areaIntelligenceDistrictBreakdown => 'Police District Breakdown';
+
+  @override
+  String areaIntelligenceDistrictCaption(String district) {
+    return '$district — last 3 months';
+  }
+
+  @override
+  String get areaIntelligenceDistrictViolence => 'Violence';
+
+  @override
+  String get areaIntelligenceDistrictProperty => 'Property';
+
+  @override
+  String get areaIntelligenceDistrictPublicSafety => 'Public safety';
+
+  @override
+  String get areaIntelligenceDistrictTotal => 'Total reports';
+
+  @override
   String get locationPermissionDenied =>
       'Location access is off — allow it to centre the map on you.';
 

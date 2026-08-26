@@ -1258,6 +1258,42 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load this area\'s data right now.'**
   String get areaIntelligenceLoadError;
 
+  /// No description provided for @areaIntelligenceDistrictBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Police District Breakdown'**
+  String get areaIntelligenceDistrictBreakdown;
+
+  /// No description provided for @areaIntelligenceDistrictCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'{district} — last 3 months'**
+  String areaIntelligenceDistrictCaption(String district);
+
+  /// No description provided for @areaIntelligenceDistrictViolence.
+  ///
+  /// In en, this message translates to:
+  /// **'Violence'**
+  String get areaIntelligenceDistrictViolence;
+
+  /// No description provided for @areaIntelligenceDistrictProperty.
+  ///
+  /// In en, this message translates to:
+  /// **'Property'**
+  String get areaIntelligenceDistrictProperty;
+
+  /// No description provided for @areaIntelligenceDistrictPublicSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Public safety'**
+  String get areaIntelligenceDistrictPublicSafety;
+
+  /// No description provided for @areaIntelligenceDistrictTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total reports'**
+  String get areaIntelligenceDistrictTotal;
+
   /// No description provided for @locationPermissionDenied.
   ///
   /// In en, this message translates to:

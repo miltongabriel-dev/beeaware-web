@@ -242,6 +242,15 @@
   },
   "areaIntelligenceDisclaimer": "Um indicador de inteligência construído a partir de registros oficiais — não é uma probabilidade de segurança pessoal. A cobertura varia por fonte e ainda está sendo validada.",
   "areaIntelligenceLoadError": "Não foi possível carregar os dados desta área agora.",
+  "areaIntelligenceDistrictBreakdown": "Recorte por Distrito Policial",
+  "areaIntelligenceDistrictCaption": "{district} — últimos 3 meses",
+  "@areaIntelligenceDistrictCaption": {
+    "placeholders": { "district": { "type": "String" } }
+  },
+  "areaIntelligenceDistrictViolence": "Violência",
+  "areaIntelligenceDistrictProperty": "Patrimônio",
+  "areaIntelligenceDistrictPublicSafety": "Segurança pública",
+  "areaIntelligenceDistrictTotal": "Total de registros",
 
   "locationPermissionDenied": "A localização está desativada — permita o acesso para centralizar o mapa em você.",
   "locationPermissionBlocked": "A localização está bloqueada para este site. Ative nas configurações do seu navegador.",
