@@ -17,6 +17,12 @@ class AddressSuggestion {
     required this.secondary,
     required this.point,
   });
+
+  /// What a field should actually be filled with on selection — `primary`
+  /// alone is only the text before the first comma (e.g. a bare house
+  /// number like "96"), which reads as a broken/incomplete address once
+  /// it's the only thing left in the field.
+  String get full => secondary.isEmpty ? primary : '$primary, $secondary';
 }
 
 /// Same `geocode` Edge Function HomeScreen's own search box already uses

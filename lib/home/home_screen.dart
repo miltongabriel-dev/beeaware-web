@@ -340,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _selectRouteFromSuggestion(AddressSuggestion s) {
-    _routeFromController.text = s.primary;
+    _routeFromController.text = s.full;
     setState(() {
       _routeFromPoint = s.point;
       _routeFromSuggestions = [];
@@ -348,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _selectRouteToSuggestion(AddressSuggestion s) {
-    _routeToController.text = s.primary;
+    _routeToController.text = s.full;
     setState(() {
       _routeToPoint = s.point;
       _routeToSuggestions = [];
