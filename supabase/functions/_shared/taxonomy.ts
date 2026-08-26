@@ -93,7 +93,8 @@ export type GeoAreaType =
   | "AISP"
   | "CISP"
   | "AIS"
-  | "RA";
+  | "RA"
+  | "DP";
 
 export type SourceType = "official" | "community" | "news";
 
