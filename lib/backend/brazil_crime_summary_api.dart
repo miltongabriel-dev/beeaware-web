@@ -75,20 +75,45 @@ class BrazilCrimeSummaryApi {
   // by the try/catch below, so the whole choropleth (every state, not just
   // one) went dark with no visible error. Widening this again needs a
   // supporting index on security_events first, not just a bigger window.
+  // This project's Supabase instance enforces a hard 1000-row ceiling per
+  // response on table-returning RPCs — confirmed by hand: neither a
+  // Range header nor a larger ?limit= raises it, offset=1000&limit=1000
+  // does return the next 1000 rows, so the cap is per-page, not global.
+  // Harmless while only RJ/RS had municipality geometry (560 rows
+  // total), but backfilling the other 7 states pushed the true total
+  // past 1000, and rows past the first page (São Paulo's own included)
+  // went silently missing from the choropleth. Genuine pagination below
+  // is the only fix; a bigger single .range() call (tried first) still
+  // came back truncated at 1000.
+  static const int _pageSize = 1000;
+
   static Future<List<MunicipalityCrimeSummary>> fetchSummary(
       {int monthsBack = 3}) async {
     try {
-      final rows = await _client.rpc('municipality_crime_summary', params: {
-        'months_back': monthsBack,
-      });
+      final all = <MunicipalityCrimeSummary>[];
+      var offset = 0;
+      // Bounded by Brazil's real municipality count (5570) rather than
+      // an unconditional while(true) — a hard ceiling on iterations, not
+      // just a nicety, in case the server ever misbehaves and keeps
+      // returning full pages past the true end.
+      while (offset < 5570) {
+        final rows = await _client
+            .rpc('municipality_crime_summary', params: {
+              'months_back': monthsBack,
+            })
+            .range(offset, offset + _pageSize - 1);
 
-      if (rows is! List) return [];
+        if (rows is! List) break;
 
-      return rows
-          .whereType<Map<String, dynamic>>()
-          .map(_toSummary)
-          .whereType<MunicipalityCrimeSummary>()
-          .toList();
+        all.addAll(rows
+            .whereType<Map<String, dynamic>>()
+            .map(_toSummary)
+            .whereType<MunicipalityCrimeSummary>());
+
+        if (rows.length < _pageSize) break; // last page
+        offset += _pageSize;
+      }
+      return all;
     } catch (_) {
       return [];
     }
