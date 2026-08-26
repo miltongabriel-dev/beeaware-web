@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../map/map_incident.dart';
 import '../theme/beeaware_theme.dart';
@@ -101,10 +102,25 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
                     onTap: _onMapTap,
                   ),
                   children: [
+                    // Carto's free "light_all" tiles now require an API
+                    // key (see home_screen.dart's TileLayer for the full
+                    // story) — switched to OpenStreetMap's own tiles as
+                    // a stopgap, same as there.
                     TileLayer(
                       urlTemplate:
-                          'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                      subdomains: const ['a', 'b', 'c', 'd'],
+                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c'],
+                      userAgentPackageName: 'io.beeaware.app',
+                    ),
+                    RichAttributionWidget(
+                      alignment: AttributionAlignment.bottomLeft,
+                      attributions: [
+                        TextSourceAttribution(
+                          '© OpenStreetMap contributors',
+                          onTap: () => launchUrl(
+                              Uri.parse('https://www.openstreetmap.org/copyright')),
+                        ),
+                      ],
                     ),
                     if (_currentLocation != null) _buildUserMarker(),
                     if (_selectedLocation != null) _buildSelectedMarker(),

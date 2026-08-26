@@ -220,12 +220,23 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
                           const InteractionOptions(flags: InteractiveFlag.none),
                     ),
                     children: [
+                      // Carto's free "light_all" tiles now require an API
+                      // key (see home_screen.dart's TileLayer for the
+                      // full story) — switched to OpenStreetMap's own
+                      // tiles as a stopgap, same as there.
                       TileLayer(
                         urlTemplate:
-                            'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                        subdomains: const ['a', 'b', 'c', 'd'],
+                            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        subdomains: const ['a', 'b', 'c'],
+                        userAgentPackageName: 'io.beeaware.app',
                         // Usando o provider performante que instalamos
                         tileProvider: CancellableNetworkTileProvider(),
+                      ),
+                      const RichAttributionWidget(
+                        alignment: AttributionAlignment.bottomLeft,
+                        attributions: [
+                          TextSourceAttribution('© OpenStreetMap contributors'),
+                        ],
                       ),
                       if (lat != null && lng != null)
                         MarkerLayer(

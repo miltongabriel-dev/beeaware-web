@@ -1186,11 +1186,34 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             children: [
+              // Carto's free/keyless "light_all" tiles (used here since
+              // this screen's design was built around it) stopped working
+              // without an API key — every request now returns their
+              // "API KEY REQUIRED" watermark tile instead of a real map,
+              // confirmed live, not a local/testing artifact. Standard
+              // OpenStreetMap tiles are the immediate fix: still genuinely
+              // free/keyless, but busier/more colourful than the light
+              // style this was designed against — a stopgap, not a
+              // redesign; getting a real (free) Carto key would restore
+              // the original look, but that needs the account holder's
+              // own email submitted to Carto's own signup form, not
+              // something to do on their behalf.
               TileLayer(
                 urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
+                userAgentPackageName: 'io.beeaware.app',
                 tileProvider: CancellableNetworkTileProvider(),
+              ),
+              RichAttributionWidget(
+                alignment: AttributionAlignment.bottomLeft,
+                attributions: [
+                  TextSourceAttribution(
+                    '© OpenStreetMap contributors',
+                    onTap: () =>
+                        launchUrl(Uri.parse('https://www.openstreetmap.org/copyright')),
+                  ),
+                ],
               ),
 
               // Violência/crime por município (Brasil) — abaixo dos pins,
