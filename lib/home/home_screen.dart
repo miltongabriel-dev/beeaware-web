@@ -572,6 +572,21 @@ class _HomeScreenState extends State<HomeScreen> {
               // InputBorder.none era a causa real da distorção: um rótulo
               // flutuante do Material precisa de uma borda pra "pousar" nela,
               // e sem isso ele fica espremido em cima do texto digitado.
+              // Suggestions are deliberately NOT nested inside this
+              // IntrinsicHeight (they used to be, right under each field) —
+              // IntrinsicHeight pre-measures its subtree's height, and a
+              // scrollable Viewport (the ListView inside
+              // _RouteFieldSuggestions) doesn't report a real intrinsic
+              // height back, so the card sized itself as if the list
+              // wasn't there while the list still painted past that
+              // boundary — suggestions rendered as bare text straight on
+              // top of the map, with no white card behind them (reported
+              // as "autopreenchimento overflow para fora, completamente
+              // errado"). Keeping only the two fixed-height field rows
+              // under IntrinsicHeight (which is all the dot/line/flag
+              // rail actually needs to stretch against) and rendering the
+              // suggestion lists as ordinary siblings after it keeps them
+              // inside the same scrollable card without that interaction.
               IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -626,11 +641,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ],
                           ),
-                          if (_routeFromSuggestions.isNotEmpty)
-                            _RouteFieldSuggestions(
-                              suggestions: _routeFromSuggestions,
-                              onSelected: _selectRouteFromSuggestion,
-                            ),
                           const Divider(height: 1),
                           Row(
                             children: [
@@ -657,17 +667,30 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ],
                           ),
-                          if (_routeToSuggestions.isNotEmpty)
-                            _RouteFieldSuggestions(
-                              suggestions: _routeToSuggestions,
-                              onSelected: _selectRouteToSuggestion,
-                            ),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
+              // Indented by 22 (10 dot width + 12 spacing) to line up under
+              // the field text above rather than the dot/flag rail.
+              if (_routeFromSuggestions.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 22),
+                  child: _RouteFieldSuggestions(
+                    suggestions: _routeFromSuggestions,
+                    onSelected: _selectRouteFromSuggestion,
+                  ),
+                ),
+              if (_routeToSuggestions.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 22),
+                  child: _RouteFieldSuggestions(
+                    suggestions: _routeToSuggestions,
+                    onSelected: _selectRouteToSuggestion,
+                  ),
+                ),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
