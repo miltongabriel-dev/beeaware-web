@@ -538,14 +538,32 @@ class _HomeScreenState extends State<HomeScreen> {
     //
     // MediaQuery.size stays the full device height even once the on-screen
     // keyboard opens (Scaffold's resizeToAvoidBottomInset shrinks the body,
-    // not .size) — so the cap must subtract viewInsets.bottom itself, or on
-    // a phone with the keyboard up it allows more height than is actually
-    // visible above the keyboard, and the Stack's default hard-edge clip
-    // chops the button/suggestions off right at the keyboard line (the
-    // second report: "ainda esta cortando... o botao buscar fica cortado").
+    // not .size), so subtracting viewInsets.bottom was the fix for a
+    // browser tab. It isn't enough for an iOS home-screen-installed PWA
+    // specifically (this app, per the report's screenshot — no browser
+    // chrome): standalone PWAs on iOS have a long-standing WebKit bug
+    // where opening the keyboard changes neither size.height nor
+    // viewInsets.bottom at all, so there is no reliable signal here to
+    // detect it by. A hard cap well clear of where any phone's keyboard
+    // starts, independent of that unreliable computed height, is what
+    // actually keeps the button above the keyboard rather than behind it
+    // (still cortando after the viewInsets-only fix).
+    // Whether either field currently has an open dropdown — while one
+    // does, the button is hidden below (see its own comment): searching
+    // routes mid-selection isn't a real action anyway, and it lets the
+    // card grow enough to show suggestions without needing the button to
+    // still fit in whatever's left, which is what the previous fixed cap
+    // (300) was clipping the button itself against once 3+ suggestions
+    // were open.
+    final hasOpenSuggestions =
+        _routeFromSuggestions.isNotEmpty || _routeToSuggestions.isNotEmpty;
+
     final mq = MediaQuery.of(context);
     final availableHeight = mq.size.height - 60 - 24 - mq.viewInsets.bottom;
-    final maxHeight = availableHeight > 200 ? availableHeight : 200.0;
+    final hardCap = hasOpenSuggestions ? 460.0 : 220.0;
+    final maxHeight = availableHeight < hardCap
+        ? (availableHeight > 200 ? availableHeight : 200.0)
+        : hardCap;
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight > 200 ? maxHeight : 200),
@@ -691,29 +709,35 @@ class _HomeScreenState extends State<HomeScreen> {
                     onSelected: _selectRouteToSuggestion,
                   ),
                 ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: 40,
-                child: ElevatedButton(
-                  onPressed: _routeLoading ? null : _searchRoutes,
-                  child: _routeLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(loc.routeAwarenessSearchButton),
+              // Hidden while a dropdown is open — picking a suggestion is
+              // the only thing to do at that point, and keeping the
+              // button out of the layout means its visibility never
+              // depends on how many suggestions happen to be showing.
+              if (!hasOpenSuggestions) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: ElevatedButton(
+                    onPressed: _routeLoading ? null : _searchRoutes,
+                    child: _routeLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(loc.routeAwarenessSearchButton),
+                  ),
                 ),
-              ),
-              if (_routeError != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _routeError!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 12, color: BeeAwareTheme.textSecondary),
-                ),
+                if (_routeError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _routeError!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 12, color: BeeAwareTheme.textSecondary),
+                  ),
+                ],
               ],
             ],
           ),
