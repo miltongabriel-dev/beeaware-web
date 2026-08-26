@@ -715,9 +715,18 @@ class _HomeScreenState extends State<HomeScreen> {
               // depends on how many suggestions happen to be showing.
               if (!hasOpenSuggestions) ...[
                 const SizedBox(height: 10),
+                // No explicit height: the theme's ElevatedButton style
+                // (see beeaware_theme.dart) applies 16px of padding above
+                // and below the label on top of the label's own line
+                // height — a forced height: 40 box (the previous code
+                // here) is a good deal shorter than that combined natural
+                // height, so the label rendered vertically sliced inside
+                // it. Purely cosmetic (the button still filled its area
+                // and was still tappable), but let it size itself instead
+                // of fighting the theme, the same way every other
+                // ElevatedButton in the app already does.
                 SizedBox(
                   width: double.infinity,
-                  height: 40,
                   child: ElevatedButton(
                     onPressed: _routeLoading ? null : _searchRoutes,
                     child: _routeLoading
