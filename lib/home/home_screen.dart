@@ -1545,6 +1545,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 );
                               },
                               onSubmitted: (value) {
+                                setState(() => _suggestions = []);
                                 _clearHint();
                                 _handleSearch(context, value);
                               },
@@ -1630,7 +1631,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           setState(() => _suggestions = []);
                           _clearHint();
-                          _handleSearch(context, display);
+
+                          final lat = double.tryParse('${item['lat']}');
+                          final lon = double.tryParse('${item['lon']}');
+                          if (lat == null || lon == null) return;
+
+                          setState(() => _isSearching = true);
+                          _goToSearchedLocation(context, LatLng(lat, lon));
                         },
                       );
                     },
@@ -2965,8 +2972,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final result = await _geocodeAddress(value);
 
-    //print('GEOCODE RESULT: $result');
-
     if (result == null) {
       setState(() => _isSearching = false);
 
@@ -2975,6 +2980,19 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return;
     }
+
+    await _goToSearchedLocation(context, result);
+  }
+
+  // Shared tail of a successful address search — token accounting, moving
+  // the map, refreshing official-source data for the new area. Split out
+  // of _handleSearch so a suggestion tap (which already has a real lat/lon
+  // from the geocode Edge Function's response) can jump straight here
+  // instead of re-geocoding its own display text through _geocodeAddress,
+  // which was GB-only until this fix and would have failed outright for
+  // any Brazilian suggestion anyway.
+  Future<void> _goToSearchedLocation(BuildContext context, LatLng result) async {
+    final tokenState = context.read<TokenState>();
 
     if (AppConfig.tokensEnabled) {
       // 🔥 só consome token se encontrou endereço
@@ -3333,7 +3351,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<LatLng?> _geocodeAddress(String query) async {
     try {
       final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&limit=1&countrycodes=gb',
+        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&limit=1&countrycodes=gb,br',
       );
 
       final response = await http.get(url, headers: {

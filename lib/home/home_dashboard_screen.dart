@@ -112,6 +112,31 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (mounted) setState(() => _locationLoading = false);
   }
 
+  /// Lets the user search for and pick any address instead of only ever
+  /// seeing their live GPS position — the location pill was read-only
+  /// before this, with the crosshair button only able to re-fetch the
+  /// device's real position. The crosshair still does exactly that
+  /// (via _loadLocation), so picking an address here is a temporary
+  /// override, not a permanent replacement of "where I actually am".
+  Future<void> _openAddressPicker() async {
+    final selected = await showModalBottomSheet<AddressSuggestion>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (_) => const _AddressPickerSheet(),
+    );
+    if (selected == null || !mounted) return;
+
+    setState(() {
+      _userLocation = selected.point;
+      _locationLabel = selected.full;
+      _locationLoading = false;
+    });
+    _loadNews(selected.point);
+  }
+
   Future<void> _loadNews(LatLng point) async {
     final items = await NewsApi.fetchNearby(point);
     if (!mounted) return;
@@ -279,6 +304,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               children: [
                 Expanded(
                   child: AppCard(
+                    onTap: _openAddressPicker,
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg, vertical: AppSpacing.md),
                     border: Border.all(color: Colors.transparent),
@@ -300,6 +326,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                             ),
                           ),
                         ),
+                        const Icon(PhosphorIconsRegular.pencilSimple,
+                            color: BeeAwareTheme.textAux, size: 16),
                       ],
                     ),
                   ),
@@ -735,6 +763,136 @@ class _NewsCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Search-and-pick address sheet opened by tapping the Início location
+/// pill. Reuses fetchAddressSuggestions (geocoding.dart) — the same
+/// Brazil-and-UK-aware live-suggestions endpoint the Mapa tab's search box
+/// already calls — rather than introducing a second geocoding path.
+class _AddressPickerSheet extends StatefulWidget {
+  const _AddressPickerSheet();
+
+  @override
+  State<_AddressPickerSheet> createState() => _AddressPickerSheetState();
+}
+
+class _AddressPickerSheetState extends State<_AddressPickerSheet> {
+  final TextEditingController _controller = TextEditingController();
+  Timer? _debounce;
+  List<AddressSuggestion> _suggestions = const [];
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    if (value.trim().length < 3) {
+      setState(() => _suggestions = const []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
+      setState(() => _loading = true);
+      final results = await fetchAddressSuggestions(value);
+      if (!mounted) return;
+      setState(() {
+        _suggestions = results;
+        _loading = false;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: AppSpacing.lg,
+        right: AppSpacing.lg,
+        top: AppSpacing.md,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: BeeAwareTheme.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: loc.searchAnAddressHint,
+              prefixIcon: const Icon(PhosphorIconsRegular.magnifyingGlass),
+              filled: true,
+              fillColor: BeeAwareTheme.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: _onChanged,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              ),
+            )
+          else if (_suggestions.isNotEmpty)
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _suggestions.length,
+                itemBuilder: (context, index) {
+                  final suggestion = _suggestions[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(PhosphorIconsRegular.mapPin,
+                        color: BeeAwareTheme.primary),
+                    title: Text(
+                      suggestion.primary,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: suggestion.secondary.isEmpty
+                        ? null
+                        : Text(
+                            suggestion.secondary,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                    onTap: () => Navigator.pop(context, suggestion),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
