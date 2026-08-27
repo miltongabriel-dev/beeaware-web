@@ -1,0 +1,64 @@
+====================================================
+BEEAWARE — TEXTO DA FICHA DA LOJA (Google Play)
+====================================================
+
+--- CATEGORIA SUGERIDA ---
+Estilo de vida (ou Ferramentas)
+
+--- DESCRIÇÃO CURTA (PT-BR) — máx. 80 caracteres ---
+Fique informado sobre incidentes de segurança perto de você.
+
+--- DESCRIÇÃO COMPLETA (PT-BR) — máx. 4000 caracteres ---
+BeeAware é o seu app de consciência situacional e segurança comunitária.
+
+Combine relatos anônimos de quem está por perto com dados públicos oficiais de segurança (polícia, trânsito) pra saber o que está acontecendo na sua região — antes de sair de casa, durante o trajeto, ou na hora de decidir por qual caminho ir.
+
+COMO O BEEAWARE AJUDA
+
+📍 Mapa em tempo real — veja incidentes reportados pela comunidade e registros oficiais perto de você, com filtros por gravidade, período e distância.
+
+🚩 Reporte em segundos — assédio, furto, atividade suspeita, violência, drogas ou qualquer outra ocorrência, de forma anônima e em poucos toques.
+
+🏠 Painel Início — um resumo rápido da sua região: localização atual, atalho pra reportar e as ocorrências mais recentes perto de você.
+
+🆘 Botão SOS — acesso rápido aos números de emergência e não-emergência do seu país (Brasil, Reino Unido e Espanha).
+
+🧭 Comparação de rotas — veja qual caminho tem menos sinais recentes de segurança antes de escolher por onde ir.
+
+PRIVACIDADE EM PRIMEIRO LUGAR
+Você pode usar o BeeAware sem criar conta. Os relatos são anônimos e a localização é usada apenas para mostrar o que está perto de você.
+
+IMPORTANTE
+O BeeAware não é um serviço de emergência e não substitui a polícia, o SAMU ou os bombeiros. As informações mostradas podem estar incompletas, atrasadas ou não verificadas — use como mais uma camada de percepção situacional, não como garantia de segurança.
+
+
+====================================================
+ENGLISH VERSION (optional — add as a second listing
+language in Play Console if you want UK/US reach)
+====================================================
+
+--- SHORT DESCRIPTION (EN) — max 80 characters ---
+Stay informed about safety incidents happening near you.
+
+--- FULL DESCRIPTION (EN) — max 4000 characters ---
+BeeAware is your community safety and situational awareness app.
+
+It combines anonymous reports from people nearby with official public safety data (police, traffic) so you know what's happening in your area — before you head out, on your way somewhere, or when deciding which route to take.
+
+HOW BEEAWARE HELPS
+
+📍 Real-time map — see community-reported incidents and official records near you, with filters for severity, time, and distance.
+
+🚩 Report in seconds — harassment, theft, suspicious activity, violence, drugs, or anything else, anonymously and in just a few taps.
+
+🏠 Home dashboard — a quick summary of your area: current location, a shortcut to report, and the most recent activity near you.
+
+🆘 SOS button — quick access to your country's emergency and non-emergency numbers (Brazil, UK, and Spain).
+
+🧭 Route comparison — see which route has fewer recent safety signals before choosing where to go.
+
+PRIVACY FIRST
+You can use BeeAware without creating an account. Reports are anonymous, and location is only used to show what's near you.
+
+IMPORTANT
+BeeAware is not an emergency service and does not replace the police or emergency responders. Information shown may be incomplete, delayed, or unverified — use it as one more layer of situational awareness, not a guarantee of safety.
