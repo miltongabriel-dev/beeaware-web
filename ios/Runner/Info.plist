@@ -49,5 +49,14 @@
 		<false/>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>BeeAware uses your location to show nearby safety reports and center the map on your area.</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>beeaware</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

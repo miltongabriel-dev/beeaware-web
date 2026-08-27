@@ -1,0 +1,132 @@
+====================================================
+BEEAWARE — RESPOSTAS PARA "SEGURANÇA DOS DADOS" E
+"CLASSIFICAÇÃO INDICATIVA" (Google Play Console)
+====================================================
+Baseado no código real do app em 2026-08-27: sem SDK de analytics, ads,
+crash reporting ou pagamentos. Login é opcional (magic link por e-mail
+ou Google OAuth via Supabase). Relatos de incidentes são anônimos
+(não vinculados à conta).
+
+----------------------------------------------------
+1) SEGURANÇA DOS DADOS (Data safety form)
+----------------------------------------------------
+
+PERGUNTA INICIAL: "Seu app coleta ou compartilha algum dos tipos de
+dados do usuário exigidos?" → SIM
+
+--- Localização ---
+Tipo: Localização aproximada E Localização precisa
+Coletado: SIM
+Compartilhado com terceiros: NÃO
+  (usado só para renderizar o mapa e ordenar "Atividade recente";
+  chamadas a tiles do OpenStreetMap e geocodificação do Nominatim
+  levam a coordenada, mas não é vinculada à identidade do usuário —
+  não é necessário declarar como "compartilhamento" no sentido do
+  Play, que é sobre transferir dados que identificam o usuário)
+Finalidade: Funcionalidade do app
+Coleta opcional pelo usuário: SIM (o app funciona sem permissão de
+  localização, mostrando estado "localização indisponível")
+Dados processados de forma efêmera: NÃO (a localização de cada
+  relato fica salva junto ao relato no banco, mas sem vínculo com
+  identidade do autor)
+
+--- Informações pessoais → Endereço de e-mail ---
+Coletado: SIM (somente se o usuário optar por criar conta / logar)
+Compartilhado com terceiros: NÃO
+Finalidade: Gerenciamento de conta, Funcionalidade do app
+Coleta opcional pelo usuário: SIM (app funciona sem login)
+Pode ser excluído: SIM — ver seção "Exclusão de conta" abaixo
+
+--- Informações pessoais → Nome (apenas via login Google) ---
+Coletado: SIM, mas só quando o usuário escolhe "Continuar com o
+  Google" (o Google compartilha nome/e-mail/foto de perfil com o app
+  via Supabase Auth)
+Compartilhado com terceiros: NÃO
+Finalidade: Gerenciamento de conta
+Coleta opcional pelo usuário: SIM
+
+--- Conteúdo gerado pelo usuário → "Outro conteúdo gerado pelo usuário" ---
+(texto e categoria do relato de incidente)
+Coletado: SIM
+Compartilhado: SIM — com OUTROS USUÁRIOS DO APP (é a função central:
+  relatos aparecem no mapa pra todo mundo). Não é vendido nem
+  compartilhado com terceiros fora do app.
+Finalidade: Funcionalidade do app (essa é a razão de existir do app)
+Coleta opcional: SIM (só é coletado quando o usuário decide reportar)
+
+--- O que responder "NÃO coletamos" para todo o resto ---
+Não há: ID de publicidade, dados financeiros, fotos/vídeos, áudio,
+contatos, histórico de navegação, informações de saúde, mensagens,
+dados de app activity/analytics de terceiros. (Sem Firebase Analytics,
+Crashlytics, AdMob, Sentry ou qualquer SDK de rastreamento no
+pubspec.yaml — confirmado.)
+
+--- Segurança dos dados (perguntas gerais) ---
+"Os dados são criptografados em trânsito?" → SIM (tudo via HTTPS/TLS,
+  Supabase e OpenStreetMap/Nominatim)
+"Você oferece um jeito do usuário pedir exclusão dos dados?" → SIM
+"Você segue a Família de Políticas de Dados do Usuário do Play?" → SIM
+
+--- Exclusão de conta (obrigatório pro Play, pois o app permite criar conta) ---
+Já preparei isso em privacy.html / web/privacy.html (seção "Account
+and Data Deletion"): usuário manda e-mail pra contact@getbeeaware.com
+pedindo exclusão, prazo de 30 dias. No formulário "Segurança dos
+dados", no campo de link de exclusão, use a URL da política de
+privacidade publicada (ex.: https://getbeeaware.com/privacy.html ou
+onde quer que o GitHub Pages do repo beeaware-web publique esse
+arquivo — confirme a URL real antes de colar no Play Console).
+
+⚠️ AÇÃO PENDENTE (fora do escopo de texto): hoje não existe um botão
+"excluir minha conta" dentro do app — a exclusão é só por e-mail. Isso
+é aceitável pro Play (não exige automação, só um caminho acessível),
+mas se quiser reduzir fricção no futuro dá pra adicionar um botão em
+Perfil que chama `Supabase.instance.client.auth.admin.deleteUser`
+(via Edge Function, já que o client não tem permissão admin direta).
+
+----------------------------------------------------
+2) CLASSIFICAÇÃO INDICATIVA (Content rating / IARC)
+----------------------------------------------------
+O questionário é dinâmico (perguntas mudam com base nas respostas),
+mas as escolhas certas pro conteúdo real do BeeAware são:
+
+- Violência: o app NÃO mostra violência gráfica/visual, mas permite
+  relatos em TEXTO livre descrevendo violência real (agressão, furto,
+  assédio). Responda que o app contém "referências a violência do
+  mundo real, em texto, não gráfica" quando essa opção aparecer.
+- Conteúdo sexual: nenhum.
+- Linguagem imprópria: o app não insere palavrões, mas como o texto do
+  relato é livre e não é moderado antes de aparecer no mapa (delay de
+  1 minuto, sem revisão humana), marque que o CONTEÚDO GERADO PELO
+  USUÁRIO NÃO É MODERADO em tempo real — isso é o campo mais importante
+  do questionário pra esse tipo de app.
+- Substâncias controladas: SIM, há referência (uma das categorias de
+  relato é "drogas"/atividade suspeita relacionada).
+- Jogos de azar / apostas: nenhum.
+- Compras dentro do app: NÃO (sistema de créditos existe no código mas
+  está desligado — `AppConfig.tokensEnabled = false`, sem cobrança real).
+- Compartilhamento de localização: SIM, o app compartilha a localização
+  do usuário com outros usuários (nos relatos que ele publica).
+- Interação entre usuários / UGC: SIM — usuários veem conteúdo enviado
+  por outros usuários, sem moderação prévia.
+
+Resultado esperado: por causa do "UGC não moderado" + "referências a
+violência/drogas em texto", o IARC tende a classificar como
+"Parental Guidance" / "12+" ou equivalente, não "Livre para todos".
+Isso é normal para apps de segurança comunitária (ex.: Citizen, Nextdoor
+têm classificações semelhantes) e não deve ser motivo de preocupação.
+
+----------------------------------------------------
+3) OUTRO PONTO CORRIGIDO NESTA SESSÃO
+----------------------------------------------------
+O login "Continuar com o Google" usa redirect `beeaware://login-callback`,
+mas nem o AndroidManifest.xml nem o Info.plist tinham esse esquema de
+URL registrado — ou seja, o retorno do navegador pro app quebraria hoje
+em produção. Corrigido em:
+  - android/app/src/main/AndroidManifest.xml (novo intent-filter VIEW
+    com scheme "beeaware" host "login-callback")
+  - ios/Runner/Info.plist (novo CFBundleURLTypes com scheme "beeaware")
+
+⚠️ Confirme também no painel do Supabase (Authentication → URL
+Configuration → Redirect URLs) que `beeaware://login-callback` está
+na lista de URLs permitidas — sem isso o Supabase recusa o redirect
+mesmo com o app configurado corretamente.
