@@ -119,9 +119,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   /// (via _loadLocation), so picking an address here is a temporary
   /// override, not a permanent replacement of "where I actually am".
   Future<void> _openAddressPicker() async {
+    // Capped at 60% of the screen so the sheet can't keep growing as
+    // suggestions stream in — without this, more results just made the
+    // whole sheet (search field included) climb further up the screen
+    // with every keystroke, up to the point of pushing itself off the
+    // top edge. Capping it here keeps the field anchored near the
+    // keyboard and turns the suggestion list into a scrollable area
+    // instead, since ListView.builder already respects a bounded height
+    // even with shrinkWrap: true.
     final selected = await showModalBottomSheet<AddressSuggestion>(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.6,
+      ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),

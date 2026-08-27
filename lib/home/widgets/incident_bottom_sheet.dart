@@ -23,18 +23,28 @@ class IncidentBottomSheet extends StatelessWidget {
     final categoryLabel = incident.isOfficial
         ? ReportLabels.officialCategory(context, incident.officialEventCategory)
         : ReportLabels.category(context, incident.category);
-    // Official events build their description sentence here rather than
-    // using the stored `description` field (left empty for them by
-    // BrazilSecurityApi) — same reasoning as categoryLabel above: the
-    // sentence's "in"/"em" connector is locale-dependent too.
+    // Official events prefer whatever `description` the source adapter
+    // already built (e.g. UkPoliceApi bakes in street/outcome/month —
+    // real specifics of what happened, not just a category). BrazilSecurityApi
+    // deliberately leaves `description` empty and only supplies
+    // officialCity/officialState, so for that source the sentence is
+    // built here instead — same reasoning as categoryLabel above: the
+    // "in"/"em" connector is locale-dependent. Checking both city AND
+    // state are non-empty (not just non-null — BrazilSecurityApi defaults
+    // missing fields to '', not null) avoids a broken "X in , ." sentence.
     final description = incident.isOfficial
-        ? (incident.officialCity != null && incident.officialState != null
-            ? loc.officialEventDescription(
-                incident.subcategory,
-                incident.officialCity!,
-                incident.officialState!,
-              )
-            : '')
+        ? (incident.description.trim().isNotEmpty
+            ? incident.description
+            : (incident.officialCity != null &&
+                    incident.officialState != null &&
+                    incident.officialCity!.isNotEmpty &&
+                    incident.officialState!.isNotEmpty
+                ? loc.officialEventDescription(
+                    incident.subcategory,
+                    incident.officialCity!,
+                    incident.officialState!,
+                  )
+                : ''))
         : incident.description;
     final hasExternalDescription = description.trim().isNotEmpty;
 
