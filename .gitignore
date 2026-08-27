@@ -30,3 +30,6 @@ Thumbs.db
 # Secrets
 *.key
 *.pem
+*.jks
+*.keystore
+android/key.properties

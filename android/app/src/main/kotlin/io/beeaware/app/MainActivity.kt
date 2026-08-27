@@ -1,4 +1,4 @@
-package com.example.aware
+package io.beeaware.app
 
 import io.flutter.embedding.android.FlutterActivity
 

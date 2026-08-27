@@ -138,7 +138,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(AppRadius.md),
                             ),
-                            prefixIcon: const Icon(PhosphorIconsRegular.envelope),
+                            prefixIcon:
+                                const Icon(PhosphorIconsRegular.envelope),
                           ),
                         ),
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:js' as js;
 
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
@@ -15,6 +14,8 @@ import '../state/locale_state.dart';
 import '../state/token_state.dart';
 import '../theme/app_card.dart';
 import '../theme/beeaware_theme.dart';
+import 'pwa_bridge_stub.dart'
+    if (dart.library.js) 'pwa_bridge_web.dart' as pwa_bridge;
 
 /// The "Perfil" tab. Surfaces the same account actions the map's own
 /// hamburger menu already has (home_screen.dart's _buildMenuContent) as a
@@ -37,15 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _pwaTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      bool ok = false;
-      try {
-        final hasMethod = js.context.hasProperty('isPwaInstallable');
-        if (hasMethod == true) {
-          ok = js.context.callMethod('isPwaInstallable') == true;
-        }
-      } catch (_) {
-        ok = false;
-      }
+      final ok = pwa_bridge.isPwaInstallable();
       if (mounted && ok != _canInstall) {
         setState(() => _canInstall = ok);
       }
@@ -59,8 +52,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _installApp() {
-    if (js.context.callMethod('isPwaInstallable') == true) {
-      js.context.callMethod('triggerPwaInstall');
+    if (pwa_bridge.isPwaInstallable()) {
+      pwa_bridge.triggerPwaInstall();
     } else {
       pwa.PWAInstall().promptInstall_();
     }
