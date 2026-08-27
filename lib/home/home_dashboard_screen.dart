@@ -7,7 +7,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../backend/news_api.dart';
 import '../config/emergency_numbers.dart';
 import '../l10n/app_localizations.dart';
 import '../map/incident_store.dart';
@@ -55,6 +57,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   List<MapIncident> _incidents = List.unmodifiable(const []);
   StreamSubscription<List<MapIncident>>? _subscription;
 
+  List<NewsItem> _news = const [];
+  bool _newsLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -87,6 +92,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         final point = LatLng(position.latitude, position.longitude);
         if (!mounted) return;
         setState(() => _userLocation = point);
+        _loadNews(point);
 
         final label = await reverseGeocode(point);
         if (!mounted) return;
@@ -104,6 +110,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     }
 
     if (mounted) setState(() => _locationLoading = false);
+  }
+
+  Future<void> _loadNews(LatLng point) async {
+    final items = await NewsApi.fetchNearby(point);
+    if (!mounted) return;
+    setState(() {
+      _news = items;
+      _newsLoaded = true;
+    });
+  }
+
+  Future<void> _openArticle(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   String _displayName(AppLocalizations loc) {
@@ -132,6 +153,25 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     }
 
     return list.take(_maxItems).toList();
+  }
+
+  /// Best available state name for the news section's title. Prefers the
+  /// free-text state Nominatim already resolved for the location pill
+  /// (the part after the last comma in "City, State") — that's available
+  /// as soon as reverseGeocode() returns, whether or not any news exists
+  /// yet for that state. Falls back to the state code carried by an
+  /// actual news row (mapped through brazilianStateNames) for the rare
+  /// case the news fetch resolves before reverseGeocode does; empty only
+  /// when neither has resolved yet.
+  String get _newsStateLabel {
+    final label = _locationLabel;
+    if (label != null && label.contains(',')) {
+      return label.substring(label.lastIndexOf(',') + 1).trim();
+    }
+    if (_news.isNotEmpty) {
+      return brazilianStateNames[_news.first.stateCode] ?? _news.first.stateCode;
+    }
+    return '';
   }
 
   String _formatDistance(double meters) {
@@ -390,6 +430,53 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
               ],
+
+            // News is a genuinely different scope from everything above —
+            // Atividade Recente is sorted by real distance in metres,
+            // this is whatever G1NewsAdapter classified anywhere in the
+            // user's whole STATE (see g1_news.ts's header on why: the
+            // source's own precision stops there). Kept in its own titled
+            // section rather than merged into the list above so that
+            // difference in scope is never implied to be "nearby" —
+            // labelling it by state name is the whole point, not a detail.
+            if (_newsLoaded) ...[
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                loc.newsSectionTitle(_newsStateLabel),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: BeeAwareTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                loc.newsSectionSubtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: BeeAwareTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              if (_news.isEmpty)
+                Text(
+                  loc.newsSectionEmpty,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: BeeAwareTheme.textSecondary,
+                  ),
+                )
+              else
+                for (final item in _news) ...[
+                  _NewsCard(
+                    item: item,
+                    onTap: item.articleUrl == null
+                        ? null
+                        : () => _openArticle(item.articleUrl!),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+            ],
           ],
         ),
       ),
@@ -527,6 +614,130 @@ class _MapPreviewCard extends StatelessWidget {
     }
 
     return Stack(children: tiles);
+  }
+}
+
+Color _newsSeverityColor(String? severity) {
+  switch (severity) {
+    case 'high':
+      return SeverityColors.high;
+    case 'medium':
+      return SeverityColors.medium;
+    case 'low':
+      return SeverityColors.low;
+    default:
+      return SeverityColors.medium;
+  }
+}
+
+/// A news-derived card — visually similar to [_ActivityItem] (same
+/// severity-coloured circle, same two-line layout) but with a newspaper
+/// icon instead of the community/official ones, and a headline + source
+/// byline instead of a category label, since what this card is showing is
+/// fundamentally an article, not a normalized incident record. Tapping it
+/// opens the real article (url_launcher, externalApplication) — a real
+/// link a user can independently verify is exactly what this project's
+/// news source, and only this source, can actually offer.
+class _NewsCard extends StatelessWidget {
+  final NewsItem item;
+  final VoidCallback? onTap;
+
+  const _NewsCard({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final categoryLabel = ReportLabels.officialCategory(context, item.eventCategory);
+    final byline = [
+      item.sourceOrganisation,
+      if (item.subtitle != null && item.subtitle!.isNotEmpty) item.subtitle,
+    ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
+
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      border: Border.all(color: Colors.transparent),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _newsSeverityColor(item.severity),
+            ),
+            child: const Icon(
+              PhosphorIconsFill.newspaperClipping,
+              size: 20,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      categoryLabel,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: BeeAwareTheme.textAux,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      relativeTime(context, item.occurredAt),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: BeeAwareTheme.textAux,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: BeeAwareTheme.textPrimary,
+                  ),
+                ),
+                if (byline.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    byline,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: BeeAwareTheme.textSecondary,
+                    ),
+                  ),
+                ],
+                if (onTap != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    loc.newsReadArticle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: BeeAwareTheme.primary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -894,4 +894,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileTitle => 'Profile';
+
+  @override
+  String newsSectionTitle(String state) {
+    return 'In the news — $state';
+  }
+
+  @override
+  String get newsSectionSubtitle =>
+      'Statewide news coverage, not your exact area.';
+
+  @override
+  String get newsSectionEmpty => 'No recent news for this state.';
+
+  @override
+  String get newsReadArticle => 'Read article';
 }

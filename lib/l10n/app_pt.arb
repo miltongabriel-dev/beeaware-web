@@ -301,5 +301,12 @@
   "bottomNavProfile": "Perfil",
   "alertsComingSoonTitle": "Alertas em breve",
   "alertsComingSoonBody": "Estamos construindo as notificações de novos incidentes perto de você. Volte em breve.",
-  "profileTitle": "Perfil"
+  "profileTitle": "Perfil",
+  "newsSectionTitle": "No noticiário — {state}",
+  "@newsSectionTitle": {
+    "placeholders": { "state": { "type": "String" } }
+  },
+  "newsSectionSubtitle": "Cobertura de todo o estado, não da sua região exata.",
+  "newsSectionEmpty": "Sem notícias recentes para este estado.",
+  "newsReadArticle": "Ler matéria"
 }

@@ -901,4 +901,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get profileTitle => 'Perfil';
+
+  @override
+  String newsSectionTitle(String state) {
+    return 'No noticiário — $state';
+  }
+
+  @override
+  String get newsSectionSubtitle =>
+      'Cobertura de todo o estado, não da sua região exata.';
+
+  @override
+  String get newsSectionEmpty => 'Sem notícias recentes para este estado.';
+
+  @override
+  String get newsReadArticle => 'Ler matéria';
 }

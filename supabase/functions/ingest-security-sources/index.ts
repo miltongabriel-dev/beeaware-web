@@ -79,9 +79,11 @@ import { MgAdapter } from "../_shared/adapters/br/mg_ssp.ts";
 import { EsSespAdapter } from "../_shared/adapters/br/es_sesp.ts";
 import { AlAdapter } from "../_shared/adapters/br/al_seds.ts";
 import { MtAdapter } from "../_shared/adapters/br/mt_sesp.ts";
+import { DfAdapter } from "../_shared/adapters/br/df_ssp.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail.
+import { G1NewsAdapter } from "../_shared/adapters/br/g1_news.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
@@ -121,6 +123,8 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   EsSespAdapter: new EsSespAdapter(),
   AlAdapter: new AlAdapter(),
   MtAdapter: new MtAdapter(),
+  DfAdapter: new DfAdapter(),
+  G1NewsAdapter: new G1NewsAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),

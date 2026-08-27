@@ -1521,6 +1521,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile'**
   String get profileTitle;
+
+  /// No description provided for @newsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'In the news — {state}'**
+  String newsSectionTitle(String state);
+
+  /// No description provided for @newsSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statewide news coverage, not your exact area.'**
+  String get newsSectionSubtitle;
+
+  /// No description provided for @newsSectionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent news for this state.'**
+  String get newsSectionEmpty;
+
+  /// No description provided for @newsReadArticle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read article'**
+  String get newsReadArticle;
 }
 
 class _AppLocalizationsDelegate
