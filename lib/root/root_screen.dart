@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import '../home/home_dashboard_screen.dart';
@@ -19,6 +20,13 @@ class RootScreen extends StatefulWidget {
 
 class _RootScreenState extends State<RootScreen> {
   int _selectedIndex = 0;
+
+  // Set when the Início dashboard's map preview is tapped with a
+  // manually-picked address active — HomeScreen (the Mapa tab) otherwise
+  // has no idea a non-GPS location was chosen there, since it stays
+  // mounted independently via IndexedStack and does its own geolocation
+  // on first load.
+  LatLng? _mapFocusLocation;
 
   @override
   void initState() {
@@ -47,6 +55,13 @@ class _RootScreenState extends State<RootScreen> {
 
   void _selectTab(int index) => setState(() => _selectedIndex = index);
 
+  void _openMapAt(LatLng? point) {
+    setState(() {
+      _mapFocusLocation = point;
+      _selectedIndex = 1;
+    });
+  }
+
   void _openReport() {
     Navigator.push(
       context,
@@ -67,9 +82,9 @@ class _RootScreenState extends State<RootScreen> {
         children: [
           HomeDashboardScreen(
             onOpenAlerts: () => _selectTab(2),
-            onOpenMap: () => _selectTab(1),
+            onOpenMap: _openMapAt,
           ),
-          const HomeScreen(),
+          HomeScreen(focusLocation: _mapFocusLocation),
           const AlertsScreen(),
           const ProfileScreen(),
         ],

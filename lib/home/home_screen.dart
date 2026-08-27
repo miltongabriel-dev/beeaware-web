@@ -60,7 +60,15 @@ enum IncidentDistanceFilter {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  // A manually-picked address from the Início dashboard's map preview —
+  // null means "use the device's real location", same as before this was
+  // added. HomeScreen stays mounted for the app's whole lifetime once
+  // first shown (RootScreen's IndexedStack), so a later tap with a NEW
+  // address still needs to reach an already-live State — see
+  // didUpdateWidget below, not just initState.
+  final LatLng? focusLocation;
+
+  const HomeScreen({super.key, this.focusLocation});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -79,6 +87,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Map<String, dynamic>> _suggestions = [];
   Timer? _debounce;
+
+  // Last focusLocation actually applied (see HomeScreen.focusLocation) —
+  // non-null means "an explicit address is active", which the automatic
+  // GPS-driven centering below must not silently override.
+  LatLng? _explicitFocus;
 
   final Map<String, List<Map<String, dynamic>>> _searchCache = {};
 
@@ -227,6 +240,11 @@ class _HomeScreenState extends State<HomeScreen> {
           timeLimit: const Duration(seconds: 10),
         );
 
+        // An explicit "center on me" tap is exactly how a user leaves a
+        // picked address behind — clears the override so a later
+        // background GPS fix (_loadUserLocation) isn't silently ignored
+        // anymore either.
+        _explicitFocus = null;
         _mapController.move(
           LatLng(position.latitude, position.longitude),
           15.0,
@@ -754,7 +772,14 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _userCurrentLocation = userLatLng;
           });
-          _mapController.move(userLatLng, 15);
+          // An explicitly picked address (see HomeScreen.focusLocation)
+          // must win over this background GPS fix — otherwise the map
+          // silently jumps back to "where the phone actually is" the
+          // moment this resolves, exactly the bug this field exists to
+          // prevent.
+          if (_explicitFocus == null) {
+            _mapController.move(userLatLng, 15);
+          }
         }
       }
     } catch (e) {
@@ -849,9 +874,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  @override
   void initState() {
     super.initState();
+
+    // Applied synchronously, before the async geolocation calls below
+    // ever run — FlutterMap only reads MapOptions.initialCenter on its
+    // very first build, so setting _initialCenter/_searchLocation here
+    // (not via _mapController.move, which would throw before the map
+    // widget exists) makes the address the user actually picked the
+    // screen's first paint, not a placeholder that then jumps to GPS.
+    if (widget.focusLocation != null) {
+      _explicitFocus = widget.focusLocation;
+      _searchLocation = widget.focusLocation;
+      _initialCenter = widget.focusLocation;
+    }
 
     // 🔥 STREAM de incidentes (real-time)
     _subscription = IncidentStore.stream.listen((data) {
@@ -915,6 +951,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) setState(() => _coverage = coverage);
     });
+  }
+
+  // HomeScreen stays mounted forever once first shown (IndexedStack), so
+  // a SECOND address picked on the Início dashboard doesn't remount this
+  // screen — it arrives here as a widget update instead, which initState
+  // never sees again. LatLng has real value equality (latlong2), so this
+  // only fires for an actually different point, not every unrelated
+  // rebuild that happens to pass the same coordinates again.
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final newFocus = widget.focusLocation;
+    if (newFocus == null || newFocus == _explicitFocus) return;
+
+    _explicitFocus = newFocus;
+    setState(() => _searchLocation = newFocus);
+    _mapController.move(newFocus, 15);
+
+    UkPoliceApi.refreshTrendBackground(
+      lat: newFocus.latitude,
+      lng: newFocus.longitude,
+    );
+    IncidentStore.syncOfficialForBounds(_mapController.camera.visibleBounds);
   }
 
   // Tapping a colored municipality on MunicipalityChoroplethLayer opens

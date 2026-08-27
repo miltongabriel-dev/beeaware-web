@@ -34,7 +34,7 @@ import 'widgets/incident_bottom_sheet.dart';
 /// IndexedStack in RootScreen).
 class HomeDashboardScreen extends StatefulWidget {
   final VoidCallback onOpenAlerts;
-  final VoidCallback onOpenMap;
+  final void Function(LatLng? point) onOpenMap;
 
   const HomeDashboardScreen({
     super.key,
@@ -425,7 +425,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            _MapPreviewCard(location: _userLocation, onTap: widget.onOpenMap),
+            _MapPreviewCard(
+              location: _userLocation,
+              onTap: () => widget.onOpenMap(_userLocation),
+            ),
             const SizedBox(height: AppSpacing.xl),
 
             Text(
