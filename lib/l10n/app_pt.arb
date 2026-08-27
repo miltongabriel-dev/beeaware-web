@@ -306,7 +306,8 @@
   "@newsSectionTitle": {
     "placeholders": { "state": { "type": "String" } }
   },
-  "newsSectionSubtitle": "Cobertura de todo o estado, não da sua região exata.",
-  "newsSectionEmpty": "Sem notícias recentes para este estado.",
-  "newsReadArticle": "Ler matéria"
+  "newsSectionSubtitle": "Cobertura de uma área ampla, não da sua região exata.",
+  "newsSectionEmpty": "Sem notícias recentes para esta região.",
+  "newsReadArticle": "Ler matéria",
+  "unitedKingdomLabel": "Reino Unido"
 }

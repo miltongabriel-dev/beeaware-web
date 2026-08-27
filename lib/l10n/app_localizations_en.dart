@@ -902,11 +902,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newsSectionSubtitle =>
-      'Statewide news coverage, not your exact area.';
+      'Wide-area news coverage, not your exact location.';
 
   @override
-  String get newsSectionEmpty => 'No recent news for this state.';
+  String get newsSectionEmpty => 'No recent news for this area.';
 
   @override
   String get newsReadArticle => 'Read article';
+
+  @override
+  String get unitedKingdomLabel => 'United Kingdom';
 }

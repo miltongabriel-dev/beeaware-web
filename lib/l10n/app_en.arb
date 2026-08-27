@@ -399,7 +399,8 @@
   "@newsSectionTitle": {
     "placeholders": { "state": { "type": "String" } }
   },
-  "newsSectionSubtitle": "Statewide news coverage, not your exact area.",
-  "newsSectionEmpty": "No recent news for this state.",
-  "newsReadArticle": "Read article"
+  "newsSectionSubtitle": "Wide-area news coverage, not your exact location.",
+  "newsSectionEmpty": "No recent news for this area.",
+  "newsReadArticle": "Read article",
+  "unitedKingdomLabel": "United Kingdom"
 }

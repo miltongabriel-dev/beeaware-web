@@ -137,8 +137,22 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     _loadNews(selected.point);
   }
 
+  // Resolves its own state name via reverseGeocode rather than trusting
+  // whatever _locationLabel already holds — a picked address's own label
+  // (AddressSuggestion.full) isn't in the same "City, State" shape
+  // reverseGeocode produces, and this hint has to be right for it to be
+  // useful at all (see NewsApi.fetchNearby's own doc comment for why it
+  // exists: some Brazilian states, e.g. Rondônia, have zero backfilled
+  // municipality geometry, so this external geocode is the only thing
+  // that can place a point in them).
   Future<void> _loadNews(LatLng point) async {
-    final items = await NewsApi.fetchNearby(point);
+    final label = await reverseGeocode(point);
+    final stateHint =
+        label != null && label.contains(',')
+            ? label.substring(label.lastIndexOf(',') + 1).trim()
+            : null;
+
+    final items = await NewsApi.fetchNearby(point, stateNameHint: stateHint);
     if (!mounted) return;
     setState(() {
       _news = items;
@@ -180,21 +194,29 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     return list.take(_maxItems).toList();
   }
 
-  /// Best available state name for the news section's title. Prefers the
-  /// free-text state Nominatim already resolved for the location pill
-  /// (the part after the last comma in "City, State") — that's available
-  /// as soon as reverseGeocode() returns, whether or not any news exists
-  /// yet for that state. Falls back to the state code carried by an
-  /// actual news row (mapped through brazilianStateNames) for the rare
-  /// case the news fetch resolves before reverseGeocode does; empty only
-  /// when neither has resolved yet.
+  /// Best available scope name for the news section's title. A GB row has
+  /// no state_code at all (BbcNewsAdapter is country-wide — see its own
+  /// header for why), so it's checked first and always labelled "United
+  /// Kingdom"/"Reino Unido" — never the UK city/county Nominatim resolved
+  /// for the location pill, which would overstate the precision this
+  /// source actually has. For Brazil, prefers the free-text state
+  /// Nominatim already resolved (the part after the last comma in "City,
+  /// State") — available as soon as reverseGeocode() returns, whether or
+  /// not any news exists yet for that state — falling back to the state
+  /// code carried by an actual news row for the rare case the news fetch
+  /// resolves first; empty only when nothing has resolved yet.
   String get _newsStateLabel {
+    if (_news.isNotEmpty && _news.first.countryCode == 'GB') {
+      return AppLocalizations.of(context)!.unitedKingdomLabel;
+    }
+
     final label = _locationLabel;
     if (label != null && label.contains(',')) {
       return label.substring(label.lastIndexOf(',') + 1).trim();
     }
     if (_news.isNotEmpty) {
-      return brazilianStateNames[_news.first.stateCode] ?? _news.first.stateCode;
+      final stateCode = _news.first.stateCode;
+      if (stateCode != null) return brazilianStateNames[stateCode] ?? stateCode;
     }
     return '';
   }

@@ -909,11 +909,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get newsSectionSubtitle =>
-      'Cobertura de todo o estado, não da sua região exata.';
+      'Cobertura de uma área ampla, não da sua região exata.';
 
   @override
-  String get newsSectionEmpty => 'Sem notícias recentes para este estado.';
+  String get newsSectionEmpty => 'Sem notícias recentes para esta região.';
 
   @override
   String get newsReadArticle => 'Ler matéria';
+
+  @override
+  String get unitedKingdomLabel => 'Reino Unido';
 }

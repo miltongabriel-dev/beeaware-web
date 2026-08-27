@@ -84,6 +84,7 @@ import { DfAdapter } from "../_shared/adapters/br/df_ssp.ts";
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail.
 import { G1NewsAdapter } from "../_shared/adapters/br/g1_news.ts";
+import { BbcNewsAdapter } from "../_shared/adapters/global/bbc_news.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
@@ -125,6 +126,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   MtAdapter: new MtAdapter(),
   DfAdapter: new DfAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
+  BbcNewsAdapter: new BbcNewsAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),

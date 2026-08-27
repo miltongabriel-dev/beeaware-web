@@ -1531,13 +1531,13 @@ abstract class AppLocalizations {
   /// No description provided for @newsSectionSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Statewide news coverage, not your exact area.'**
+  /// **'Wide-area news coverage, not your exact location.'**
   String get newsSectionSubtitle;
 
   /// No description provided for @newsSectionEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No recent news for this state.'**
+  /// **'No recent news for this area.'**
   String get newsSectionEmpty;
 
   /// No description provided for @newsReadArticle.
@@ -1545,6 +1545,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read article'**
   String get newsReadArticle;
+
+  /// No description provided for @unitedKingdomLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'United Kingdom'**
+  String get unitedKingdomLabel;
 }
 
 class _AppLocalizationsDelegate

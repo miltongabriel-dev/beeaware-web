@@ -3,14 +3,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// One row from the `nearby_news` RPC (see
 /// supabase/migrations/20260827120000_nearby_news_rpc.sql) — a real news
-/// article G1NewsAdapter classified as a security incident, scoped to
-/// whichever Brazilian state contains the query point. Unlike
-/// [MapIncident], this is never rendered as a map pin: the source's own
-/// precision is state-wide (see g1_news.ts's header for why), not a real
-/// coordinate, so there is no [location] field to plot.
+/// article G1NewsAdapter/BbcNewsAdapter classified as a security incident,
+/// scoped to whichever area (Brazilian state, or the whole UK) contains
+/// the query point. Unlike [MapIncident], this is never rendered as a map
+/// pin: the source's own precision stops at state/country level, not a
+/// real coordinate, so there is no [location] field to plot.
 class NewsItem {
   final String id;
-  final String stateCode;
+  final String countryCode;
+  // Null for a country-wide source (BbcNewsAdapter has no per-region
+  // signal to key off — see its own header) — never assume every row is
+  // a Brazilian state.
+  final String? stateCode;
   final String eventCategory;
   final String? eventType;
   final String? severity;
@@ -22,6 +26,7 @@ class NewsItem {
 
   const NewsItem({
     required this.id,
+    required this.countryCode,
     required this.stateCode,
     required this.eventCategory,
     required this.eventType,
@@ -37,11 +42,27 @@ class NewsItem {
 class NewsApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
-  static Future<List<NewsItem>> fetchNearby(LatLng point) async {
+  /// [stateNameHint] is the free-text Brazilian state name Nominatim
+  /// already resolved for the location pill (e.g. "Rondônia") — mapped
+  /// to a UF code and passed as a last-resort fallback. Needed because
+  /// several whole states (confirmed live: Rondônia has ZERO backfilled
+  /// municipality polygons) have no geo_areas geometry at all yet, so
+  /// nearby_news's own point-in-polygon/nearest-neighbour resolution can
+  /// structurally never place a point in them — an authoritative
+  /// external geocode is the only thing that still works there. Omit it
+  /// (or pass an unrecognised name) and the RPC just falls back to
+  /// whatever its own geometry can resolve, same as before.
+  static Future<List<NewsItem>> fetchNearby(
+    LatLng point, {
+    String? stateNameHint,
+  }) async {
     try {
       final rows = await _client.rpc('nearby_news', params: {
         'point_lat': point.latitude,
         'point_lng': point.longitude,
+        'state_code_hint': stateNameHint == null
+            ? null
+            : brazilianStateCodesByName[stateNameHint],
       });
 
       if (rows is! List) return [];
@@ -61,14 +82,14 @@ class NewsApi {
 
   static NewsItem? _toNewsItem(Map<String, dynamic> row) {
     final id = row['id'] as String?;
-    final stateCode = row['state_code'] as String?;
+    final countryCode = row['country_code'] as String?;
     final eventCategory = row['event_category'] as String?;
     final title = row['title'] as String?;
     final occurredAtRaw = row['occurred_at'] as String?;
     final occurredAt =
         occurredAtRaw != null ? DateTime.tryParse(occurredAtRaw) : null;
     if (id == null ||
-        stateCode == null ||
+        countryCode == null ||
         eventCategory == null ||
         title == null ||
         occurredAt == null) {
@@ -77,7 +98,8 @@ class NewsApi {
 
     return NewsItem(
       id: id,
-      stateCode: stateCode,
+      countryCode: countryCode,
+      stateCode: row['state_code'] as String?,
       eventCategory: eventCategory,
       eventType: row['event_type'] as String?,
       severity: row['severity'] as String?,
@@ -106,4 +128,11 @@ const Map<String, String> brazilianStateNames = {
   'RS': 'Rio Grande do Sul', 'RO': 'Rondônia', 'RR': 'Roraima',
   'SC': 'Santa Catarina', 'SP': 'São Paulo', 'SE': 'Sergipe',
   'TO': 'Tocantins',
+};
+
+/// The reverse of [brazilianStateNames] — Nominatim's own free-text state
+/// name (as returned by reverseGeocode in geocoding.dart) back to a UF
+/// code, for [NewsApi.fetchNearby]'s stateNameHint.
+final Map<String, String> brazilianStateCodesByName = {
+  for (final entry in brazilianStateNames.entries) entry.value: entry.key,
 };
