@@ -19,6 +19,13 @@ import '../map/map_incident.dart';
 class BrazilSecurityApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
+  // Map pins only ever show the last 2 months — older activity belongs in
+  // the statistics screens (choropleth, historical safety), which query
+  // their own, separately-windowed RPCs. Passed explicitly rather than
+  // relying on nearby_security_events' own default so this doesn't
+  // silently drift if that default ever changes for a different caller.
+  static const int _maxAgeDays = 60;
+
   static Future<List<MapIncident>> fetchForArea({
     required double lat,
     required double lng,
@@ -30,6 +37,7 @@ class BrazilSecurityApi {
         'center_lng': lng,
         'radius_meters': radiusMeters,
         'max_results': 300,
+        'max_age_days': _maxAgeDays,
       });
 
       if (rows is! List) return [];
