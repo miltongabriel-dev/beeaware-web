@@ -119,20 +119,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   /// (via _loadLocation), so picking an address here is a temporary
   /// override, not a permanent replacement of "where I actually am".
   Future<void> _openAddressPicker() async {
-    // Capped at 60% of the screen so the sheet can't keep growing as
-    // suggestions stream in — without this, more results just made the
-    // whole sheet (search field included) climb further up the screen
-    // with every keystroke, up to the point of pushing itself off the
-    // top edge. Capping it here keeps the field anchored near the
-    // keyboard and turns the suggestion list into a scrollable area
-    // instead, since ListView.builder already respects a bounded height
-    // even with shrinkWrap: true.
+    // _AddressPickerSheet gives itself a fixed height (see its own header
+    // for why) instead of sizing to its content, so no extra constraint
+    // is needed here.
     final selected = await showModalBottomSheet<AddressSuggestion>(
       context: context,
       isScrollControlled: true,
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.6,
-      ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
@@ -849,87 +841,105 @@ class _AddressPickerSheetState extends State<_AddressPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final media = MediaQuery.of(context);
+    final keyboardHeight = media.viewInsets.bottom;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: AppSpacing.lg,
-        right: AppSpacing.lg,
-        top: AppSpacing.md,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: BeeAwareTheme.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: loc.searchAnAddressHint,
-              prefixIcon: const Icon(PhosphorIconsRegular.magnifyingGlass),
-              filled: true,
-              fillColor: BeeAwareTheme.background,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            onChanged: _onChanged,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
+    // A fixed height, not just a max — with mainAxisSize.min the sheet
+    // used to size itself to however many suggestions came back, so the
+    // search field (sharing the same Column) physically moved up and down
+    // the screen on every keystroke: short with 0 results, tall with 10,
+    // occasionally tall enough to push itself off the top of the screen
+    // entirely. Deriving this once from the screen size and current
+    // keyboard height (not from _suggestions.length) keeps the field's
+    // position constant; only the space below it — via Expanded — grows
+    // or shrinks, scrolling internally instead of resizing the sheet.
+    final availableAboveKeyboard =
+        media.size.height - keyboardHeight - media.padding.top;
+    final contentHeight = (availableAboveKeyboard * 0.65)
+        .clamp(0.0, availableAboveKeyboard)
+        .toDouble();
+    final sheetHeight = contentHeight + keyboardHeight;
+
+    return SizedBox(
+      height: sheetHeight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: AppSpacing.lg,
+          right: AppSpacing.lg,
+          top: AppSpacing.md,
+          bottom: keyboardHeight + AppSpacing.lg,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: BeeAwareTheme.border,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            )
-          else if (_suggestions.isNotEmpty)
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: _suggestions.length,
-                itemBuilder: (context, index) {
-                  final suggestion = _suggestions[index];
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(PhosphorIconsRegular.mapPin,
-                        color: BeeAwareTheme.primary),
-                    title: Text(
-                      suggestion.primary,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: suggestion.secondary.isEmpty
-                        ? null
-                        : Text(
-                            suggestion.secondary,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                    onTap: () => Navigator.pop(context, suggestion),
-                  );
-                },
-              ),
             ),
-        ],
+            const SizedBox(height: AppSpacing.lg),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: loc.searchAnAddressHint,
+                prefixIcon: const Icon(PhosphorIconsRegular.magnifyingGlass),
+                filled: true,
+                fillColor: BeeAwareTheme.background,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: _onChanged,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Expanded(
+              child: _loading
+                  ? const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    )
+                  : _suggestions.isEmpty
+                      ? const SizedBox.shrink()
+                      : ListView.builder(
+                          itemCount: _suggestions.length,
+                          itemBuilder: (context, index) {
+                            final suggestion = _suggestions[index];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(PhosphorIconsRegular.mapPin,
+                                  color: BeeAwareTheme.primary),
+                              title: Text(
+                                suggestion.primary,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: suggestion.secondary.isEmpty
+                                  ? null
+                                  : Text(
+                                      suggestion.secondary,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                              onTap: () => Navigator.pop(context, suggestion),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }
