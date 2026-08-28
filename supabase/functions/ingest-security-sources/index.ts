@@ -60,6 +60,12 @@
 // per-occurrence or per-municipality): it fills in the 18 states that had
 // zero coverage from every other adapter here, but coarser than all of
 // them. See fbsp_anuario.ts's header for the full sourcing story.
+// PeAdapter (added 2026-08-28, Phase 8 second-wave states) is also fully
+// real — a plain unauthenticated XLSX download off sds.pe.gov.br, no
+// session/CSRF/WAF gate — and writes actual security_events rows at
+// geo_precision 'MUNICIPALITY' (per-victim microdata, no coordinates in
+// the source). See pe_sds.ts's header for why CE and BA, tried first for
+// this wave, aren't adapters at all / aren't registered.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
@@ -80,9 +86,14 @@ import { EsSespAdapter } from "../_shared/adapters/br/es_sesp.ts";
 import { AlAdapter } from "../_shared/adapters/br/al_seds.ts";
 import { MtAdapter } from "../_shared/adapters/br/mt_sesp.ts";
 import { DfAdapter } from "../_shared/adapters/br/df_ssp.ts";
+import { PeAdapter } from "../_shared/adapters/br/pe_sds.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
-// file's own header for the openssl-verified detail.
+// file's own header for the openssl-verified detail. CE (SSPDS/SUPESP)
+// was tried too and has no adapter file at all — every ce.gov.br host
+// (sspds, supesp, cearatransparente) sits behind an F5/Volterra WAF that
+// hard-rejects the request before any adapter code could run, see
+// pe_sds.ts's own header for the confirmed detail.
 import { G1NewsAdapter } from "../_shared/adapters/br/g1_news.ts";
 import { BbcNewsAdapter } from "../_shared/adapters/global/bbc_news.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
@@ -125,6 +136,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   AlAdapter: new AlAdapter(),
   MtAdapter: new MtAdapter(),
   DfAdapter: new DfAdapter(),
+  PeAdapter: new PeAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
   BbcNewsAdapter: new BbcNewsAdapter(),
   UnodcAdapter: new UnodcAdapter(),
