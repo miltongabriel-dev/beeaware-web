@@ -57,6 +57,26 @@
 // first, and is honestly labelled here as an approximation via this
 // adapter's low confidence_score (news × STATE-precision), not presented
 // as a resolved incident timestamp.
+//
+// City tier (added after the STATE-only v1 above): G1 headlines often DO
+// name the city directly ("Homem é preso suspeito de matar mulher em
+// Caruaru", "Acidente na BR-232 deixa feridos em Vitória de Santo
+// Antão") even though the URL's region-slug can't be trusted for it (see
+// above). Rather than attempt free-text street/address extraction — no
+// street-level gazetteer exists in this project, and geocoding an
+// arbitrary headline fragment would be a real, separate, unreliable
+// project (see fetchMunicipiosForUf's own comment) — this matches the
+// title+subtitle against the REAL list of municipality names for the
+// already-known UF (IbgeAdapter's own endpoint, ibge.ts, proven live).
+// Bounding the candidate list to one state first is what makes this
+// precise enough to trust: a national list of ~5,570 municipality names
+// would produce far more coincidental word matches ("Bom Jesus", "Boa
+// Vista", generic-sounding real city names) than the ~15-850 names that
+// actually belong to the UF already pinned down by the article's own
+// URL. A miss (no known municipality name appears in the text — the
+// common case; most headlines only imply location via the region-slug)
+// falls back to the STATE tier exactly as before — this is additive,
+// never a regression from v1's behaviour.
 
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import type {
@@ -137,6 +157,45 @@ function ufFromLink(link: string): string | undefined {
 
 function stripAccentsLower(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+interface IbgeMunicipio {
+  id: number;
+  nome: string;
+}
+
+// Same endpoint IbgeAdapter's own fetch() uses (ibge.ts) — verified live
+// there already, one call per UF (not the ~5,570-municipality national
+// list, see header comment for why bounding to one state matters for
+// match precision).
+const IBGE_MUNICIPIOS_URL = "https://servicodados.ibge.gov.br/api/v1/localidades/estados";
+
+async function fetchMunicipiosForUf(uf: string): Promise<IbgeMunicipio[]> {
+  const res = await fetch(`${IBGE_MUNICIPIOS_URL}/${uf}/municipios`);
+  if (!res.ok) {
+    throw new Error(`IBGE municipios request failed for ${uf}: ${res.status}`);
+  }
+  return await res.json();
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Longest name first, so a specific match ("boa vista do tupim") is
+// tried before a shorter name it happens to contain ("boa vista") —
+// otherwise the shorter, wrong municipality would always win. Matched
+// with word-boundary anchors (not a bare .includes()) so a short real
+// municipality name (e.g. "Una", BA; "Iaçu", BA) can't match inside an
+// unrelated longer word.
+function findCity(normalizedText: string, municipios: IbgeMunicipio[]): IbgeMunicipio | undefined {
+  const sorted = [...municipios].sort((a, b) => b.nome.length - a.nome.length);
+  for (const m of sorted) {
+    const normalizedName = stripAccentsLower(m.nome);
+    const re = new RegExp(`(^|[^a-z0-9])${escapeRegExp(normalizedName)}([^a-z0-9]|$)`);
+    if (re.test(normalizedText)) return m;
+  }
+  return undefined;
 }
 
 // keyword -> [eventCategory, eventType, severity]. Checked as substring
@@ -274,6 +333,28 @@ export class G1NewsAdapter implements SecuritySourceAdapter {
     const xml = record.payload as string;
     const items = parseFeedItems(xml);
     const stateLocationConfidence = defaultLocationConfidence("STATE");
+    const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
+
+    // Fetched lazily, once per distinct UF actually present in this run
+    // (typically a handful, not all 27) — a failed IBGE fetch for one UF
+    // just degrades that UF's articles back to the STATE tier rather
+    // than failing the whole adapter run (this feed's own fetch() has
+    // already succeeded by the time normalize() runs; a second source
+    // being flaky shouldn't cost the first source's real data).
+    const municipiosByUf = new Map<string, IbgeMunicipio[]>();
+    async function municipiosFor(uf: string): Promise<IbgeMunicipio[]> {
+      const cached = municipiosByUf.get(uf);
+      if (cached) return cached;
+      let list: IbgeMunicipio[];
+      try {
+        list = await fetchMunicipiosForUf(uf);
+      } catch (e) {
+        console.error(`G1NewsAdapter: municipios fetch failed for ${uf}:`, e);
+        list = [];
+      }
+      municipiosByUf.set(uf, list);
+      return list;
+    }
 
     const events: SecurityEvent[] = [];
     for (const item of items) {
@@ -287,6 +368,11 @@ export class G1NewsAdapter implements SecuritySourceAdapter {
       const occurredAt = item.pubDate ? new Date(item.pubDate) : undefined;
       if (!occurredAt || Number.isNaN(occurredAt.getTime())) continue;
 
+      const normalizedText = stripAccentsLower(`${item.title} ${item.subtitle}`);
+      const city = findCity(normalizedText, await municipiosFor(uf));
+      const geoPrecision = city ? "MUNICIPALITY" : "STATE";
+      const locationConfidence = city ? municipalityLocationConfidence : stateLocationConfidence;
+
       events.push({
         countryCode: "BR",
         stateCode: uf,
@@ -296,14 +382,16 @@ export class G1NewsAdapter implements SecuritySourceAdapter {
         eventType,
         occurredAt: occurredAt.toISOString(),
         publishedAt: occurredAt.toISOString(),
-        geoPrecision: "STATE",
-        locationConfidence: stateLocationConfidence,
+        geoPrecision,
+        locationConfidence,
         state: uf,
+        city: city?.nome,
+        cityIbgeCode: city ? String(city.id) : undefined,
         occurrenceCount: 1,
         severity,
         confidenceScore: computeConfidenceScore({
           reliabilityGrade: "established_local_journalism",
-          locationConfidence: stateLocationConfidence,
+          locationConfidence,
         }),
         // No dedicated "headline"/"article link" column exists on
         // security_events — every other adapter's original_category holds

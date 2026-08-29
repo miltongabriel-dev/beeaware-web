@@ -704,8 +704,15 @@ class _NewsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     final categoryLabel = ReportLabels.officialCategory(context, item.eventCategory);
+    // item.city (set only when G1NewsAdapter matched a real municipality
+    // in the article's own text — see g1_news.ts) is the one piece of
+    // per-item location this source can offer beyond the section's own
+    // state-wide header, so it's surfaced here rather than only used for
+    // nearby_news's ranking — most items still have no city and just
+    // fall back to source + subtitle exactly as before.
     final byline = [
       item.sourceOrganisation,
+      item.city,
       if (item.subtitle != null && item.subtitle!.isNotEmpty) item.subtitle,
     ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
 

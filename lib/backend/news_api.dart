@@ -15,6 +15,11 @@ class NewsItem {
   // signal to key off — see its own header) — never assume every row is
   // a Brazilian state.
   final String? stateCode;
+  // Only set when G1NewsAdapter matched a real municipality name in the
+  // article's own text (see g1_news.ts's findCity) — most rows still
+  // only carry stateCode, so this is genuinely null far more often than
+  // not. Never present for a GB row.
+  final String? city;
   final String eventCategory;
   final String? eventType;
   final String? severity;
@@ -28,6 +33,7 @@ class NewsItem {
     required this.id,
     required this.countryCode,
     required this.stateCode,
+    required this.city,
     required this.eventCategory,
     required this.eventType,
     required this.severity,
@@ -100,6 +106,7 @@ class NewsApi {
       id: id,
       countryCode: countryCode,
       stateCode: row['state_code'] as String?,
+      city: row['city'] as String?,
       eventCategory: eventCategory,
       eventType: row['event_type'] as String?,
       severity: row['severity'] as String?,
