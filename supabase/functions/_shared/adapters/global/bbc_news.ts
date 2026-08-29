@@ -42,6 +42,7 @@
 // narrower use than a standalone trigger.
 
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
+import { parseFeedItems } from "../../rss.ts";
 import type {
   RawSecurityRecord,
   SecurityEvent,
@@ -51,53 +52,6 @@ import type {
 } from "../types.ts";
 
 const FEED_URL = "https://feeds.bbci.co.uk/news/england/rss.xml";
-
-interface FeedItem {
-  title: string;
-  description: string;
-  link: string;
-  guid: string;
-  pubDate?: string;
-}
-
-function decodeXmlEntities(text: string): string {
-  return text
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .trim();
-}
-
-function extractTag(itemXml: string, tag: string): string | undefined {
-  const cdataMatch = new RegExp(`<${tag}[^>]*>\\s*<!\\[CDATA\\[(.*?)\\]\\]>\\s*</${tag}>`, "s").exec(itemXml);
-  if (cdataMatch) return decodeXmlEntities(cdataMatch[1]);
-  const plainMatch = new RegExp(`<${tag}[^>]*>(.*?)</${tag}>`, "s").exec(itemXml);
-  return plainMatch ? decodeXmlEntities(plainMatch[1]) : undefined;
-}
-
-function parseFeedItems(xml: string): FeedItem[] {
-  const items: FeedItem[] = [];
-  const itemRe = /<item>(.*?)<\/item>/gs;
-  let match: RegExpExecArray | null;
-  while ((match = itemRe.exec(xml))) {
-    const itemXml = match[1];
-    const title = extractTag(itemXml, "title");
-    const link = extractTag(itemXml, "link");
-    const guid = extractTag(itemXml, "guid") ?? link;
-    if (!title || !link || !guid) continue;
-    items.push({
-      title,
-      description: extractTag(itemXml, "description") ?? "",
-      link,
-      guid,
-      pubDate: extractTag(itemXml, "pubDate"),
-    });
-  }
-  return items;
-}
 
 function stripLower(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -202,7 +156,7 @@ export class BbcNewsAdapter implements SecuritySourceAdapter {
 
     const events: SecurityEvent[] = [];
     for (const item of items) {
-      const mapped = classify(item.title, item.description);
+      const mapped = classify(item.title, item.subtitle);
       if (!mapped) continue;
       const [eventCategory, eventType, severity] = mapped;
 
@@ -227,7 +181,7 @@ export class BbcNewsAdapter implements SecuritySourceAdapter {
         }),
         // See g1_news.ts's own header for why this lives in rawPayload
         // rather than original_category.
-        rawPayload: { title: item.title, subtitle: item.description, link: item.link },
+        rawPayload: { title: item.title, subtitle: item.subtitle, link: item.link },
       });
     }
     return events;

@@ -66,6 +66,18 @@
 // geo_precision 'MUNICIPALITY' (per-victim microdata, no coordinates in
 // the source). See pe_sds.ts's header for why CE and BA, tried first for
 // this wave, aren't adapters at all / aren't registered.
+// News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
+// 27 state-level regional feeds instead of the single diluted national
+// one (see g1_news.ts's own header — real coverage gaps, like zero
+// classifiable Pará items for this adapter's first two days, motivated
+// this). Six new, fully real Portuguese-language sources joined it —
+// DiarioOnlineAdapter (Pará/Amazônia-focused, independent of G1),
+// CnnBrasilAdapter, MetropolesAdapter, UolAdapter, AgenciaBrasilAdapter,
+// FolhaAdapter — all verified live against their real feeds. Unlike G1,
+// none of these five national portals has a structural per-article
+// location signal, so they share a text-based state/city detector
+// (national_pt_news.ts) and simply skip an article when no state can be
+// named, rather than writing an unlocatable row nothing would ever show.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
@@ -95,6 +107,12 @@ import { PeAdapter } from "../_shared/adapters/br/pe_sds.ts";
 // hard-rejects the request before any adapter code could run, see
 // pe_sds.ts's own header for the confirmed detail.
 import { G1NewsAdapter } from "../_shared/adapters/br/g1_news.ts";
+import { DiarioOnlineAdapter } from "../_shared/adapters/br/diario_online_news.ts";
+import { CnnBrasilAdapter } from "../_shared/adapters/br/cnn_brasil_news.ts";
+import { MetropolesAdapter } from "../_shared/adapters/br/metropoles_news.ts";
+import { UolAdapter } from "../_shared/adapters/br/uol_news.ts";
+import { AgenciaBrasilAdapter } from "../_shared/adapters/br/agencia_brasil_news.ts";
+import { FolhaAdapter } from "../_shared/adapters/br/folha_news.ts";
 import { BbcNewsAdapter } from "../_shared/adapters/global/bbc_news.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
@@ -138,6 +156,12 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   DfAdapter: new DfAdapter(),
   PeAdapter: new PeAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
+  DiarioOnlineAdapter: new DiarioOnlineAdapter(),
+  CnnBrasilAdapter: new CnnBrasilAdapter(),
+  MetropolesAdapter: new MetropolesAdapter(),
+  UolAdapter: new UolAdapter(),
+  AgenciaBrasilAdapter: new AgenciaBrasilAdapter(),
+  FolhaAdapter: new FolhaAdapter(),
   BbcNewsAdapter: new BbcNewsAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   RsSspAdapter: new RsSspAdapter(),
