@@ -48,7 +48,20 @@ class HomeDashboardScreen extends StatefulWidget {
 
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   static const Distance _distanceCalc = Distance();
-  static const int _maxItems = 10;
+  static const int _maxItems = 6;
+
+  // Matches the ~2-month "recent" window already used elsewhere in the
+  // app (BrazilSecurityApi, IncidentApi.fetchVisibleIncidents) — needed
+  // here specifically because IncidentStore's own list has no age cap of
+  // its own: UkPoliceApi.fetchForArea deliberately widens its own fetch
+  // window to 4 months (2 of them a deliberate lag buffer, since the UK
+  // Police API publishes with a real reporting delay) to keep the MAP's
+  // pin density reasonable, and IncidentStore never prunes by age
+  // afterward. Without this filter, a section literally titled "Atividade
+  // recente" could — and did, confirmed live for a UK location — surface
+  // an item close to 120 days old just because it happened to be the
+  // nearest one geographically.
+  static const int _maxAgeDays = 60;
 
   LatLng? _userLocation;
   String? _locationLabel;
@@ -183,7 +196,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   List<MapIncident> _nearestIncidents() {
-    final list = List<MapIncident>.from(_incidents);
+    final cutoff = DateTime.now().subtract(const Duration(days: _maxAgeDays));
+    final list = _incidents.where((i) => i.dateTime.isAfter(cutoff)).toList();
     final origin = _userLocation;
 
     if (origin != null) {
