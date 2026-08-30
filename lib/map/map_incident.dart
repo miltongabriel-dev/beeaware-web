@@ -49,6 +49,22 @@ class MapIncident {
   final String? officialCity;
   final String? officialState;
 
+  /// True when `location` is a city-level approximation (a municipality's
+  /// polygon centroid, from a news article that only named a city/state —
+  /// see BrazilNewsPinsApi) rather than a real reported point. Kept
+  /// separate from isOfficial: an approximate pin still shares the
+  /// official-style category/city/state rendering (it has a real
+  /// classified event_category and no user-authored description, same
+  /// shape as a government-statistics pin), but must never be drawn or
+  /// described as if the exact spot were known. false for every existing
+  /// pin source (official statistics, community reports).
+  final bool isApproximate;
+
+  /// Link to the source article — only ever set for news-derived pins
+  /// (BrazilNewsPinsApi), so IncidentBottomSheet can offer "read the
+  /// article" instead of pretending to have more detail than a headline.
+  final String? articleUrl;
+
   MapIncident({
     required this.id,
     required this.location,
@@ -65,6 +81,8 @@ class MapIncident {
     this.officialEventCategory,
     this.officialCity,
     this.officialState,
+    this.isApproximate = false,
+    this.articleUrl,
   });
 
   Map<String, dynamic> toJson() {

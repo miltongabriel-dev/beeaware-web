@@ -281,6 +281,8 @@
 
   "policeReportCategory": "Police report",
   "roadAccidentCategory": "Traffic accident",
+  "newsApproxLocation": "Approximate location — city level, from a news report",
+  "readFullArticle": "Read full article",
   "officialEventDescription": "{type} in {city}, {state}.",
   "@officialEventDescription": {
     "placeholders": {

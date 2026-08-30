@@ -209,6 +209,8 @@
 
   "policeReportCategory": "Relato da polícia",
   "roadAccidentCategory": "Acidente de trânsito",
+  "newsApproxLocation": "Localização aproximada — nível da cidade, a partir de uma notícia",
+  "readFullArticle": "Ler notícia completa",
   "officialEventDescription": "{type} em {city}, {state}.",
   "@officialEventDescription": {
     "placeholders": {

@@ -74,9 +74,55 @@ class _BeeIncidentPinState extends State<BeeIncidentPin>
     );
   }
 
+  // News-derived pins only ever resolve to a municipality centroid, never
+  // a real reported point (see BrazilNewsPinsApi's own header) — a halo
+  // ring around a smaller dot reads as "somewhere in this area" rather
+  // than the solid dot's "confirmed here", the same geographic-honesty
+  // distinction the backend RPCs already enforce.
+  Widget _buildApproximateHalo() {
+    final color = SeverityColors.of(widget.incident.severity);
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: Center(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withOpacity(0.16),
+                border: Border.all(color: color.withOpacity(0.55), width: 1.5),
+              ),
+            ),
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withOpacity(0.9),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isCommunity = !widget.incident.isOfficial;
+
+    Widget dot;
+    if (isCommunity) {
+      dot = _buildCommunityBee();
+    } else if (widget.incident.isApproximate) {
+      dot = _buildApproximateHalo();
+    } else {
+      dot = _buildPublicDot();
+    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -87,7 +133,7 @@ class _BeeIncidentPinState extends State<BeeIncidentPin>
       },
       child: ScaleTransition(
         scale: _controller,
-        child: isCommunity ? _buildCommunityBee() : _buildPublicDot(),
+        child: dot,
       ),
     );
   }

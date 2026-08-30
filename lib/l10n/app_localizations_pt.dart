@@ -678,6 +678,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roadAccidentCategory => 'Acidente de trânsito';
 
   @override
+  String get newsApproxLocation =>
+      'Localização aproximada — nível da cidade, a partir de uma notícia';
+
+  @override
+  String get readFullArticle => 'Ler notícia completa';
+
+  @override
   String officialEventDescription(String type, String city, String state) {
     return '$type em $city, $state.';
   }

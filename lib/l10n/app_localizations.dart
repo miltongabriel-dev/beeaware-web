@@ -1160,6 +1160,18 @@ abstract class AppLocalizations {
   /// **'Traffic accident'**
   String get roadAccidentCategory;
 
+  /// No description provided for @newsApproxLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Approximate location — city level, from a news report'**
+  String get newsApproxLocation;
+
+  /// No description provided for @readFullArticle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read full article'**
+  String get readFullArticle;
+
   /// No description provided for @officialEventDescription.
   ///
   /// In en, this message translates to:

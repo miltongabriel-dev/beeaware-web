@@ -8,6 +8,7 @@ import 'incident_persistence.dart';
 import '../backend/incident_api.dart';
 import '../backend/uk_police_api.dart';
 import '../backend/brazil_security_api.dart';
+import '../backend/brazil_news_pins_api.dart';
 
 class IncidentStore {
   static List<MapIncident> _incidents = [];
@@ -109,6 +110,15 @@ class IncidentStore {
           radiusMeters: clampedRadius,
         ),
         BrazilSecurityApi.fetchForArea(
+          lat: centerLat,
+          lng: centerLng,
+          radiusMeters: brazilRadius,
+        ),
+        // City-level news pins — a separate, deliberately approximate
+        // source (see BrazilNewsPinsApi's own header). Same radius as the
+        // official Brazil feed since both are keyed off the same
+        // viewport.
+        BrazilNewsPinsApi.fetchForArea(
           lat: centerLat,
           lng: centerLng,
           radiusMeters: brazilRadius,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '/l10n/app_localizations.dart';
 import '/map/map_incident.dart';
 import '/report/report_icons.dart';
@@ -84,9 +85,12 @@ class IncidentBottomSheet extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: BeeAwareTheme.primary.withValues(alpha: 0.08),
                   ),
-                  child: incident.isOfficial
+                  child: incident.isApproximate
                       ? SvgPicture.asset(
-                          'assets/icons/verified.svg',
+                          // Deliberately not verified.svg: that checkmark
+                          // reads as "confirmed record", which an
+                          // approximate, news-derived pin isn't.
+                          'assets/icons/source.svg',
                           width: 18,
                           height: 18,
                           colorFilter: const ColorFilter.mode(
@@ -94,11 +98,21 @@ class IncidentBottomSheet extends StatelessWidget {
                             BlendMode.srcIn,
                           ),
                         )
-                      : Icon(
-                          ReportIcons.category(incident.category),
-                          size: 18,
-                          color: BeeAwareTheme.primary,
-                        ),
+                      : incident.isOfficial
+                          ? SvgPicture.asset(
+                              'assets/icons/verified.svg',
+                              width: 18,
+                              height: 18,
+                              colorFilter: const ColorFilter.mode(
+                                BeeAwareTheme.primary,
+                                BlendMode.srcIn,
+                              ),
+                            )
+                          : Icon(
+                              ReportIcons.category(incident.category),
+                              size: 18,
+                              color: BeeAwareTheme.primary,
+                            ),
                 ),
                 const SizedBox(width: 10),
 
@@ -171,6 +185,39 @@ class IncidentBottomSheet extends StatelessWidget {
                       color: BeeAwareTheme.textSecondary,
                     ),
               ),
+            ],
+
+            // ---------------------------
+            // APPROXIMATE LOCATION disclaimer + article link
+            // (news-derived pins only — see MapIncident.isApproximate)
+            // ---------------------------
+            if (incident.isApproximate) ...[
+              const SizedBox(height: 6),
+              Text(
+                loc.newsApproxLocation,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: BeeAwareTheme.textAux,
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+              if (incident.articleUrl != null &&
+                  incident.articleUrl!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () => launchUrl(
+                    Uri.parse(incident.articleUrl!),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: Text(
+                    loc.readFullArticle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: BeeAwareTheme.primary,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                        ),
+                  ),
+                ),
+              ],
             ],
 
             const SizedBox(height: 16),
