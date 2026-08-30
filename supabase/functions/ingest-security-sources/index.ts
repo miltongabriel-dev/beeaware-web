@@ -66,6 +66,27 @@
 // geo_precision 'MUNICIPALITY' (per-victim microdata, no coordinates in
 // the source). See pe_sds.ts's header for why CE and BA, tried first for
 // this wave, aren't adapters at all / aren't registered.
+// GoSspAdapter (added 2026-08-30, Phase 8 second-wave states) is also
+// fully real, but a different shape from every other PDF-only dead end
+// documented above (BA/CE/SP): SSP-GO's estatisticas page links one small
+// PDF per year (2018-2025), each a single clean table of 15 crime
+// "naturezas" x 12 months, not just an annual total — genuinely per-month
+// state-level data, one tier finer than FbspAnuarioAdapter's annual-only
+// coverage for GO. Parsed with a hand-written, dependency-free PDF text-
+// with-position extractor (see go_ssp.ts's own header) rather than a
+// library — two real dead ends came first: this session's own generic
+// PDF-to-text tool silently glues together the last two columns of any
+// row whose December and TOTAL values are both short (a content-stream
+// artifact, not fixable by better regex), and pdfjs-dist parsed
+// correctly but failed at actual `supabase functions deploy` time with
+// "Module not found ... build/Release/canvas.node?target=denonext" — a
+// native Node canvas addon esm.sh can't resolve for Deno. The custom
+// parser (zlib-inflate each content stream via the platform's own
+// DecompressionStream, then read off this source's Tm-per-cell text
+// positioning) has no such dependency and is verified against all three
+// years read (2018/2024/2025: 15/15 rows, every row's checksum against
+// its own printed TOTAL matches) plus a real `supabase functions deploy`
+// that succeeded.
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -99,6 +120,7 @@ import { AlAdapter } from "../_shared/adapters/br/al_seds.ts";
 import { MtAdapter } from "../_shared/adapters/br/mt_sesp.ts";
 import { DfAdapter } from "../_shared/adapters/br/df_ssp.ts";
 import { PeAdapter } from "../_shared/adapters/br/pe_sds.ts";
+import { GoSspAdapter } from "../_shared/adapters/br/go_ssp.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail. CE (SSPDS/SUPESP)
@@ -155,6 +177,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   MtAdapter: new MtAdapter(),
   DfAdapter: new DfAdapter(),
   PeAdapter: new PeAdapter(),
+  GoSspAdapter: new GoSspAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
   DiarioOnlineAdapter: new DiarioOnlineAdapter(),
   CnnBrasilAdapter: new CnnBrasilAdapter(),
