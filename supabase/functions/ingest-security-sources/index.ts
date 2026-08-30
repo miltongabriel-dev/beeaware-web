@@ -87,6 +87,29 @@
 // years read (2018/2024/2025: 15/15 rows, every row's checksum against
 // its own printed TOTAL matches) plus a real `supabase functions deploy`
 // that succeeded.
+// MaSspAdapter (added 2026-08-30, Phase 8 second-wave states) is real but
+// deliberately narrower than every state adapter above: SSP-MA has
+// exactly one statistics page (confirmed via its own WP REST API — no
+// PDF bulletins, no CSV/XLSX, no other region), and it only covers
+// Grande São Luís (4 municipalities, not the whole state) and only CVLI
+// ("Crime Violento Letal Intencional" — homicídio doloso, feminicídio,
+// latrocínio, lesão seguida de morte), same closed-category framing
+// SSP-BA/SEDS-AL use elsewhere here. dados.ma.gov.br (state open-data
+// portal) has zero public-security datasets at all — checked directly.
+// Real upside: it's a plain WordPress/Elementor HTML <table> with each
+// column's exact "Mmm/YY" label spelled out in its own header row — no
+// binary parsing needed, the first HTML-table (rather than CSV/XLSX/PDF)
+// adapter in this directory — and each row is already scoped to one
+// named municipality, so geo_precision is 'MUNICIPALITY', a tier finer
+// than GoSspAdapter/FbspAnuarioAdapter's state-level rows. One real
+// parsing trap found and fixed during development: a couple of month
+// headers are split across two adjacent <strong> tags with no source
+// whitespace (e.g. "Jul/26" as "<strong>J</strong><strong>ul/26</strong>"
+// ) — stripping tags to a space instead of "" turned that into "J ul/26"
+// and silently dropped/shifted a whole column; verified against the live
+// page afterward (11 of 12 months match the source's own printed CVLI
+// total exactly — the 12th is the source's own total row disagreeing
+// with its own displayed rows by 1, not a parsing bug on this side).
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -121,6 +144,7 @@ import { MtAdapter } from "../_shared/adapters/br/mt_sesp.ts";
 import { DfAdapter } from "../_shared/adapters/br/df_ssp.ts";
 import { PeAdapter } from "../_shared/adapters/br/pe_sds.ts";
 import { GoSspAdapter } from "../_shared/adapters/br/go_ssp.ts";
+import { MaSspAdapter } from "../_shared/adapters/br/ma_ssp.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail. CE (SSPDS/SUPESP)
@@ -178,6 +202,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   DfAdapter: new DfAdapter(),
   PeAdapter: new PeAdapter(),
   GoSspAdapter: new GoSspAdapter(),
+  MaSspAdapter: new MaSspAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
   DiarioOnlineAdapter: new DiarioOnlineAdapter(),
   CnnBrasilAdapter: new CnnBrasilAdapter(),
