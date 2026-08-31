@@ -128,6 +128,23 @@
 // fine) rather than rejecting the request the way CE's WAF or BA's broken
 // cert do, so they're left unattempted rather than marked as permanent
 // dead ends — worth retrying from a different network path later.
+// PrSespAdapter (added 2026-08-30, alphabetical sweep of the remaining
+// states) is real but has a genuine, deliberately-accepted limitation:
+// PB was a WAF dead end, PI had a real public Metabase API that's broken
+// server-side (see pe_sds.ts's header for both), but PR's own quarterly
+// crime PDF (13 tables x 23 AISPs x 2 years x 12 months — the richest
+// per-region breakdown found in this sweep) has no stable, crawlable
+// page linking the current report at all; the URL was only found via a
+// Google site: search and is pinned as a snapshot that goes stale every
+// quarter with no automated way to refresh it (see pr_sesp.ts's own
+// header for the full investigation and the update procedure). Also
+// geo_precision is STATE, not MUNICIPALITY: AISP is a multi-municipality
+// police command area, and PR's own AISP boundaries aren't loaded into
+// geo_areas (only RJ's AISP/RISP/CISP geometry is). Only 8 of the PDF's
+// 13 tables are ingested — see the file header for why the 2 broad
+// Penal-Code-chapter aggregates, the public-administration-crime table,
+// the generic "other crimes" bucket, and the vehicle-recovery table
+// (a positive outcome, not an incident) are all skipped.
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -164,6 +181,7 @@ import { PeAdapter } from "../_shared/adapters/br/pe_sds.ts";
 import { GoSspAdapter } from "../_shared/adapters/br/go_ssp.ts";
 import { MaSspAdapter } from "../_shared/adapters/br/ma_ssp.ts";
 import { MsSejuspAdapter } from "../_shared/adapters/br/ms_sejusp.ts";
+import { PrSespAdapter } from "../_shared/adapters/br/pr_sesp.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail. CE (SSPDS/SUPESP)
@@ -223,6 +241,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   GoSspAdapter: new GoSspAdapter(),
   MaSspAdapter: new MaSspAdapter(),
   MsSejuspAdapter: new MsSejuspAdapter(),
+  PrSespAdapter: new PrSespAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
   DiarioOnlineAdapter: new DiarioOnlineAdapter(),
   CnnBrasilAdapter: new CnnBrasilAdapter(),
