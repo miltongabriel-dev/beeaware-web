@@ -43,6 +43,28 @@
 // (api.dadosabertos.codata.pb.gov.br) has 38 endpoints, all budget/
 // revenue/HR/health-administration, none touching crime or occurrences.
 //
+// PI (Piauí) is a different, unusual kind of dead end: a real public data
+// API exists (unlike every case above), it just doesn't work. SSP-PI's
+// "Painel de Dados Públicos do DATASSP" (dados.ssp.pi.gov.br) is a
+// custom frontend whose JS bundle reveals the real backend at
+// metabase.dados.ssp.pi.gov.br — a genuine, live Metabase v0.54.2
+// instance with public dashboard sharing enabled (confirmed: 6 public
+// dashboard UUIDs found baked into the bundle — CVLI/Roubos e Furtos,
+// Crimes contra a mulher, Mortes por Causa Indeterminada — each with a
+// real "Tabela detalhada" card that would be exactly the per-occurrence
+// data this project wants). But every single query against every single
+// card — scalar counts, line charts, tables, across 3 different
+// dashboards — returns the same generic
+// {"status":"failed","error":"Um erro ocorreu durante o processamento
+// desta consulta."} regardless of date-range/filter parameters tried.
+// This isn't a client-side parameter problem (confirmed by testing
+// several formats and a parameter-free scalar count, all identical
+// failures) — it looks like the instance's own database connection is
+// broken server-side, nothing fixable from this project's side. PI's
+// state-level open-data portals (dados.pi.gov.br, dados.seplan.pi.gov.br)
+// are dead ends too: both "Observatório de Dados" category pages
+// redirect to an unrelated comunicado.seplan.pi.gov.br landing page.
+//
 // Source page: https://www.sds.pe.gov.br/estatisticas/indicadores-criminais/
 // mortes-violentas-intencionais-mvi — links a single microdata file,
 // MICRODADOS_DE_MVI_{start}_A_{end}.xlsx (filename's end-month advances as
