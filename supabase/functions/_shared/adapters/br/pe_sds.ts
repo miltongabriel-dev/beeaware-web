@@ -65,6 +65,32 @@
 // are dead ends too: both "Observatório de Dados" category pages
 // redirect to an unrelated comunicado.seplan.pi.gov.br landing page.
 //
+// AM (Amazonas), AP (Amapá) and RN (Rio Grande do Norte) were each tried
+// too and are NOT marked as dead ends — every .gov.br host tried for
+// each of these 3 states timed out at the TCP level from this
+// environment specifically (DNS resolves fine via 8.8.8.8; other states'
+// .gov.br hosts, tested back-to-back for comparison, connect normally).
+// This looks like a network-level block specific to this sandbox's
+// egress rather than anything permanent about these states' own
+// infrastructure — worth retrying from a different environment before
+// concluding anything.
+//
+// RO (Rondônia) is a second PI-shaped case: a real, live API exists —
+// observatorio.sepog.ro.gov.br's "Painel de Segurança Pública" is a
+// custom ASP.NET/DataTables dashboard, and its JS
+// (Scripts/site/SegurancaPublicaIndicadores.js) reveals two real POST
+// endpoints, /SegurancaPublica/GetDataForTableOcorrenciasIndicadoresPerType
+// and /SegurancaPublica/GetDataForChartET, that return well-formed JSON
+// ({"result": [...]}). But replaying the exact request shape the page's
+// own frontend sends (type=natureza_fato|municipio_fato, tipo=FO_S1,
+// periodo_1 as a start/end date pair in the site's own DD/MM/YYYY
+// format, empty municipio/natureza filters, the XMLHttpRequest header,
+// tried across date ranges from 2019 through the present) always comes
+// back {"result":[]} — a valid empty result, not an error, so something
+// about the exact parameter contract is still wrong in a way that
+// wasn't discoverable from the client-side JS alone. Left unimplemented
+// rather than guessing further at an undocumented private API contract.
+//
 // Source page: https://www.sds.pe.gov.br/estatisticas/indicadores-criminais/
 // mortes-violentas-intencionais-mvi — links a single microdata file,
 // MICRODADOS_DE_MVI_{start}_A_{end}.xlsx (filename's end-month advances as
