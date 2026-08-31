@@ -145,6 +145,20 @@
 // Penal-Code-chapter aggregates, the public-administration-crime table,
 // the generic "other crimes" bucket, and the vehicle-recovery table
 // (a positive outcome, not an incident) are all skipped.
+// RrPcrrAdapter (added 2026-08-31, alphabetical sweep of the remaining
+// states) is real and per-victim: policiacivil.rr.gov.br publishes 9 real
+// XLSX datasets via a plain WP Download Manager link, no auth/WAF gate.
+// Found and fixed a real performance bug in xlsx_lite.ts's shared row
+// regex while building this one: the source file's nominal 1,046,342
+// <row> elements are almost all empty self-closing `<row .../>` padding
+// (an Excel autoFilter artifact — only ~1,808 rows are real), and
+// forEachRow's lazy `(.*?)</row>` regex catastrophically backtracks
+// across that padding looking for the next real closing tag (confirmed
+// hanging past 90s in a timing test). Rather than touch the shared
+// reader (used by 8 other adapters, never tested against this failure
+// shape), rr_pcrr.ts strips the padding itself before applying the same
+// buildCellRegex/parseRowCells primitives xlsx_lite.ts already exports —
+// see that file's own header for the full diagnosis.
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -182,6 +196,7 @@ import { GoSspAdapter } from "../_shared/adapters/br/go_ssp.ts";
 import { MaSspAdapter } from "../_shared/adapters/br/ma_ssp.ts";
 import { MsSejuspAdapter } from "../_shared/adapters/br/ms_sejusp.ts";
 import { PrSespAdapter } from "../_shared/adapters/br/pr_sesp.ts";
+import { RrPcrrAdapter } from "../_shared/adapters/br/rr_pcrr.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail. CE (SSPDS/SUPESP)
@@ -242,6 +257,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   MaSspAdapter: new MaSspAdapter(),
   MsSejuspAdapter: new MsSejuspAdapter(),
   PrSespAdapter: new PrSespAdapter(),
+  RrPcrrAdapter: new RrPcrrAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
   DiarioOnlineAdapter: new DiarioOnlineAdapter(),
   CnnBrasilAdapter: new CnnBrasilAdapter(),
