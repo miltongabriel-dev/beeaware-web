@@ -94,7 +94,8 @@ export type GeoAreaType =
   | "CISP"
   | "AIS"
   | "RA"
-  | "DP";
+  | "DP"
+  | "POLICE_FORCE";
 
 export type SourceType = "official" | "community" | "news";
 

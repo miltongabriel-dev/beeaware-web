@@ -159,6 +159,32 @@
 // shape), rr_pcrr.ts strips the padding itself before applying the same
 // buildCellRegex/parseRowCells primitives xlsx_lite.ts already exports —
 // see that file's own header for the full diagnosis.
+// UkPoliceAdapter (added 2026-08-31) — the first area-choropleth source
+// for a non-Brazil country. data.police.uk's crimes-street API was already
+// used live from the Flutter client for point pins (uk_police_api.dart)
+// but never persisted server-side, so there was no aggregate to colour an
+// area with, unlike RJ/SP's CISP/DP choropleth. Verified live: the same
+// API accepts a `poly` param (an arbitrary boundary) instead of
+// point+radius, queried per Police Force (43 England & Wales forces, real
+// boundaries from ONS Open Geography's "Police Force Areas (December
+// 2023) EW BGC", geometry migration 20260831120000). Aggregates per
+// (force, month, source category) rather than persisting individual
+// crimes —
+// same shape as RjIspAdapter — and links to its geo_areas polygon via the
+// same name-match trigger (widened for 'POLICE_FORCE' by 20260831130000),
+// not a spatial join. Northern Ireland is a known, documented gap: it's
+// in data.police.uk's own force list but has no boundary in this EW-only
+// ONS dataset. A second, more consequential gap found live: `poly`
+// deterministically 503s for the 13 highest crime-volume forces —
+// including Metropolitan Police (London) itself — regardless of
+// concurrency or retries; isolated down to a result-size ceiling on that
+// endpoint, not an area/vertex limit. Those 13 forces are simply skipped
+// (no data rather than an undercount), leaving ~30 of 43 forces with real
+// colour on the choropleth today. See uk_police.ts's own header for the
+// full sourcing story, the two independent polygon simplifications (query
+// vs. display), and the category-mapping caveats (data.police.uk's
+// "violent-crime" bundles
+// everything from common assault to homicide with no way to split it).
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -213,6 +239,7 @@ import { AgenciaBrasilAdapter } from "../_shared/adapters/br/agencia_brasil_news
 import { FolhaAdapter } from "../_shared/adapters/br/folha_news.ts";
 import { BbcNewsAdapter } from "../_shared/adapters/global/bbc_news.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
+import { UkPoliceAdapter } from "../_shared/adapters/global/uk_police.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 import { FbspAnuarioAdapter } from "../_shared/adapters/br/fbsp_anuario.ts";
@@ -267,6 +294,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   FolhaAdapter: new FolhaAdapter(),
   BbcNewsAdapter: new BbcNewsAdapter(),
   UnodcAdapter: new UnodcAdapter(),
+  UkPoliceAdapter: new UkPoliceAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),
 };
