@@ -12,6 +12,22 @@
 // header. PE was the next state tried and is genuinely real: sds.pe.gov.br
 // is plain Apache with no WAF gate.
 //
+// AC (Acre) was tried in a later pass (alphabetical sweep of the
+// remaining states, 2026-08-30) and is a dead end too, for a third
+// distinct reason: SEJUSP-AC's own /estatisticas/ page (sejusp.ac.gov.br)
+// links nothing but 11 embedded Power BI reports (app.powerbi.com/view?r=
+// ...) — no CSV/XLSX/PDF anywhere on the page. dados.ac.gov.br (the
+// state's CKAN open-data portal) has exactly 20 datasets total, all
+// generic municipal stats (cattle, HDI, energy consumption, population —
+// nothing security-related). Both state police sites are unusable too:
+// pc.ac.gov.br is a live WordPress "under maintenance" placeholder, and
+// pm.ac.gov.br/pmac.acre.gov.br both refuse the connection outright
+// (dead domains). Scraping an app.powerbi.com/view report would mean
+// reverse-engineering Power BI's own undocumented internal query API —
+// the same category of fragile, ToS-questionable dead end this project
+// avoids everywhere else — so AC is left unimplemented rather than
+// forcing that.
+//
 // Source page: https://www.sds.pe.gov.br/estatisticas/indicadores-criminais/
 // mortes-violentas-intencionais-mvi — links a single microdata file,
 // MICRODADOS_DE_MVI_{start}_A_{end}.xlsx (filename's end-month advances as
