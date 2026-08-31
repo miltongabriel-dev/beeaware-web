@@ -109,6 +109,17 @@
 // side of a fix. Left unimplemented; worth a second look with a
 // purpose-built (not reused) parser if this state is revisited.
 //
+// SE (Sergipe) is inconclusive, not a confirmed dead end. ssp.se.gov.br
+// itself is reachable (200) but has no statistics/indicadores page in
+// its own nav — only a generic "Transparências" link with no crime-data
+// content. dados.se.gov.br (the state's expected open-data portal
+// domain) does not exist (NXDOMAIN). Two other real leads —
+// policiacivil.se.gov.br and transparencia.se.gov.br/DadosAbertos, both
+// DNS-resolvable — timed out at the TCP level on every attempt, the same
+// symptom (not an explicit rejection) already seen and left unresolved
+// for AM/AP/RN. Left unattempted pending either a retry from elsewhere
+// or someone finding the right SSP-SE URL manually.
+//
 // Source page: https://www.sds.pe.gov.br/estatisticas/indicadores-criminais/
 // mortes-violentas-intencionais-mvi — links a single microdata file,
 // MICRODADOS_DE_MVI_{start}_A_{end}.xlsx (filename's end-month advances as
