@@ -91,6 +91,24 @@
 // wasn't discoverable from the client-side JS alone. Left unimplemented
 // rather than guessing further at an undocumented private API contract.
 //
+// SC (Santa Catarina) has a genuinely good, stable source — unlike PR,
+// ssp.sc.gov.br/segurancaemnumeros/ is a real, crawlable index page
+// linking every monthly "Boletim Mensal de Indicadores" PDF back to
+// 2023, current through July 2026 at investigation time — but the PDF
+// itself is chart-heavy rather than tabular: homicide/feminicídio/
+// latrocínio/lesão-seguida-de-morte/confronto-policial counts by year,
+// a real per-municipality homicide breakdown, and monthly series are all
+// real numbers in the file, but rendered as bar-chart data-labels and an
+// irregular "ranking" list (e.g. "SANTA CECÍLIA (5→1)"), not an
+// aligned table GO/PR's Tm-position row-grouping approach can reconstruct
+// cleanly. The reusable custom PDF text extractor (go_ssp.ts's own)
+// hung indefinitely on this specific file, most likely a large chart/
+// image content stream triggering the same class of regex cost this
+// sweep already found in xlsx_lite.ts for RR — not root-caused further
+// given the harder underlying data-shape problem waiting on the other
+// side of a fix. Left unimplemented; worth a second look with a
+// purpose-built (not reused) parser if this state is revisited.
+//
 // Source page: https://www.sds.pe.gov.br/estatisticas/indicadores-criminais/
 // mortes-violentas-intencionais-mvi — links a single microdata file,
 // MICRODADOS_DE_MVI_{start}_A_{end}.xlsx (filename's end-month advances as
