@@ -110,6 +110,24 @@
 // page afterward (11 of 12 months match the source's own printed CVLI
 // total exactly — the 12th is the source's own total row disagreeing
 // with its own displayed rows by 1, not a parsing bug on this side).
+// MsSejuspAdapter (added 2026-08-30, alphabetical sweep of the remaining
+// states) is a real win: dados.ms.gov.br is a genuinely populated CKAN
+// portal (unlike dados.al.gov.br's exotic /catalogo/ base path) with a
+// dedicated SEJUSP organisation, and its CVLI dataset already carries a
+// real per-case CÓDIGO IBGE column — no IBGE-name-matching step needed at
+// all, a first among this project's CVLI-style adapters. See
+// ms_sejusp.ts's own header for a real classification bug found and fixed
+// while building this: FATO AGRUPADO concatenates every tag on a case, so
+// whole-string regex (this project's usual CLASSIFY_RULES shape) can
+// cross-match keywords belonging to two unrelated tags on the same row —
+// fixed by splitting into individual tags first and matching by set
+// membership instead. AC (Acre — Power BI dashboards only, no exportable
+// data) was tried and is a documented dead end (see pe_sds.ts's header,
+// alongside CE/BA); AM and AP timed out at the TCP level from this
+// environment specifically (DNS resolves, every other .gov.br host tested
+// fine) rather than rejecting the request the way CE's WAF or BA's broken
+// cert do, so they're left unattempted rather than marked as permanent
+// dead ends — worth retrying from a different network path later.
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -145,6 +163,7 @@ import { DfAdapter } from "../_shared/adapters/br/df_ssp.ts";
 import { PeAdapter } from "../_shared/adapters/br/pe_sds.ts";
 import { GoSspAdapter } from "../_shared/adapters/br/go_ssp.ts";
 import { MaSspAdapter } from "../_shared/adapters/br/ma_ssp.ts";
+import { MsSejuspAdapter } from "../_shared/adapters/br/ms_sejusp.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail. CE (SSPDS/SUPESP)
@@ -203,6 +222,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   PeAdapter: new PeAdapter(),
   GoSspAdapter: new GoSspAdapter(),
   MaSspAdapter: new MaSspAdapter(),
+  MsSejuspAdapter: new MsSejuspAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
   DiarioOnlineAdapter: new DiarioOnlineAdapter(),
   CnnBrasilAdapter: new CnnBrasilAdapter(),
