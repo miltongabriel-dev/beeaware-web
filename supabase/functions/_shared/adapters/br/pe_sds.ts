@@ -28,6 +28,21 @@
 // avoids everywhere else — so AC is left unimplemented rather than
 // forcing that.
 //
+// PB (Paraíba) was tried in the same alphabetical sweep and is a dead
+// end for the same class of reason as CE: SEDS-PB's own criminal-
+// indicators page (paraiba.pb.gov.br/diretas/secretaria-da-seguranca-e-
+// defesa-social/indicadores-criminais) always returns HTTP 200 but sits
+// behind F5 Distributed Cloud Bot Defense — every response carries a
+// "TS4a345b63..." challenge cookie and serves an obfuscated JS challenge
+// plus a CAPTCHA instead of real content, the same vendor family as CE's
+// WAF, just a JS-challenge wall instead of an outright 403. No fetch()
+// from a plain HTTP client can get past that. Both of PB's open-data
+// portals were checked too and carry zero security data: dados.pb.gov.br
+// (CKAN) has only 3 organisations registered (cge, sead, sefaz — nothing
+// security-related), and the separate CODATA-run API
+// (api.dadosabertos.codata.pb.gov.br) has 38 endpoints, all budget/
+// revenue/HR/health-administration, none touching crime or occurrences.
+//
 // Source page: https://www.sds.pe.gov.br/estatisticas/indicadores-criminais/
 // mortes-violentas-intencionais-mvi — links a single microdata file,
 // MICRODADOS_DE_MVI_{start}_A_{end}.xlsx (filename's end-month advances as
