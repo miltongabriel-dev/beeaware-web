@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 
 import '../backend/uk_crime_summary_api.dart';
 import '../theme/beeaware_theme.dart';
+import 'zoom_scaled_polygon_layer.dart';
 
 /// Renders UkCrimeSummaryApi's Police Force-level crime counts as a
 /// choropleth — same terciles-based approach as MunicipalityChoroplethLayer,
@@ -10,10 +11,17 @@ import '../theme/beeaware_theme.dart';
 /// No tap-to-detail here yet: the ask was area colour, not a drill-down
 /// screen — see UkPoliceAdapter's header for why ~13 of the 43 forces
 /// never appear (a real data.police.uk limitation, not a bug here).
+/// Fill/border are zoom-scaled (see ZoomScaledPolygonLayer) so the colours
+/// stay legible zoomed out, not just right after searching one address.
 class PoliceForceChoroplethLayer extends StatelessWidget {
+  final MapController mapController;
   final List<PoliceForceCrimeSummary> summaries;
 
-  const PoliceForceChoroplethLayer({super.key, required this.summaries});
+  const PoliceForceChoroplethLayer({
+    super.key,
+    required this.mapController,
+    required this.summaries,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,22 +29,15 @@ class PoliceForceChoroplethLayer extends StatelessWidget {
 
     final thresholds = _terciles(summaries.map((s) => s.totalCount).toList());
 
-    final polygons = <Polygon>[];
-    for (final summary in summaries) {
-      final color = _colorFor(summary.totalCount, thresholds);
-      for (final ring in summary.polygons) {
-        polygons.add(
-          Polygon(
-            points: ring,
-            color: color.withOpacity(0.28),
-            borderColor: color.withOpacity(0.55),
-            borderStrokeWidth: 1,
-          ),
-        );
-      }
-    }
+    final areas = [
+      for (final summary in summaries)
+        ChoroplethArea(
+          color: _colorFor(summary.totalCount, thresholds),
+          polygons: summary.polygons,
+        ),
+    ];
 
-    return PolygonLayer(polygons: polygons);
+    return ZoomScaledPolygonLayer(mapController: mapController, areas: areas);
   }
 
   static (int, int) _terciles(List<int> counts) {

@@ -1219,13 +1219,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Violência/crime por município (Brasil) — abaixo dos pins,
               // acima do mapa base.
-              MunicipalityChoroplethLayer(summaries: _crimeSummary),
+              MunicipalityChoroplethLayer(
+                mapController: _mapController,
+                summaries: _crimeSummary,
+              ),
 
               // Violência/crime por Police Force Area (Reino Unido) — mesma
               // camada visual, geografia disjunta da do Brasil.
-              PoliceForceChoroplethLayer(summaries: _ukCrimeSummary),
-              ConcelhoChoroplethLayer(summaries: _ptCrimeSummary),
-              MunicipioEsChoroplethLayer(summaries: _esCrimeSummary),
+              PoliceForceChoroplethLayer(
+                mapController: _mapController,
+                summaries: _ukCrimeSummary,
+              ),
+              ConcelhoChoroplethLayer(
+                mapController: _mapController,
+                summaries: _ptCrimeSummary,
+              ),
+              MunicipioEsChoroplethLayer(
+                mapController: _mapController,
+                summaries: _esCrimeSummary,
+              ),
 
               // Route Awareness — desenha direto no mapa principal em vez
               // de uma tela separada, para as rotas nunca perderem

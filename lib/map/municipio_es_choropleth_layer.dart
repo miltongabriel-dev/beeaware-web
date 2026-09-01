@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 
 import '../backend/es_crime_summary_api.dart';
 import '../theme/beeaware_theme.dart';
+import 'zoom_scaled_polygon_layer.dart';
 
 /// Renders EsCrimeSummaryApi's municipio-level crime counts as a
 /// choropleth — same terciles-based approach as
@@ -10,10 +11,18 @@ import '../theme/beeaware_theme.dart';
 /// Spanish municipios over ~20,000 inhabitants get a polygon here — see
 /// EsCrimeSummaryApi's doc comment for why. No tap-to-detail here yet,
 /// same v1 scope decision already made for the UK/Portugal layers.
+/// Fill/border are zoom-scaled (see ZoomScaledPolygonLayer) so the colours
+/// stay legible zoomed out across all 427 municipios, not just right
+/// after searching one exact address.
 class MunicipioEsChoroplethLayer extends StatelessWidget {
+  final MapController mapController;
   final List<MunicipioEsCrimeSummary> summaries;
 
-  const MunicipioEsChoroplethLayer({super.key, required this.summaries});
+  const MunicipioEsChoroplethLayer({
+    super.key,
+    required this.mapController,
+    required this.summaries,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,22 +30,15 @@ class MunicipioEsChoroplethLayer extends StatelessWidget {
 
     final thresholds = _terciles(summaries.map((s) => s.totalCount).toList());
 
-    final polygons = <Polygon>[];
-    for (final summary in summaries) {
-      final color = _colorFor(summary.totalCount, thresholds);
-      for (final ring in summary.polygons) {
-        polygons.add(
-          Polygon(
-            points: ring,
-            color: color.withOpacity(0.28),
-            borderColor: color.withOpacity(0.55),
-            borderStrokeWidth: 1,
-          ),
-        );
-      }
-    }
+    final areas = [
+      for (final summary in summaries)
+        ChoroplethArea(
+          color: _colorFor(summary.totalCount, thresholds),
+          polygons: summary.polygons,
+        ),
+    ];
 
-    return PolygonLayer(polygons: polygons);
+    return ZoomScaledPolygonLayer(mapController: mapController, areas: areas);
   }
 
   static (int, int) _terciles(List<int> counts) {
