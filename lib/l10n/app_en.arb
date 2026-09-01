@@ -381,6 +381,8 @@
   "homeGreetingGeneric": "Hello!",
   "homeSubtitle": "Stay informed and help your community.",
   "homeReportCta": "Share something important with the community.",
+  "mindThePathLabel": "Mind the Path",
+  "mindThePathCta": "Compare safer routes to your destination.",
   "exploreSectionTitle": "Explore",
   "mapPreviewOpenHint": "Tap to open the map",
   "homeLocationLoading": "Finding your location…",

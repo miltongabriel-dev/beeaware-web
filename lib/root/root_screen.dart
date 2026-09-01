@@ -28,6 +28,11 @@ class _RootScreenState extends State<RootScreen> {
   // on first load.
   LatLng? _mapFocusLocation;
 
+  // Bumped by the Início dashboard's "Mind the Path" card — see
+  // HomeScreen.routeModeRequestId for why a plain bool can't signal a
+  // repeat tap.
+  int _routeModeRequestId = 0;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +67,13 @@ class _RootScreenState extends State<RootScreen> {
     });
   }
 
+  void _openRouteMode() {
+    setState(() {
+      _selectedIndex = 1;
+      _routeModeRequestId++;
+    });
+  }
+
   void _openReport() {
     Navigator.push(
       context,
@@ -83,8 +95,12 @@ class _RootScreenState extends State<RootScreen> {
           HomeDashboardScreen(
             onOpenAlerts: () => _selectTab(2),
             onOpenMap: _openMapAt,
+            onOpenRoute: _openRouteMode,
           ),
-          HomeScreen(focusLocation: _mapFocusLocation),
+          HomeScreen(
+            focusLocation: _mapFocusLocation,
+            routeModeRequestId: _routeModeRequestId,
+          ),
           const AlertsScreen(),
           const ProfileScreen(),
         ],

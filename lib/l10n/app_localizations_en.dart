@@ -861,6 +861,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeReportCta => 'Share something important with the community.';
 
   @override
+  String get mindThePathLabel => 'Mind the Path';
+
+  @override
+  String get mindThePathCta => 'Compare safer routes to your destination.';
+
+  @override
   String get exploreSectionTitle => 'Explore';
 
   @override

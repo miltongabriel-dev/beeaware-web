@@ -74,7 +74,14 @@ class HomeScreen extends StatefulWidget {
   // didUpdateWidget below, not just initState.
   final LatLng? focusLocation;
 
-  const HomeScreen({super.key, this.focusLocation});
+  // Bumped (any new value, e.g. a counter) by the Início dashboard's
+  // "Mind the Path" card to ask this already-mounted screen to open route
+  // mode — same didUpdateWidget-driven reasoning as focusLocation above,
+  // since a plain bool couldn't signal a second tap while already true.
+  // 0 (the default) means "no request".
+  final int routeModeRequestId;
+
+  const HomeScreen({super.key, this.focusLocation, this.routeModeRequestId = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -101,6 +108,12 @@ class _HomeScreenState extends State<HomeScreen> {
   // non-null means "an explicit address is active", which the automatic
   // GPS-driven centering below must not silently override.
   LatLng? _explicitFocus;
+
+  // Last routeModeRequestId actually handled (see
+  // HomeScreen.routeModeRequestId) — lets didUpdateWidget tell "a new
+  // request just arrived" apart from "this screen just rebuilt for an
+  // unrelated reason".
+  int _lastRouteModeRequestId = 0;
 
   final Map<String, List<Map<String, dynamic>>> _searchCache = {};
 
@@ -897,6 +910,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _searchLocation = widget.focusLocation;
       _initialCenter = widget.focusLocation;
     }
+    _lastRouteModeRequestId = widget.routeModeRequestId;
 
     // 🔥 STREAM de incidentes (real-time)
     _subscription = IncidentStore.stream.listen((data) {
@@ -983,6 +997,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (widget.routeModeRequestId != _lastRouteModeRequestId) {
+      _lastRouteModeRequestId = widget.routeModeRequestId;
+      _enterRouteMode();
+    }
 
     final newFocus = widget.focusLocation;
     if (newFocus == null || newFocus == _explicitFocus) return;
@@ -1837,9 +1856,15 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!_routeMode) ...[
             // Controle de zoom — meio-transparente, centralizado
             // verticalmente na borda direita, entre a busca e a bússola.
+            // bottom fica em 252 (não 0) para reservar o espaço da coluna
+            // de FABs (bússola/rota/filtro/tendência, que termina em
+            // bottom: 236) — com bottom: 0 o Align centralizava o pill na
+            // altura inteira da tela, e em telas mais baixas (ou com fonte
+            // do sistema ampliada) o botão (-) do zoom acabava desenhado
+            // por cima do FAB de tendência (relatado como sobreposição).
             Positioned(
               top: 0,
-              bottom: 0,
+              bottom: 252,
               right: 16,
               child: Align(
                 alignment: Alignment.centerRight,

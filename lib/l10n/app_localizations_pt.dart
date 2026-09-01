@@ -867,6 +867,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homeReportCta => 'Compartilhe algo importante com a comunidade.';
 
   @override
+  String get mindThePathLabel => 'Mind the Path';
+
+  @override
+  String get mindThePathCta => 'Compare rotas mais seguras até o seu destino.';
+
+  @override
   String get exploreSectionTitle => 'Explorar';
 
   @override

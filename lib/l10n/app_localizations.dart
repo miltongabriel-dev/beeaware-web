@@ -1456,6 +1456,18 @@ abstract class AppLocalizations {
   /// **'Share something important with the community.'**
   String get homeReportCta;
 
+  /// No description provided for @mindThePathLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mind the Path'**
+  String get mindThePathLabel;
+
+  /// No description provided for @mindThePathCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare safer routes to your destination.'**
+  String get mindThePathCta;
+
   /// No description provided for @exploreSectionTitle.
   ///
   /// In en, this message translates to:

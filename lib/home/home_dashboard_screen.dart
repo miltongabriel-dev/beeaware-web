@@ -35,11 +35,13 @@ import 'widgets/incident_bottom_sheet.dart';
 class HomeDashboardScreen extends StatefulWidget {
   final VoidCallback onOpenAlerts;
   final void Function(LatLng? point) onOpenMap;
+  final VoidCallback onOpenRoute;
 
   const HomeDashboardScreen({
     super.key,
     required this.onOpenAlerts,
     required this.onOpenMap,
+    required this.onOpenRoute,
   });
 
   @override
@@ -451,6 +453,71 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     ],
                   ),
                 ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+
+            // "Mind the Path" — route safety, promoted here from a small
+            // unlabelled FAB buried on the Mapa tab (PhosphorIconsRegular
+            // .signpost, easy to miss). Deliberately built on AppCard
+            // (white surface, border, shadow) rather than Reportar's
+            // solid-primary Material block above: Reportar is BeeAware's
+            // main feature and must stay the visually loudest thing on
+            // this screen, so this card uses a tinted icon badge and
+            // lighter type weights instead of a filled colour block —
+            // present, but clearly second in the visual hierarchy.
+            AppCard(
+              onTap: widget.onOpenRoute,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: BeeAwareTheme.primary.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      PhosphorIconsRegular.personSimpleWalk,
+                      color: BeeAwareTheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          loc.mindThePathLabel,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: BeeAwareTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          loc.mindThePathCta,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: BeeAwareTheme.textPrimary
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    PhosphorIconsRegular.caretRight,
+                    color: BeeAwareTheme.textPrimary.withValues(alpha: 0.35),
+                    size: 18,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
