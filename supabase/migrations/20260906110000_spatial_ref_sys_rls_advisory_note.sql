@@ -1,0 +1,39 @@
+-- Supabase security advisory note — rls_disabled_in_public
+-- (flagged 2026-08-31, investigated live 2026-09-06).
+--
+-- Supabase's own Advisor flagged "a public table with Row-Level Security
+-- disabled". Audited every public table before assuming anything
+-- (20260906090000_rls_audit_diagnostic.sql, kept in history): every real
+-- application table already had RLS enabled — geo_areas, incidents,
+-- raw_events, security_events, security_sources, token_transactions,
+-- travel_advisories, user_tokens. The ONLY public table with RLS off is
+-- `spatial_ref_sys`.
+--
+-- `spatial_ref_sys` is not application data — it's a standard PostGIS
+-- system table (~8,500 static rows of EPSG/SRID coordinate-system
+-- definitions) that the `postgis` extension creates automatically in
+-- every project that installs it. It's read-only in practice (nothing
+-- in this app writes to it, PostGIS itself reads it internally for
+-- coordinate transforms) and contains no user or business data — the
+-- same public EPSG registry every GIS system in the world already ships
+-- with. This is a well-known, widely-documented false positive that the
+-- Supabase linter raises on essentially every PostGIS-enabled project,
+-- not something specific to this schema.
+--
+-- Tried the standard recommended fix anyway (enable RLS + a permissive
+-- public-read policy) and it failed live:
+--   ERROR: must be owner of table spatial_ref_sys (SQLSTATE 42501)
+-- Supabase locks ownership of extension-created tables like this one to
+-- an internal role that the migration connection (and even the
+-- dashboard's own SQL Editor, per Supabase's own docs on this exact
+-- advisory) cannot ALTER. There is no schema change available from this
+-- codebase that fixes this finding — it can only be dismissed/acknowledged
+-- in the Supabase dashboard's Database -> Advisors screen, which the user
+-- did on 2026-09-06 after confirming the above.
+--
+-- If this advisory reappears (e.g. after a PostGIS extension upgrade
+-- resets the dismissal) and someone is tempted to "fix" it: re-read this
+-- file first. Re-running the ALTER above will just reproduce the same
+-- 42501 error — the correct action is dismissing it in the dashboard
+-- again, not writing a new migration.
+select 1;
