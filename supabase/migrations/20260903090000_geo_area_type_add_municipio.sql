@@ -1,0 +1,13 @@
+-- BeeAware Global roadmap — Spain municipios, new area_type.
+--
+-- Own migration, separate from anything that uses the value (Postgres
+-- won't let a brand-new enum value be used in the same transaction it
+-- was added in) — same pattern as the DP/POLICE_FORCE/CONCELHO additions.
+--
+-- Not reusing MUNICIPALITY (already in this enum, used for Brazil):
+-- municipality_crime_summary joins security_events to geo_areas by
+-- city_ibge_code, a Brazil-specific IBGE code Spain has no equivalent
+-- of. MUNICIPIO gets its own name-matched trigger entry instead (see
+-- 20260903110000_security_events_geo_area_municipio_link.sql), the same
+-- approach already used for POLICE_FORCE and CONCELHO.
+alter type geo_area_type add value 'MUNICIPIO';

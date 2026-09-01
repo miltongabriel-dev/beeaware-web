@@ -202,6 +202,24 @@
 // available year, both because that's all a per-run ingestion needs and
 // because a full historical backfill would be erased the following month
 // by this session's own new security_events retention cron.
+// EsCrimeAdapter (added 2026-09-03) — Spain, third non-Brazil area source.
+// georiesgo.com mirrors the Ministerio del Interior's own Portal
+// Estadístico de Criminalidad as a single JSON with geometry AND crime
+// counts combined (unlike Portugal's three-file split). Coverage is
+// municipio-level but only for the 427 municipios over ~20,000
+// inhabitants — that's the Ministerio's own real publication limit below
+// province level, not a gap this adapter introduces; there's no
+// province-level file on this source, so full national coverage (like
+// UkPoliceAdapter's 43 forces) wasn't available without much more work,
+// and municipio-level was the trade-off the user chose explicitly. Only
+// 11 of 16 published crime fields are safe to sum without double-
+// counting (verified by script against all 427 municipios, zero
+// exceptions) — see es_crime.ts's header for the full partition proof.
+// Cybercrime fields are excluded (no taxonomy bucket, not a physical-
+// safety risk). The Ministerio's own balance is a year-to-date
+// cumulative figure, not a closed calendar year like Portugal's, so
+// sourceRecordId is keyed by year only — a later, more complete balance
+// for the same year replaces the earlier one instead of double-counting.
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -258,6 +276,7 @@ import { BbcNewsAdapter } from "../_shared/adapters/global/bbc_news.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { UkPoliceAdapter } from "../_shared/adapters/global/uk_police.ts";
 import { PtCrimeAdapter } from "../_shared/adapters/global/pt_crime.ts";
+import { EsCrimeAdapter } from "../_shared/adapters/global/es_crime.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 import { FbspAnuarioAdapter } from "../_shared/adapters/br/fbsp_anuario.ts";
@@ -314,6 +333,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   UnodcAdapter: new UnodcAdapter(),
   UkPoliceAdapter: new UkPoliceAdapter(),
   PtCrimeAdapter: new PtCrimeAdapter(),
+  EsCrimeAdapter: new EsCrimeAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),
 };
