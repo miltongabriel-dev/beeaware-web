@@ -13,25 +13,30 @@
       background-color: #FFF8EA;
       margin: 0; padding: 0;
       width: 100%;
-      height: 100%;   /* fallback for browsers without dvh support */
-      height: 100dvh; /* tracks the browser's real, current visible height —
-                         fixes in-app browsers (e.g. WhatsApp's) whose chrome
-                         height changes after first paint, which otherwise
-                         leaves Flutter's canvas rendered shorter than the
-                         actual available space (content + bottom nav appear
-                         "pushed up" with empty space below). */
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height: 100%;
+      /* No flex/centering here on purpose — centering the splash via
+         html/body height was what caused it to render slightly
+         off-center: any recalculation of the viewport height right
+         after first paint (address bar collapsing, in-app browser
+         chrome settling, etc.) reflows this box and the flex-centered
+         content shifts with it. #loading-logo below centers itself
+         instead, pinned with position:fixed, which doesn't depend on
+         html/body's own height at all. */
     }
 
     /* Shown only until Flutter fires its first frame — kept in the same
-       background/badge as the native splash so there's no visible swap. */
+       background/badge as the native splash so there's no visible swap.
+       position:fixed + inset:0 centers this independently of html/body's
+       height, so it doesn't shift when the viewport height is
+       recalculated right after first paint. */
     #loading-logo {
+      position: fixed;
+      inset: 0;
       transition: opacity 0.5s ease-out;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
     }
 
     .logo-img {
@@ -107,26 +112,6 @@
           setTimeout(() => loader.remove(), 500);
         }
       });
-
-      // Corrige o bug de altura "congelada" do Flutter Web em navegadores
-      // in-app (WhatsApp, Instagram, etc.): esses navegadores redimensionam
-      // a própria interface (barra de endereço/barra inferior) DEPOIS do
-      // primeiro frame, e sem isso o Flutter fica com uma altura de canvas
-      // menor que o espaço real disponível — sintoma visto: conteúdo +
-      // bottom nav aparecem deslocados pra cima, sobrando espaço vazio
-      // embaixo. Reaplicar a altura real do documento a cada resize real
-      // (não a cada frame) força o Flutter a recalcular o layout.
-      function fixViewportHeight() {
-        var vh = (window.visualViewport && window.visualViewport.height)
-          ? window.visualViewport.height
-          : window.innerHeight;
-        document.documentElement.style.setProperty('--app-height', vh + 'px');
-      }
-      window.addEventListener('resize', fixViewportHeight);
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', fixViewportHeight);
-      }
-      fixViewportHeight();
     </script>
 
     <script src="flutter_bootstrap.js" async></script>
