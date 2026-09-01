@@ -185,6 +185,23 @@
 // vs. display), and the category-mapping caveats (data.police.uk's
 // "violent-crime" bundles
 // everything from common assault to homicide with no way to split it).
+// PtCrimeAdapter (added 2026-09-02) — Portugal concelho-level choropleth,
+// the second non-Brazil area source after the UK, and finer-grained than
+// it (308 concelhos vs. 43 police forces). Unlike UkPoliceAdapter, there's
+// no per-area query limit to work around: criminalidade.pt (a third-party
+// static mirror of official DGPJ/INE/PORDATA statistics, not the
+// government portal itself) publishes the whole country's crime series
+// and concelho geometry as two plain JSON files, so fetch() makes exactly
+// two HTTP requests total. The real complexity was picking which of the
+// 19 published categories are safe to sum without double-counting: only 8
+// ("crimes específicos" minus one INE-methodology duplicate) are mutually
+// exclusive — the official "Total" and the Penal Code chapter breakdown
+// were both rejected for this reason (see pt_crime.ts's header for the
+// full reasoning). Also unlike every other adapter here, DGPJ only
+// publishes annually — PtCrimeAdapter ingests just the single latest
+// available year, both because that's all a per-run ingestion needs and
+// because a full historical backfill would be erased the following month
+// by this session's own new security_events retention cron.
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -240,6 +257,7 @@ import { FolhaAdapter } from "../_shared/adapters/br/folha_news.ts";
 import { BbcNewsAdapter } from "../_shared/adapters/global/bbc_news.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { UkPoliceAdapter } from "../_shared/adapters/global/uk_police.ts";
+import { PtCrimeAdapter } from "../_shared/adapters/global/pt_crime.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 import { FbspAnuarioAdapter } from "../_shared/adapters/br/fbsp_anuario.ts";
@@ -295,6 +313,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   BbcNewsAdapter: new BbcNewsAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   UkPoliceAdapter: new UkPoliceAdapter(),
+  PtCrimeAdapter: new PtCrimeAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),
 };

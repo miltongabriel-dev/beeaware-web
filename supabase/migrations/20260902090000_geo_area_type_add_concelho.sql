@@ -1,0 +1,14 @@
+-- BeeAware Global roadmap — Portugal concelhos, new area_type.
+--
+-- Own migration, separate from anything that uses the value (Postgres
+-- won't let a brand-new enum value be used in the same transaction it
+-- was added in) — same pattern as 20260826100000_geo_area_type_add_dp.sql
+-- and 20260831110000_geo_area_type_add_police_force.sql.
+--
+-- Not reusing MUNICIPALITY (already in this enum, used for Brazil):
+-- municipality_crime_summary joins security_events to geo_areas by
+-- city_ibge_code, a Brazil-specific IBGE code Portugal has no equivalent
+-- of. CONCELHO gets its own name-matched trigger entry instead (see
+-- 20260902110000_security_events_geo_area_concelho_link.sql), the same
+-- approach already used for POLICE_FORCE.
+alter type geo_area_type add value 'CONCELHO';

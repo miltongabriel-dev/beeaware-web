@@ -39,9 +39,11 @@ import 'package:aware/home/widgets/safety_trend_chart.dart';
 import 'package:aware/backend/uk_police_api.dart';
 import 'package:aware/backend/brazil_crime_summary_api.dart';
 import 'package:aware/backend/uk_crime_summary_api.dart';
+import 'package:aware/backend/pt_crime_summary_api.dart';
 import 'package:aware/backend/location_coverage_api.dart';
 import '../map/municipality_choropleth_layer.dart';
 import '../map/police_force_choropleth_layer.dart';
+import '../map/concelho_choropleth_layer.dart';
 import '../area/area_intelligence_screen.dart';
 import '../backend/route_awareness_api.dart';
 import '../utils/geocoding.dart';
@@ -80,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<MapIncident> _incidents = [];
   List<MunicipalityCrimeSummary> _crimeSummary = [];
   List<PoliceForceCrimeSummary> _ukCrimeSummary = [];
+  List<ConcelhoCrimeSummary> _ptCrimeSummary = [];
   List<LocationCoverage> _coverage = [];
   LatLng? _userCurrentLocation;
   bool _isLoadingIncidents = true;
@@ -931,6 +934,9 @@ class _HomeScreenState extends State<HomeScreen> {
     UkCrimeSummaryApi.fetchSummary().then((summary) {
       if (mounted) setState(() => _ukCrimeSummary = summary);
     });
+    PtCrimeSummaryApi.fetchSummary().then((summary) {
+      if (mounted) setState(() => _ptCrimeSummary = summary);
+    });
 
     // 🔥 TREND carregado em background (UX premium)
     Future.microtask(() async {
@@ -1193,6 +1199,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Violência/crime por Police Force Area (Reino Unido) — mesma
               // camada visual, geografia disjunta da do Brasil.
               PoliceForceChoroplethLayer(summaries: _ukCrimeSummary),
+              ConcelhoChoroplethLayer(summaries: _ptCrimeSummary),
 
               // Route Awareness — desenha direto no mapa principal em vez
               // de uma tela separada, para as rotas nunca perderem
