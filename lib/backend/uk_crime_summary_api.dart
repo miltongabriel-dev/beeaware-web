@@ -67,8 +67,16 @@ class UkCrimeSummaryApi {
 
   // At most 43 rows ever come back — no pagination loop needed the way
   // BrazilCrimeSummaryApi's municipality-level query does.
+  //
+  // monthsBack defaults to 6, matching police_force_crime_summary's own
+  // default (widened from 3 — see
+  // 20260904110000_police_force_crime_summary_widen_window.sql):
+  // UkPoliceAdapter only ever holds a single latest month, refreshed by a
+  // weekly cron, so a tighter window risked excluding that only month the
+  // instant "now" ticked past the 1st of a month — confirmed live, not
+  // hypothetical.
   static Future<List<PoliceForceCrimeSummary>> fetchSummary(
-      {int monthsBack = 3}) async {
+      {int monthsBack = 6}) async {
     try {
       final rows = await _client.rpc('police_force_crime_summary', params: {
         'months_back': monthsBack,
