@@ -220,6 +220,46 @@
 // cumulative figure, not a closed calendar year like Portugal's, so
 // sourceRecordId is keyed by year only — a later, more complete balance
 // for the same year replaces the earlier one instead of double-counting.
+// MadridAccidentsAdapter (added 2026-09-05) — the actual answer to "why
+// can't PT/ES have real per-incident hexagon pins like Brazil/UK": their
+// NATIONAL crime bodies (DGPJ, Ministerio del Interior) only ever
+// publish periodic AGGREGATE counts, never a per-occurrence record with
+// a real coordinate — but Madrid's own city open data portal does, for
+// traffic accidents specifically (Policía Municipal de Madrid). One row
+// per person involved (grouped by num_expediente, classified by the
+// worst injury outcome in the group), real UTM coordinates converted to
+// WGS84 with a dependency-free formula (verified live against pyproj),
+// updated roughly monthly (confirmed live: current data reached 30 June
+// 2026, ~2 months behind, comparable lag to UkPoliceAdapter). Barcelona
+// has an equally real per-accident dataset but only publishes once a
+// full year has already closed — not frequent enough to be worth
+// ingesting yet, unlike Madrid's rolling monthly updates. This produces
+// real EXACT-precision SecurityEvent rows with latitude/longitude set,
+// so it needs NO new RPC or Flutter change at all: nearby_security_events
+// already returns any EXACT/STREET row within radius regardless of
+// country (its own WHERE clause has no country filter), and
+// BrazilSecurityApi.fetchForArea (misleadingly named, genuinely
+// country-agnostic) already calls it for every map viewport in the
+// world.
+// NoticiasAoMinutoAdapter/ElMundoAdapter (added 2026-09-05) — second
+// news sources for Portugal and Spain, to raise pin DENSITY. PtNewsAdapter
+// (RTP)/EsNewsAdapter (La Vanguardia) proved the pipeline works, but with
+// only 6 PT and 20 ES events total after their first real run, most
+// concelhos/municípios get 0-1 pin — nowhere near enough for the map's
+// cluster layer (2+ nearby pins) to ever show a numbered hexagon the way
+// Brazil/UK's much denser sources do. Notícias ao Minuto's own "país"
+// feed is a big win here — 490 items in one pull, 139 (28%) genuinely
+// classifiable, real concelho names already in the title — found by
+// looking for a denser national source the same way Brazil stacks
+// several news portals instead of relying on G1 alone. El Mundo's
+// "españa" feed is a smaller win (2/53 in a live pull) — a dedicated
+// Spanish "sucesos" section was searched for on El Mundo/El País/El
+// Español/eldiario.es first (the same pattern that made La Vanguardia's
+// own source so effective) but none exist at that URL shape. Both reuse
+// every existing piece (classifyPtBrNews/classifyEsNews,
+// geo_text_match_generic.ts, CONCELHO_NAME/MUNICIPIO_NAME) — no new
+// classifier, matcher, or schema needed, just two more `sourceType:
+// 'news'` producers feeding the pipeline nearby_news_pins already reads.
 // NiPoliceAdapter (added 2026-09-05) — Northern Ireland choropleth.
 // Point-level map pins for Northern Ireland already worked before this
 // adapter existed (UkPoliceApi.dart queries data.police.uk by plain
@@ -315,6 +355,9 @@ import { PtCrimeAdapter } from "../_shared/adapters/global/pt_crime.ts";
 import { EsCrimeAdapter } from "../_shared/adapters/global/es_crime.ts";
 import { PtNewsAdapter } from "../_shared/adapters/global/pt_news.ts";
 import { EsNewsAdapter } from "../_shared/adapters/global/es_news.ts";
+import { NoticiasAoMinutoAdapter } from "../_shared/adapters/global/pt_news_minuto.ts";
+import { ElMundoAdapter } from "../_shared/adapters/global/es_news_elmundo.ts";
+import { MadridAccidentsAdapter } from "../_shared/adapters/global/madrid_accidents.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 import { FbspAnuarioAdapter } from "../_shared/adapters/br/fbsp_anuario.ts";
@@ -375,6 +418,9 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   EsCrimeAdapter: new EsCrimeAdapter(),
   PtNewsAdapter: new PtNewsAdapter(),
   EsNewsAdapter: new EsNewsAdapter(),
+  NoticiasAoMinutoAdapter: new NoticiasAoMinutoAdapter(),
+  ElMundoAdapter: new ElMundoAdapter(),
+  MadridAccidentsAdapter: new MadridAccidentsAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),
 };

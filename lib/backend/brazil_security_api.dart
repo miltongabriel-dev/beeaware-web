@@ -19,12 +19,21 @@ import '../map/map_incident.dart';
 class BrazilSecurityApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
-  // Map pins only ever show the last 2 months — older activity belongs in
+  // Map pins only ever show recent activity — older activity belongs in
   // the statistics screens (choropleth, historical safety), which query
   // their own, separately-windowed RPCs. Passed explicitly rather than
   // relying on nearby_security_events' own default so this doesn't
   // silently drift if that default ever changes for a different caller.
-  static const int _maxAgeDays = 60;
+  //
+  // Widened from 60 to 90 (20260905390000): MadridAccidentsAdapter's own
+  // source lags by design (~2 months between "now" and its latest
+  // published month), which sat right at the edge of the old 60-day
+  // cutoff and made every real Madrid accident invisible on the map
+  // despite being correctly ingested with real coordinates — confirmed
+  // live, 0 results within 5km of central Madrid before this change.
+  // Brazil's own sources report much more recent data, so this doesn't
+  // make Brazil's pins meaningfully less "recent".
+  static const int _maxAgeDays = 90;
 
   static Future<List<MapIncident>> fetchForArea({
     required double lat,
