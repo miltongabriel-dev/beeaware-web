@@ -43,6 +43,11 @@ export interface RssFeedItem {
   link: string;
   guid: string;
   pubDate?: string;
+  // First <category> tag, when present — added for es_news.ts, which
+  // needs La Vanguardia's own region tag (e.g. "Comunidad Valenciana",
+  // "Internacional") to exclude non-Spain items before text-matching a
+  // municipio. Every other adapter using this file simply never reads it.
+  category?: string;
 }
 
 // subtitleTag lets a caller point at whichever tag actually carries a
@@ -66,6 +71,7 @@ export function parseFeedItems(xml: string, subtitleTag = "description"): RssFee
       link,
       guid,
       pubDate: extractTag(itemXml, "pubDate"),
+      category: extractTag(itemXml, "category"),
     });
   }
   return items;

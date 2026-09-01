@@ -8,16 +8,22 @@ import '../map/map_incident.dart';
 ///
 /// nearby_security_events only ever returns EXACT/STREET rows (the
 /// roadmap's geographic-honesty rule); news articles never carry a real
-/// coordinate, only a city/state name match (geo_text_match.ts), so they
-/// were never eligible there and only ever showed up in the separate
-/// nearby_news text feed. nearby_news_pins (20260830120000) is the pin
-/// equivalent for the subset of news that DID resolve to a real
-/// municipality: it returns that municipality's polygon centroid as an
-/// approximate point. Every MapIncident this produces is flagged
-/// isApproximate so the pin renders as a halo/ring (BeeIncidentPin) and
-/// the bottom sheet says so explicitly, instead of looking like a
-/// confirmed exact-location record.
-class BrazilNewsPinsApi {
+/// coordinate, only a city/state/concelho/município name match
+/// (geo_text_match.ts for Brazil, geo_text_match_generic.ts for PT/ES),
+/// so they were never eligible there and only ever showed up in the
+/// separate nearby_news text feed. nearby_news_pins (20260830120000,
+/// widened 20260905090000 to also join by geo_area_id for PT/ES) is the
+/// pin equivalent for the subset of news that DID resolve to a real
+/// area: it returns that area's polygon centroid as an approximate
+/// point. Every MapIncident this produces is flagged isApproximate so it
+/// renders as a halo/ring (BeeIncidentPin) and the bottom sheet says so
+/// explicitly, instead of looking like a confirmed exact-location record.
+///
+/// Despite the class name (kept from when this only covered Brazil's own
+/// city-matched news), nearby_news_pins itself is country-agnostic —
+/// this class works unchanged for any country IncidentStore queries it
+/// for.
+class NewsPinsApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
   // Matches BrazilSecurityApi's own map-pin recency window so both
@@ -67,7 +73,7 @@ class BrazilNewsPinsApi {
     final eventCategory = row['event_category'] as String?;
 
     return MapIncident(
-      id: 'br-news-pin-$id',
+      id: 'news-pin-$id',
       location: LatLng(lat, lng),
       severity: severity,
       category: eventType,

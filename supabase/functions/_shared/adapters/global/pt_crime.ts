@@ -74,7 +74,10 @@ const USER_AGENT = "Mozilla/5.0 (compatible; BeeAwareBot/1.0)";
 
 // dico (district+concelho code) -> the exact geo_areas.name value the
 // geometry migration used — see file header for how this was built.
-const CONCELHO_NAME: Record<string, string> = {
+// Exported for pt_news.ts, which matches article text against these same
+// 308 names (via geo_text_match_generic.ts) rather than keeping a second
+// copy of the list.
+export const CONCELHO_NAME: Record<string, string> = {
   "0101": "Águeda",
   "0102": "Albergaria-a-Velha",
   "0103": "Anadia",

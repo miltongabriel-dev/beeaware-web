@@ -75,7 +75,10 @@ const DETALLE_URL = "https://georiesgo.com/data/municipios-detalle.json";
 const USER_AGENT = "Mozilla/5.0 (compatible; BeeAwareBot/1.0)";
 
 // ine_code -> the exact geo_areas.name value the geometry migration used.
-const MUNICIPIO_NAME: Record<string, string> = {
+// Exported for es_news.ts, which matches article text against these same
+// 427 names (via geo_text_match_generic.ts) rather than keeping a second
+// copy of the list.
+export const MUNICIPIO_NAME: Record<string, string> = {
   "01059": "Vitoria-Gasteiz",
   "02003": "Albacete",
   "02009": "Almansa",

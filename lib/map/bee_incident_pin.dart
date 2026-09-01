@@ -75,7 +75,7 @@ class _BeeIncidentPinState extends State<BeeIncidentPin>
   }
 
   // News-derived pins only ever resolve to a municipality centroid, never
-  // a real reported point (see BrazilNewsPinsApi's own header) — a halo
+  // a real reported point (see NewsPinsApi's own header) — a halo
   // ring around a smaller dot reads as "somewhere in this area" rather
   // than the solid dot's "confirmed here", the same geographic-honesty
   // distinction the backend RPCs already enforce.

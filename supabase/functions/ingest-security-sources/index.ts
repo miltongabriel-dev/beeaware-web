@@ -220,6 +220,26 @@
 // cumulative figure, not a closed calendar year like Portugal's, so
 // sourceRecordId is keyed by year only — a later, more complete balance
 // for the same year replaces the earlier one instead of double-counting.
+// PtNewsAdapter/EsNewsAdapter (added 2026-09-05) — Portugal and Spain's
+// first News Intelligence sources, and the actual fix behind an empty
+// map for both countries: pt_crime.ts/es_crime.ts only ever wrote annual
+// concelho/município AGGREGATES (no point location), so nearby_news_pins
+// (20260830120000, widened 20260905090000 to also join by geo_area_id)
+// had nothing from either country to resolve into a pin. RTP Notícias'
+// "País" feed (PT) and La Vanguardia's dedicated "Sucesos" feed (ES) are
+// both plain unauthenticated RSS; PtNewsAdapter reuses Brazil's own
+// classifyPtBrNews (pt_news_classifier.ts) as-is since its keyword
+// vocabulary is standard Portuguese, not Brazilian slang, while ES needed
+// a new es_news_classifier.ts. Both match a concelho/município name in
+// the article text via a new geo_text_match_generic.ts (the same
+// longest-name/word-boundary/street-prefix logic geo_text_match.ts
+// already has for Brazil, generalized off a plain name list instead of
+// IbgeMunicipio) against pt_crime.ts's/es_crime.ts's own CONCELHO_NAME/
+// MUNICIPIO_NAME lists — an unmatched article is skipped, never given an
+// invented precision. See each adapter's own header for the live
+// investigation (including why La Vanguardia's dedicated crime section
+// was chosen over a general Spanish national feed, which yielded zero
+// classifiable items in a real pull).
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -277,6 +297,8 @@ import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { UkPoliceAdapter } from "../_shared/adapters/global/uk_police.ts";
 import { PtCrimeAdapter } from "../_shared/adapters/global/pt_crime.ts";
 import { EsCrimeAdapter } from "../_shared/adapters/global/es_crime.ts";
+import { PtNewsAdapter } from "../_shared/adapters/global/pt_news.ts";
+import { EsNewsAdapter } from "../_shared/adapters/global/es_news.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 import { FbspAnuarioAdapter } from "../_shared/adapters/br/fbsp_anuario.ts";
@@ -334,6 +356,8 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   UkPoliceAdapter: new UkPoliceAdapter(),
   PtCrimeAdapter: new PtCrimeAdapter(),
   EsCrimeAdapter: new EsCrimeAdapter(),
+  PtNewsAdapter: new PtNewsAdapter(),
+  EsNewsAdapter: new EsNewsAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),
 };
