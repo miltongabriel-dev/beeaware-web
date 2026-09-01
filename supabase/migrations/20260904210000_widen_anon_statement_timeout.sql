@@ -1,0 +1,19 @@
+-- BeeAware Global blueprint — widen the `anon` role's statement_timeout
+-- (3s -> 15s).
+--
+-- Root-caused live (2026-09-01): this is the actual final piece behind
+-- the UK/PT/ES choropleth + location_coverage timeouts investigated in
+-- 20260904090000-190000. Every read this app's Flutter client makes
+-- (choropleth summaries, location_coverage, nearby_* RPCs) runs under
+-- the anon key — there's no per-user auth needed for public safety data
+-- reads. `pg_roles.rolconfig` showed anon's statement_timeout was only
+-- 3s (authenticated gets 8s). EXPLAIN ANALYZE showed
+-- concelho_crime_summary alone takes ~285ms-1s even after the GROUP BY
+-- fix (20260904120000/130000) — already reasonable for ~300+ polygons
+-- worth of geometry — but HomeScreen.initState fires 4-5 of these heavy
+-- RPCs concurrently on every cold load, and under that real contention
+-- on a shared/constrained compute tier, occasionally tipping past a
+-- 3-second ceiling was never going to be reliably avoidable by query
+-- tuning alone. 15s gives real headroom for this app's actual read
+-- pattern without removing timeout protection entirely.
+alter role anon set statement_timeout = '15s';
