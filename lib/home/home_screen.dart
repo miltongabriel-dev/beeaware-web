@@ -39,11 +39,13 @@ import 'package:aware/home/widgets/safety_trend_chart.dart';
 import 'package:aware/backend/uk_police_api.dart';
 import 'package:aware/backend/brazil_crime_summary_api.dart';
 import 'package:aware/backend/uk_crime_summary_api.dart';
+import 'package:aware/backend/ni_crime_summary_api.dart';
 import 'package:aware/backend/pt_crime_summary_api.dart';
 import 'package:aware/backend/es_crime_summary_api.dart';
 import 'package:aware/backend/location_coverage_api.dart';
 import '../map/municipality_choropleth_layer.dart';
 import '../map/police_force_choropleth_layer.dart';
+import '../map/lgd_choropleth_layer.dart';
 import '../map/concelho_choropleth_layer.dart';
 import '../map/municipio_es_choropleth_layer.dart';
 import '../area/area_intelligence_screen.dart';
@@ -91,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<MapIncident> _incidents = [];
   List<MunicipalityCrimeSummary> _crimeSummary = [];
   List<PoliceForceCrimeSummary> _ukCrimeSummary = [];
+  List<LgdCrimeSummary> _niCrimeSummary = [];
   List<ConcelhoCrimeSummary> _ptCrimeSummary = [];
   List<MunicipioEsCrimeSummary> _esCrimeSummary = [];
   List<LocationCoverage> _coverage = [];
@@ -951,6 +954,11 @@ class _HomeScreenState extends State<HomeScreen> {
     UkCrimeSummaryApi.fetchSummary().then((summary) {
       if (mounted) setState(() => _ukCrimeSummary = summary);
     });
+    // 🔥 Crime por council (Irlanda do Norte) — pins já funcionavam via
+    // UkPoliceApi (query lat/lng), isso só acrescenta a mancha colorida.
+    NiCrimeSummaryApi.fetchSummary().then((summary) {
+      if (mounted) setState(() => _niCrimeSummary = summary);
+    });
     PtCrimeSummaryApi.fetchSummary().then((summary) {
       if (mounted) setState(() => _ptCrimeSummary = summary);
     });
@@ -1229,6 +1237,10 @@ class _HomeScreenState extends State<HomeScreen> {
               PoliceForceChoroplethLayer(
                 mapController: _mapController,
                 summaries: _ukCrimeSummary,
+              ),
+              LgdChoroplethLayer(
+                mapController: _mapController,
+                summaries: _niCrimeSummary,
               ),
               ConcelhoChoroplethLayer(
                 mapController: _mapController,

@@ -1,0 +1,18 @@
+-- BeeAware Global roadmap — Northern Ireland, adds 'LGD' to geo_area_type.
+--
+-- Same pattern as every prior widening (CISP->+DP->+POLICE_FORCE->
+-- +CONCELHO->+MUNICIPIO): Postgres won't let a new enum value be added
+-- and used in the same transaction, so this is its own migration.
+--
+-- 'LGD' (Local Government District) is Northern Ireland's own official
+-- term for its 11 councils (2015 reorganisation) — same naming
+-- convention as CONCELHO/MUNICIPIO, the native administrative term for
+-- the tier, not a generic label. Northern Ireland's point-level map pins
+-- already work today via UkPoliceApi (a plain lat/lng query against
+-- data.police.uk, called for every viewport regardless of country) — the
+-- real gap this closes is the CHOROPLETH, since England & Wales' own
+-- Police Force Area geometry (20260831120000) is explicitly EW-only and
+-- PSNI has no boundary there. See ni_police.ts's own header for why LGD
+-- councils, not a single national PSNI polygon or the whole-country poly
+-- query (which 503s at that size — confirmed live).
+alter type geo_area_type add value 'LGD';

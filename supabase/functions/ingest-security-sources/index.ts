@@ -220,6 +220,21 @@
 // cumulative figure, not a closed calendar year like Portugal's, so
 // sourceRecordId is keyed by year only — a later, more complete balance
 // for the same year replaces the earlier one instead of double-counting.
+// NiPoliceAdapter (added 2026-09-05) — Northern Ireland choropleth.
+// Point-level map pins for Northern Ireland already worked before this
+// adapter existed (UkPoliceApi.dart queries data.police.uk by plain
+// lat/lng for any viewport, and PSNI publishes through that same
+// endpoint) — the real gap was the CHOROPLETH, since UkPoliceAdapter's
+// own EW Police Force Area geometry (20260831120000) is explicitly
+// England & Wales-only and PSNI has no boundary there. Uses Northern
+// Ireland's 11 councils ("Local Government Districts", new geo_area_type
+// 'LGD') rather than one national PSNI polygon — confirmed live that a
+// single whole-country `poly` query 503s (the same result-size ceiling
+// documented on UkPoliceAdapter's 13 highest-volume EW forces, just
+// triggered here by total country size), while every one of the 11
+// council-sized polys succeeds. Shares UkPoliceAdapter's own CATEGORY_MAP
+// (exported from uk_police.ts) since it's the same national
+// data.police.uk taxonomy, PSNI included.
 // PtNewsAdapter/EsNewsAdapter (added 2026-09-05) — Portugal and Spain's
 // first News Intelligence sources, and the actual fix behind an empty
 // map for both countries: pt_crime.ts/es_crime.ts only ever wrote annual
@@ -295,6 +310,7 @@ import { FolhaAdapter } from "../_shared/adapters/br/folha_news.ts";
 import { BbcNewsAdapter } from "../_shared/adapters/global/bbc_news.ts";
 import { UnodcAdapter } from "../_shared/adapters/global/unodc.ts";
 import { UkPoliceAdapter } from "../_shared/adapters/global/uk_police.ts";
+import { NiPoliceAdapter } from "../_shared/adapters/global/ni_police.ts";
 import { PtCrimeAdapter } from "../_shared/adapters/global/pt_crime.ts";
 import { EsCrimeAdapter } from "../_shared/adapters/global/es_crime.ts";
 import { PtNewsAdapter } from "../_shared/adapters/global/pt_news.ts";
@@ -354,6 +370,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   BbcNewsAdapter: new BbcNewsAdapter(),
   UnodcAdapter: new UnodcAdapter(),
   UkPoliceAdapter: new UkPoliceAdapter(),
+  NiPoliceAdapter: new NiPoliceAdapter(),
   PtCrimeAdapter: new PtCrimeAdapter(),
   EsCrimeAdapter: new EsCrimeAdapter(),
   PtNewsAdapter: new PtNewsAdapter(),

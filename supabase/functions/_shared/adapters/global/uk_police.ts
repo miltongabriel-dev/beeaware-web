@@ -211,7 +211,10 @@ const FORCE_QUERY_POLYGONS: Record<string, string> = {
 // filter, not a real category). Severity tiers mirror
 // uk_police_api.dart's _mapSeverity so a coloured force and a live pin
 // never disagree about what "high risk" means for the same category.
-const CATEGORY_MAP: Record<string, [string, string, string]> = {
+// Exported for ni_police.ts — same data.police.uk national taxonomy,
+// PSNI included, so there's no reason for Northern Ireland's own
+// choropleth to define a second copy.
+export const CATEGORY_MAP: Record<string, [string, string, string]> = {
   "violent-crime": ["VIOLENCE", "assault", "high"],
   "robbery": ["PROPERTY", "robbery", "high"],
   "possession-of-weapons": ["PUBLIC_SAFETY", "weapon", "high"],
