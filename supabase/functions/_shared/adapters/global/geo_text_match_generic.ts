@@ -18,12 +18,13 @@ export function stripAccentsLower(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-// Portuguese and Spanish street-naming conventions both routinely borrow
-// a place name for a street (Rua/Avenida in Portuguese, Calle/Avenida in
-// Spanish) — same false-positive shape geo_text_match.ts's own
-// STREET_PREFIX_RE was built for, extended with the Spanish prefixes.
+// Portuguese, Spanish and French street-naming conventions all routinely
+// borrow a place name for a street (Rua/Avenida in Portuguese, Calle/
+// Avenida in Spanish, Rue/Avenue in French) — same false-positive shape
+// geo_text_match.ts's own STREET_PREFIX_RE was built for, extended with
+// the Spanish and then French prefixes.
 const STREET_PREFIX_RE =
-  /\b(?:av|avenida|r|rua|al|alameda|trav|travessa|rod|rodovia|pca|praca|estr|estrada|calle|c|paseo|plaza|carretera|ctra)\.?\s*$/;
+  /\b(?:av|avenida|avenue|r|rua|rue|al|alameda|allee|trav|travessa|rod|rodovia|rte|route|pca|praca|place|pl|estr|estrada|chemin|ch|impasse|quai|cours|calle|c|paseo|plaza|carretera|ctra|bd|boulevard)\.?\s*$/;
 
 function isPrecededByStreetPrefix(text: string, matchIndex: number): boolean {
   return STREET_PREFIX_RE.test(text.slice(0, matchIndex));

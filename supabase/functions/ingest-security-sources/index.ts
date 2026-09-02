@@ -295,6 +295,26 @@
 // investigation (including why La Vanguardia's dedicated crime section
 // was chosen over a general Spanish national feed, which yielded zero
 // classifiable items in a real pull).
+// FrCrimeAdapter/FrNewsAdapter (added 2026-09-07) — France, the app's
+// first non-Iberian European country, added after the user asked
+// whether data existed for it. SSMSI (Ministère de l'Intérieur)
+// publishes official département-level crime stats (101 areas incl.
+// Corsica and 5 overseas départements) on data.gouv.fr with NO
+// statistical-secrecy suppression, unlike its own commune-level file —
+// the user explicitly chose département over commune granularity for
+// that reason. Unlike Portugal/Spain's fixed criminalidade.pt/
+// georiesgo.com URLs, data.gouv.fr's own resource URLs are timestamped
+// per edition and change every year, so FrCrimeAdapter resolves the
+// current CSV URL through the dataset's stable API endpoint at fetch
+// time rather than hardcoding a snapshot. France has no equivalent of
+// data.police.uk, so — same gap UkPoliceAdapter/NiPoliceAdapter don't
+// have — FrNewsAdapter (actu17.fr, a dedicated police/justice/faits-
+// divers outlet) was added in the same pass to give France real pins,
+// not just a choropleth. Its classifier departs from
+// es_news_classifier.ts's plain substring matching in one place: French
+// "vol"/"viol" are literal substrings of unrelated words
+// ("volontairement", "violent") that would otherwise misclassify —
+// see fr_news_classifier.ts's header for the live-confirmed example.
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -358,6 +378,8 @@ import { EsNewsAdapter } from "../_shared/adapters/global/es_news.ts";
 import { NoticiasAoMinutoAdapter } from "../_shared/adapters/global/pt_news_minuto.ts";
 import { ElMundoAdapter } from "../_shared/adapters/global/es_news_elmundo.ts";
 import { MadridAccidentsAdapter } from "../_shared/adapters/global/madrid_accidents.ts";
+import { FrCrimeAdapter } from "../_shared/adapters/global/fr_crime.ts";
+import { FrNewsAdapter } from "../_shared/adapters/global/fr_news.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 import { FbspAnuarioAdapter } from "../_shared/adapters/br/fbsp_anuario.ts";
@@ -421,6 +443,8 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   NoticiasAoMinutoAdapter: new NoticiasAoMinutoAdapter(),
   ElMundoAdapter: new ElMundoAdapter(),
   MadridAccidentsAdapter: new MadridAccidentsAdapter(),
+  FrCrimeAdapter: new FrCrimeAdapter(),
+  FrNewsAdapter: new FrNewsAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),
 };

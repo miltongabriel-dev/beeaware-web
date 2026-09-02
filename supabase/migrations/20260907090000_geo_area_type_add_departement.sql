@@ -1,0 +1,12 @@
+-- BeeAware Global roadmap — France, first non-Iberian European country
+-- (department-level choropleth). Own migration, separate from anything
+-- that uses the value — Postgres won't let a brand-new enum value be
+-- used in the same transaction it was added in (same pattern as the
+-- DP/POLICE_FORCE/CONCELHO/MUNICIPIO/LGD additions).
+--
+-- Not reusing STATE: a French département (101 nationwide, including
+-- Corsica 2A/2B and 5 overseas — 971/972/973/974/976) is a finer tier
+-- than a région (France's actual top-level "state"-equivalent), closer
+-- in scale to a UK police force area or a Northern Ireland LGD — both
+-- of which already use their own dedicated enum value rather than STATE.
+alter type geo_area_type add value 'DEPARTEMENT';
