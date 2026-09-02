@@ -185,8 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo:
-            kIsWeb ? 'http://localhost:53755' : 'beeaware://login-callback',
+        redirectTo: kIsWeb ? Uri.base.origin : 'beeaware://login-callback',
       );
       await context.read<TokenState>().loadTokens();
     } catch (e) {
