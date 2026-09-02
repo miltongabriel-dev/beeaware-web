@@ -26,9 +26,11 @@ import '../map/map_incident.dart';
 class NewsPinsApi {
   static final SupabaseClient _client = Supabase.instance.client;
 
-  // Matches BrazilSecurityApi's own map-pin recency window so both
-  // sources age out together.
-  static const int _maxAgeDays = 60;
+  // Matches BrazilSecurityApi's own map-pin recency window (90 days)
+  // so both sources age out together — this was drifted at 60 until
+  // the FR/DE/PT/ES manual backfill (20260909110000) needed the full
+  // ~3-month window to actually surface everything it inserted.
+  static const int _maxAgeDays = 90;
 
   static Future<List<MapIncident>> fetchForArea({
     required double lat,
