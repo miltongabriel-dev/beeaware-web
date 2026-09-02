@@ -315,6 +315,26 @@
 // "vol"/"viol" are literal substrings of unrelated words
 // ("volontairement", "violent") that would otherwise misclassify —
 // see fr_news_classifier.ts's header for the live-confirmed example.
+// DeCrimeAdapter/DeNewsAdapter (added 2026-09-08) — Germany, the app's
+// second non-Iberian European country, added after the user asked what
+// was possible there following France. BKA (Bundeskriminalamt)
+// publishes the PKS at Land (state) level as XLSX with a much deeper
+// category breakdown than France's SSMSI, but the free Kreis-level
+// geometry found has no official area code (only a name), and Germany
+// has real Kreis/city name duplicates (e.g. "München" the independent
+// city and the separate rural Kreis around it) — so Bundesland (16
+// states, unambiguous names) was chosen over Kreis for the choropleth,
+// same reasoning as choosing département over commune for France.
+// Unlike a French département, a Bundesland IS Germany's own top-level
+// administrative division, so this uses GeoPrecision 'STATE' rather
+// than 'DISTRICT' — see de_crime.ts's header for the full reasoning.
+// DeNewsAdapter (presseportal.de/blaulicht) is a NATIONWIDE police
+// press-release aggregator, unlike France's single actu17.fr outlet —
+// but its articles name the CITY, not the Bundesland, so
+// CITY_TO_BUNDESLAND (derived from BKA's own Kreis-level file, not a
+// separate unofficial source) resolves the state. See de_news.ts's
+// header for the two-tier match (structured "(ots)" dateline first,
+// generic text scan as fallback).
 // News Intelligence expansion (2026-08-29): G1NewsAdapter now pulls all
 // 27 state-level regional feeds instead of the single diluted national
 // one (see g1_news.ts's own header — real coverage gaps, like zero
@@ -380,6 +400,8 @@ import { ElMundoAdapter } from "../_shared/adapters/global/es_news_elmundo.ts";
 import { MadridAccidentsAdapter } from "../_shared/adapters/global/madrid_accidents.ts";
 import { FrCrimeAdapter } from "../_shared/adapters/global/fr_crime.ts";
 import { FrNewsAdapter } from "../_shared/adapters/global/fr_news.ts";
+import { DeCrimeAdapter } from "../_shared/adapters/global/de_crime.ts";
+import { DeNewsAdapter } from "../_shared/adapters/global/de_news.ts";
 import { FcdoAdapter } from "../_shared/adapters/global/fcdo_travel_advisory.ts";
 import { RsSspAdapter } from "../_shared/adapters/br/rs_ssp.ts";
 import { FbspAnuarioAdapter } from "../_shared/adapters/br/fbsp_anuario.ts";
@@ -445,6 +467,8 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   MadridAccidentsAdapter: new MadridAccidentsAdapter(),
   FrCrimeAdapter: new FrCrimeAdapter(),
   FrNewsAdapter: new FrNewsAdapter(),
+  DeCrimeAdapter: new DeCrimeAdapter(),
+  DeNewsAdapter: new DeNewsAdapter(),
   RsSspAdapter: new RsSspAdapter(),
   FbspAnuarioAdapter: new FbspAnuarioAdapter(),
 };

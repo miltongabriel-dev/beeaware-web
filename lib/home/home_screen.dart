@@ -43,6 +43,7 @@ import 'package:aware/backend/ni_crime_summary_api.dart';
 import 'package:aware/backend/pt_crime_summary_api.dart';
 import 'package:aware/backend/es_crime_summary_api.dart';
 import 'package:aware/backend/fr_crime_summary_api.dart';
+import 'package:aware/backend/de_crime_summary_api.dart';
 import 'package:aware/backend/location_coverage_api.dart';
 import '../map/municipality_choropleth_layer.dart';
 import '../map/police_force_choropleth_layer.dart';
@@ -50,6 +51,7 @@ import '../map/lgd_choropleth_layer.dart';
 import '../map/concelho_choropleth_layer.dart';
 import '../map/municipio_es_choropleth_layer.dart';
 import '../map/departement_fr_choropleth_layer.dart';
+import '../map/bundesland_de_choropleth_layer.dart';
 import '../area/area_intelligence_screen.dart';
 import '../backend/route_awareness_api.dart';
 import '../utils/geocoding.dart';
@@ -99,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ConcelhoCrimeSummary> _ptCrimeSummary = [];
   List<MunicipioEsCrimeSummary> _esCrimeSummary = [];
   List<DepartementFrCrimeSummary> _frCrimeSummary = [];
+  List<BundeslandDeCrimeSummary> _deCrimeSummary = [];
   List<LocationCoverage> _coverage = [];
   LatLng? _userCurrentLocation;
   bool _isLoadingIncidents = true;
@@ -971,6 +974,9 @@ class _HomeScreenState extends State<HomeScreen> {
     FrCrimeSummaryApi.fetchSummary().then((summary) {
       if (mounted) setState(() => _frCrimeSummary = summary);
     });
+    DeCrimeSummaryApi.fetchSummary().then((summary) {
+      if (mounted) setState(() => _deCrimeSummary = summary);
+    });
 
     // 🔥 TREND carregado em background (UX premium)
     Future.microtask(() async {
@@ -1259,6 +1265,10 @@ class _HomeScreenState extends State<HomeScreen> {
               DepartementFrChoroplethLayer(
                 mapController: _mapController,
                 summaries: _frCrimeSummary,
+              ),
+              BundeslandDeChoroplethLayer(
+                mapController: _mapController,
+                summaries: _deCrimeSummary,
               ),
 
               // Route Awareness — desenha direto no mapa principal em vez

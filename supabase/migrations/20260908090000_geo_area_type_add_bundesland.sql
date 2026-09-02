@@ -1,0 +1,18 @@
+-- BeeAware Global roadmap — Germany, second non-Iberian European
+-- country. Own migration, separate from anything that uses the value —
+-- Postgres won't let a brand-new enum value be used in the same
+-- transaction it was added in (same pattern as every other
+-- geo_area_type addition: DP/POLICE_FORCE/CONCELHO/MUNICIPIO/LGD/
+-- DEPARTEMENT).
+--
+-- Not reusing STATE: STATE is already used by Brazil (with a real
+-- meaning — Brazilian federative states), and mixing Brazil's STATE
+-- rows with Germany's 16 Bundesländer under the same area_type would
+-- make `where area_type = 'STATE'` ambiguous across countries even
+-- though the trigger below also filters by country_code. A Bundesland
+-- IS Germany's actual top-level administrative division (unlike
+-- France's département, which sits BELOW the région) — see
+-- de_crime.ts's header for why this DOES use GeoPrecision 'STATE'
+-- (a different enum, taxonomy.ts) for confidence scoring, just not
+-- this geo_area_type value.
+alter type geo_area_type add value 'BUNDESLAND';
