@@ -202,6 +202,22 @@
   "@callNonEmergencyNumber": {
     "placeholders": { "number": { "type": "String" } }
   },
+  "emergencyContactTitle": "Emergency contact",
+  "emergencyContactExplanation": "Register someone you trust. If you ever feel in danger, the SOS button will open WhatsApp with your current location already filled in — you just confirm the send. This doesn't replace calling emergency services directly; it's a complement.",
+  "emergencyContactNameHint": "Contact's name",
+  "emergencyContactPhoneHint": "Phone with country code (e.g. +1 555 123 4567)",
+  "emergencyContactSave": "Save contact",
+  "emergencyContactSaved": "Contact saved",
+  "emergencyContactSaveError": "Couldn't save right now. Try again.",
+  "emergencyContactRemove": "Remove contact",
+  "notifyEmergencyContactButton": "Notify {name} on WhatsApp",
+  "@notifyEmergencyContactButton": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "emergencyContactWhatsAppMessage": "I need help. This is my current location: {mapsLink}",
+  "@emergencyContactWhatsAppMessage": {
+    "placeholders": { "mapsLink": { "type": "String" } }
+  },
   "emergencyDisclaimer": "BeeAware is not an emergency service.\nIf you are in immediate danger, contact emergency services directly.",
   "sosBarLabel": "SOS {number}",
   "@sosBarLabel": {

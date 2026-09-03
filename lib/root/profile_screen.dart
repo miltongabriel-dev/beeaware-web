@@ -14,6 +14,7 @@ import '../state/locale_state.dart';
 import '../state/token_state.dart';
 import '../theme/app_card.dart';
 import '../theme/beeaware_theme.dart';
+import 'emergency_contact_screen.dart';
 import 'pwa_bridge_stub.dart'
     if (dart.library.js) 'pwa_bridge_web.dart' as pwa_bridge;
 
@@ -197,6 +198,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               label: loc.languageLabel,
               onTap: () => _showLanguagePicker(context),
             ),
+            if (user != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _ProfileItem(
+                icon: PhosphorIconsRegular.userFocus,
+                label: loc.emergencyContactTitle,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const EmergencyContactScreen()),
+                ),
+              ),
+            ],
             if (_canInstall) ...[
               const SizedBox(height: AppSpacing.sm),
               _ProfileItem(

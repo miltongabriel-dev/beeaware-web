@@ -842,6 +842,66 @@ abstract class AppLocalizations {
   /// **'Call non-emergency ({number})'**
   String callNonEmergencyNumber(String number);
 
+  /// No description provided for @emergencyContactTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency contact'**
+  String get emergencyContactTitle;
+
+  /// No description provided for @emergencyContactExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Register someone you trust. If you ever feel in danger, the SOS button will open WhatsApp with your current location already filled in — you just confirm the send. This doesn\'t replace calling emergency services directly; it\'s a complement.'**
+  String get emergencyContactExplanation;
+
+  /// No description provided for @emergencyContactNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact\'s name'**
+  String get emergencyContactNameHint;
+
+  /// No description provided for @emergencyContactPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone with country code (e.g. +1 555 123 4567)'**
+  String get emergencyContactPhoneHint;
+
+  /// No description provided for @emergencyContactSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save contact'**
+  String get emergencyContactSave;
+
+  /// No description provided for @emergencyContactSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact saved'**
+  String get emergencyContactSaved;
+
+  /// No description provided for @emergencyContactSaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save right now. Try again.'**
+  String get emergencyContactSaveError;
+
+  /// No description provided for @emergencyContactRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove contact'**
+  String get emergencyContactRemove;
+
+  /// No description provided for @notifyEmergencyContactButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify {name} on WhatsApp'**
+  String notifyEmergencyContactButton(String name);
+
+  /// No description provided for @emergencyContactWhatsAppMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'I need help. This is my current location: {mapsLink}'**
+  String emergencyContactWhatsAppMessage(String mapsLink);
+
   /// No description provided for @emergencyDisclaimer.
   ///
   /// In en, this message translates to:

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../backend/emergency_contact_api.dart';
 import '../config/emergency_numbers.dart';
 import '../l10n/app_localizations.dart';
 import 'beeaware_theme.dart';
@@ -49,9 +51,18 @@ class SosButton extends StatelessWidget {
 }
 
 /// The bottom sheet SosButton opens — call emergency / non-emergency
-/// numbers for whatever country the current location resolves to. Same
-/// content on both screens, just extracted so it isn't duplicated.
-void showEmergencySheet(BuildContext context, String countryCode) {
+/// numbers for whatever country the current location resolves to, plus
+/// (when the logged-in user has one registered, see
+/// emergency_contact_api.dart) a WhatsApp shortcut to their trusted
+/// contact with a live-location link pre-filled. [location] is optional
+/// because callers may open this before a location fix exists — the
+/// WhatsApp button simply doesn't render without one, same as it doesn't
+/// render without a registered contact.
+void showEmergencySheet(
+  BuildContext context,
+  String countryCode, {
+  LatLng? location,
+}) {
   final numbers = emergencyNumbersFor(countryCode);
   showModalBottomSheet(
     context: context,
@@ -102,6 +113,38 @@ void showEmergencySheet(BuildContext context, String countryCode) {
                 },
               ),
             ],
+            if (location != null)
+              FutureBuilder<EmergencyContact?>(
+                future: EmergencyContactApi.fetchMine(),
+                builder: (context, snapshot) {
+                  final contact = snapshot.data;
+                  if (contact == null) return const SizedBox.shrink();
+
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: TextButton.icon(
+                      icon: const Icon(PhosphorIconsRegular.whatsappLogo,
+                          color: Color(0xFF25D366)),
+                      label: Text(
+                        loc.notifyEmergencyContactButton(contact.name),
+                        style: const TextStyle(color: Color(0xFF25D366)),
+                      ),
+                      onPressed: () async {
+                        final mapsLink =
+                            'https://maps.google.com/?q=${location.latitude},${location.longitude}';
+                        final message = Uri.encodeComponent(
+                            loc.emergencyContactWhatsAppMessage(mapsLink));
+                        final uri = Uri.parse(
+                            'https://wa.me/${contact.whatsAppDigits}?text=$message');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri,
+                              mode: LaunchMode.externalApplication);
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
             const SizedBox(height: 12),
             Text(
               loc.emergencyDisclaimer,

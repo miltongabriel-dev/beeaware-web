@@ -296,7 +296,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       emergencyNumbersFor(preferredCountryCode(_userLocation))
                           .primary),
                   onTap: () => showEmergencySheet(
-                      context, preferredCountryCode(_userLocation)),
+                      context, preferredCountryCode(_userLocation),
+                      location: _userLocation),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 GestureDetector(

@@ -492,6 +492,43 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get emergencyContactTitle => 'Contato de emergência';
+
+  @override
+  String get emergencyContactExplanation =>
+      'Cadastre alguém de confiança. Se você se sentir em perigo, o botão de SOS vai abrir o WhatsApp com sua localização atual já preenchida — você só confirma o envio. Isso não substitui ligar direto para os serviços de emergência; é um complemento.';
+
+  @override
+  String get emergencyContactNameHint => 'Nome do contato';
+
+  @override
+  String get emergencyContactPhoneHint =>
+      'Telefone com DDI (ex: +55 11 91234-5678)';
+
+  @override
+  String get emergencyContactSave => 'Salvar contato';
+
+  @override
+  String get emergencyContactSaved => 'Contato salvo';
+
+  @override
+  String get emergencyContactSaveError =>
+      'Não foi possível salvar agora. Tente de novo.';
+
+  @override
+  String get emergencyContactRemove => 'Remover contato';
+
+  @override
+  String notifyEmergencyContactButton(String name) {
+    return 'Avisar $name pelo WhatsApp';
+  }
+
+  @override
+  String emergencyContactWhatsAppMessage(String mapsLink) {
+    return 'Preciso de ajuda. Esta é minha localização atual: $mapsLink';
+  }
+
+  @override
   String get emergencyDisclaimer =>
       'BeeAware não é um serviço de emergência.\nSe você estiver em perigo imediato, contate os serviços de emergência diretamente.';
 

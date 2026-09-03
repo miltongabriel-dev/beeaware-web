@@ -146,6 +146,22 @@
   "callEmergencyNumber": "Ligar para emergência ({number})",
   "callNonEmergencyNumber": "Ligar para não-emergência ({number})",
   "emergencyDisclaimer": "BeeAware não é um serviço de emergência.\nSe você estiver em perigo imediato, contate os serviços de emergência diretamente.",
+  "emergencyContactTitle": "Contato de emergência",
+  "emergencyContactExplanation": "Cadastre alguém de confiança. Se você se sentir em perigo, o botão de SOS vai abrir o WhatsApp com sua localização atual já preenchida — você só confirma o envio. Isso não substitui ligar direto para os serviços de emergência; é um complemento.",
+  "emergencyContactNameHint": "Nome do contato",
+  "emergencyContactPhoneHint": "Telefone com DDI (ex: +55 11 91234-5678)",
+  "emergencyContactSave": "Salvar contato",
+  "emergencyContactSaved": "Contato salvo",
+  "emergencyContactSaveError": "Não foi possível salvar agora. Tente de novo.",
+  "emergencyContactRemove": "Remover contato",
+  "notifyEmergencyContactButton": "Avisar {name} pelo WhatsApp",
+  "@notifyEmergencyContactButton": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "emergencyContactWhatsAppMessage": "Preciso de ajuda. Esta é minha localização atual: {mapsLink}",
+  "@emergencyContactWhatsAppMessage": {
+    "placeholders": { "mapsLink": { "type": "String" } }
+  },
   "sosBarLabel": "SOS {number}",
   "reportBarLabel": "Reportar",
 

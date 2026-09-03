@@ -487,6 +487,43 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get emergencyContactTitle => 'Emergency contact';
+
+  @override
+  String get emergencyContactExplanation =>
+      'Register someone you trust. If you ever feel in danger, the SOS button will open WhatsApp with your current location already filled in — you just confirm the send. This doesn\'t replace calling emergency services directly; it\'s a complement.';
+
+  @override
+  String get emergencyContactNameHint => 'Contact\'s name';
+
+  @override
+  String get emergencyContactPhoneHint =>
+      'Phone with country code (e.g. +1 555 123 4567)';
+
+  @override
+  String get emergencyContactSave => 'Save contact';
+
+  @override
+  String get emergencyContactSaved => 'Contact saved';
+
+  @override
+  String get emergencyContactSaveError =>
+      'Couldn\'t save right now. Try again.';
+
+  @override
+  String get emergencyContactRemove => 'Remove contact';
+
+  @override
+  String notifyEmergencyContactButton(String name) {
+    return 'Notify $name on WhatsApp';
+  }
+
+  @override
+  String emergencyContactWhatsAppMessage(String mapsLink) {
+    return 'I need help. This is my current location: $mapsLink';
+  }
+
+  @override
   String get emergencyDisclaimer =>
       'BeeAware is not an emergency service.\nIf you are in immediate danger, contact emergency services directly.';
 

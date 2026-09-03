@@ -2064,7 +2064,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     emergencyNumbersFor(preferredCountryCode(_userCurrentLocation))
                         .primary),
                 onTap: () => showEmergencySheet(
-                    context, preferredCountryCode(_userCurrentLocation)),
+                    context, preferredCountryCode(_userCurrentLocation),
+                    location: _userCurrentLocation),
               ),
             ),
           ),
