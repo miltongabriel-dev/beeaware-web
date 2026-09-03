@@ -137,24 +137,73 @@
       // pick up the corrected height the same way it would on a manual
       // window resize.
       //
-      // This alone turned out NOT to be enough for WhatsApp's in-app
-      // browser specifically (still reported after this fix shipped).
-      // WhatsApp wraps its own native toolbar around a WebView — on
-      // Android/iOS that toolbar is known (from broader "100vh in in-app
-      // browsers" reports) to settle its size in ways that don't
-      // reliably fire ANY viewport-related event at all, unlike
-      // Safari/Chrome proper. A single event type is a bet on one
-      // browser's behavior, so below we bridge every plausible signal
-      // AND add a short polling fallback that catches a silent height
-      // change even when nothing fires an event for it — matching the
-      // pattern flutter/flutter users found worked (a later interaction
-      // forcing a repaint) without requiring the user to tap anything.
+      // This alone turned out NOT to be enough — confirmed via a
+      // guaranteed-fresh load (fully force-quit and relaunched, so not a
+      // resumed/cached tab) opening a link from WhatsApp into iOS Chrome,
+      // where the gap still appeared identically. A round of investigation
+      // aimed the SafeArea/MediaQuery viewPadding widget at the Android
+      // Custom-Tabs case (see AppBottomNav's `bottom: !kIsWeb`) — that's
+      // still believed correct for Android, but it hard-disables Flutter's
+      // own reaction to the browser's safe-area inset entirely, so it
+      // can't explain a gap that persists on iOS afterwards. That points
+      // back to this being a genuine CANVAS problem after all, not a
+      // widget-padding one — just not a simple "missed the event" problem
+      // either, since the events/polling below already cover that.
+      //
+      // What's actually going on, per flutter/flutter's own open engine
+      // issues, is worse than a missed event:
+      //   - #69529: Flutter Web paints everything into a single canvas,
+      //     so the browser never sees a native scroll gesture happen
+      //     inside the app — which is exactly the signal iOS Safari/Chrome
+      //     (both WebKit under the hood, since Chrome on iOS is required
+      //     to use Apple's WKWebView engine, not Blink) use to decide when
+      //     to settle their own address/toolbar chrome. Its size can still
+      //     change shortly after load on its own (WebKit settling its
+      //     bottom-toolbar chrome post-navigation), but the app can never
+      //     trigger or witness that the way a normal scrolling page would.
+      //   - #112231 / #179208: even when Flutter DOES hear about a resize
+      //     (event-driven, same as our bridge below), CanvasKit has its
+      //     own separate, still-open bug where the LAYOUT recomputes
+      //     correctly but the PAINTED pixels don't — it visibly renders
+      //     white/blank space at the bottom rather than the corrected
+      //     content. In the field, the only thing users found that
+      //     reliably cleared it was a manual tap or scroll — i.e. routing
+      //     through Flutter's pointer/scroll paint path instead of its
+      //     resize path.
+      // So dispatching more resize events alone was always going to hit a
+      // ceiling: it fixes Flutter's LAYOUT math (necessary) but not
+      // necessarily what CanvasKit PAINTS. Below, every resize we detect
+      // is followed by a real (not synthetic-event-only) scroll nudge —
+      // scroll a pixel away and immediately back — which forces the
+      // browser to actually recomposite the canvas against its corrected
+      // bounds, the same mechanism a manual scroll fixes it by, without
+      // requiring the user to touch anything. We also run this nudge
+      // unconditionally a few times shortly after first frame regardless
+      // of whether a size change was detected, since the paint glitch can
+      // happen from the first frame's own race against WebKit's chrome
+      // settling, not only from a later delta.
       function fireResize() {
         window.dispatchEvent(new Event('resize'));
       }
 
+      // Real scroll (not just a resize event) so the browser actually
+      // recomposites the canvas layer against its current true bounds —
+      // this is the mechanism a manual user scroll was observed to fix
+      // the CanvasKit white-space-on-resize bug by. A no-op scrollTo(0,0)
+      // was tried and reported NOT to help (matches: nothing moved, so
+      // nothing forced a recomposite) — going to 1px and back does.
+      function nudgeRepaint() {
+        fireResize();
+        var y = window.scrollY || window.pageYOffset || 0;
+        window.scrollTo(0, y + 1);
+        requestAnimationFrame(function() {
+          window.scrollTo(0, y);
+          fireResize();
+        });
+      }
+
       if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', fireResize);
+        window.visualViewport.addEventListener('resize', nudgeRepaint);
       }
       // orientationchange: some in-app browsers only re-settle chrome
       // around a rotation-style event even without an actual rotation.
@@ -163,23 +212,25 @@
       // visibilitychange: WhatsApp can pause/resume the WebView (e.g.
       // switching to it from the chat) in a way that re-settles its
       // toolbar without firing resize/visualViewport at all.
-      window.addEventListener('orientationchange', fireResize);
-      window.addEventListener('pageshow', fireResize);
-      document.addEventListener('visibilitychange', fireResize);
+      window.addEventListener('orientationchange', nudgeRepaint);
+      window.addEventListener('pageshow', nudgeRepaint);
+      document.addEventListener('visibilitychange', nudgeRepaint);
 
-      // Belt-and-suspenders polling: for the first few seconds after
+      // Belt-and-suspenders polling: for the first several seconds after
       // load — the window in which an in-app browser's own toolbar
       // typically settles — compare the actual viewport size against
-      // the last known one every 250ms and fire a resize if it changed,
+      // the last known one every 250ms and nudge a repaint if it changed,
       // regardless of whether any event fired for it. Cheap (two number
       // comparisons) and self-terminating, so it can't cost anything
-      // once the size has settled.
+      // once the size has settled. Widened from 6s to 10s since WebKit's
+      // (Safari/iOS Chrome) chrome-settle timing after an external-link
+      // navigation isn't tightly bounded.
       (function pollForSilentResize() {
         var lastWidth = window.innerWidth;
         var lastHeight = window.innerHeight;
         var elapsed = 0;
         var intervalMs = 250;
-        var maxMs = 6000;
+        var maxMs = 10000;
 
         var intervalId = setInterval(function() {
           elapsed += intervalMs;
@@ -188,13 +239,27 @@
           if (w !== lastWidth || h !== lastHeight) {
             lastWidth = w;
             lastHeight = h;
-            fireResize();
+            nudgeRepaint();
           }
           if (elapsed >= maxMs) {
             clearInterval(intervalId);
           }
         }, intervalMs);
       })();
+
+      // Unconditional nudges after first frame: covers the case where
+      // window.innerHeight/visualViewport never actually change (so the
+      // polling above finds no delta to react to) but the FIRST paint
+      // still raced WebKit's own chrome-settling and came out wrong —
+      // matching flutter/flutter #112231's description of layout being
+      // correct while the painted pixels aren't. Fixed delays rather than
+      // a size check, specifically to catch a paint glitch a size-diff
+      // check can't see.
+      window.addEventListener('flutter-first-frame', function() {
+        [150, 800, 2000, 4000].forEach(function(delay) {
+          setTimeout(nudgeRepaint, delay);
+        });
+      });
     </script>
 
     <script src="flutter_bootstrap.js" async></script>
