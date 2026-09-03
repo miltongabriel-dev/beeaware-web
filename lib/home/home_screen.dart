@@ -53,6 +53,7 @@ import '../map/municipio_es_choropleth_layer.dart';
 import '../map/departement_fr_choropleth_layer.dart';
 import '../map/bundesland_de_choropleth_layer.dart';
 import '../area/area_intelligence_screen.dart';
+import '../backend/historical_safety_api.dart';
 import '../backend/route_awareness_api.dart';
 import '../utils/geocoding.dart';
 import '../utils/preferred_country_code.dart';
@@ -69,6 +70,48 @@ enum IncidentDistanceFilter {
   m500,
   km1,
   all,
+}
+
+// Buckets shared by both official events (SEGUP-PA, PRF, ...) and
+// community reports for the Safety Trend chart's category breakdown —
+// same coarse split ReportLabels.officialCategory already uses to render
+// a single incident's category label, reused here so the two chart lines
+// mean the same thing a bottom-sheet detail already implies.
+enum _TrendCategory { violence, property, roadSafety, other }
+
+_TrendCategory _trendCategoryFor(MapIncident incident) {
+  if (incident.isOfficial) {
+    switch (incident.officialEventCategory) {
+      case 'VIOLENCE':
+        return _TrendCategory.violence;
+      case 'PROPERTY':
+        return _TrendCategory.property;
+      case 'ROAD_SAFETY':
+        return _TrendCategory.roadSafety;
+      default:
+        return _TrendCategory.other; // PUBLIC_SAFETY and any future value
+    }
+  }
+  switch (incident.category) {
+    case 'Violence':
+    case 'Harassment':
+      return _TrendCategory.violence;
+    case 'Theft':
+      return _TrendCategory.property;
+    default:
+      return _TrendCategory.other; // Suspicious activity, Drugs
+  }
+}
+
+// Return type of _buildCategoryTrendData: the plotted counts plus a
+// per-point subtype breakdown, kept as separate fields (not a Dart record)
+// so both survive being threaded through _showSafetyTrend -> TrendSeries
+// with named access at each hop instead of positional record fields.
+class _CategoryTrendData {
+  final Map<_TrendCategory, List<double>> values;
+  final Map<_TrendCategory, List<Map<String, int>>> subtypeCounts;
+
+  const _CategoryTrendData({required this.values, required this.subtypeCounts});
 }
 
 class HomeScreen extends StatefulWidget {
@@ -3279,16 +3322,58 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // comunidade alinhada aos mesmos meses da polícia
-    final communityData = _buildTrendDataAligned(center, months);
+    // Quebra por categoria (Violência / Patrimônio / Trânsito / Outros) em
+    // vez de uma única linha somada — junta dado oficial brasileiro
+    // (SEGUP-PA, PRF, ...) e denúncias de comunidade, já que ambos carregam
+    // uma categoria classificável. _incidents já trazia os dados oficiais
+    // via IncidentStore, mas o gráfico antigo descartava tudo que fosse
+    // isOfficial, então qualquer estado brasileiro só mostrava denúncias de
+    // comunidade, nunca dado policial real de verdade (a série "polícia"
+    // só cobre o Reino Unido).
+    final categoryData = _buildCategoryTrendData(center, months);
 
-    // soma final
-    final data = List.generate(
+    // O trend do Reino Unido não vem quebrado por categoria (só total por
+    // mês), então entra em "Outros" em vez de ser descartado — mesmo
+    // critério que PUBLIC_SAFETY já usa (ReportLabels.officialCategory: “
+    // nenhum rótulo único cobre bem essa mistura”). Não tem subtipo próprio
+    // pra somar ao breakdown do tooltip — só engorda a contagem da linha.
+    final otherData = List.generate(
       months.length,
-      (i) => policeData[i] + communityData[i],
+      (i) => categoryData.values[_TrendCategory.other]![i] + policeData[i],
     );
 
-    _openTrendOverlay(data, months);
+    // Score de segurança relativo ao estado (historical_safety_within_state,
+    // via a mesma HistoricalSafetyApi.fetchForCity que AreaIntelligenceScreen
+    // já usa e já mostra ao usuário com um disclaimer próprio — não é dado
+    // "engavetado", só nunca tinha chegado até o gráfico de tendência.
+    // Resolve o município sob `center` do mesmo jeito que
+    // _openAreaIntelligenceIfTapped resolve um tap: point-in-polygon contra
+    // _crimeSummary, que o choropleth já carrega — sem RPC nova nenhuma.
+    HistoricalSafetyWithinState? stateScore;
+    for (final summary in _crimeSummary) {
+      final inside =
+          summary.polygons.any((ring) => _pointInPolygon(center, ring));
+      if (inside) {
+        stateScore = await HistoricalSafetyApi.fetchForCity(
+          summary.cityIbgeCode,
+        );
+        break;
+      }
+    }
+    if (!mounted) return;
+
+    _openTrendOverlay(
+      {
+        _TrendCategory.violence: categoryData.values[_TrendCategory.violence]!,
+        _TrendCategory.property: categoryData.values[_TrendCategory.property]!,
+        _TrendCategory.roadSafety:
+            categoryData.values[_TrendCategory.roadSafety]!,
+        _TrendCategory.other: otherData,
+      },
+      categoryData.subtypeCounts,
+      months,
+      stateScore,
+    );
   }
 
   void _loadTrendInBackground(LatLng center) {
@@ -3298,7 +3383,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openTrendOverlay(List<double> data, List<DateTime> months) {
+  void _openTrendOverlay(
+    Map<_TrendCategory, List<double>> categoryData,
+    Map<_TrendCategory, List<Map<String, int>>> subtypeCounts,
+    List<DateTime> months,
+    HistoricalSafetyWithinState? stateScore,
+  ) {
     if (_trendOverlay != null) {
       _trendOverlay!.remove();
       _trendOverlay = null;
@@ -3310,6 +3400,38 @@ class _HomeScreenState extends State<HomeScreen> {
         ? loc.trendSubtitleWithMonth(
             DateFormat.MMM(locale).format(months.last), months.last.year)
         : loc.trendSubtitleFallback;
+
+    // Cores e rótulos por categoria — mesmos nomes que ReportLabels já usa
+    // em outros lugares do app para essas mesmas categorias, então o
+    // gráfico não introduz um vocabulário novo. subtypeBySpot alimenta o
+    // tooltip ao tocar um ponto (ex.: "Roubo a transeunte: 4, Furto: 2"),
+    // sem mudar a linha em si, que continua vindo de `values`.
+    final series = [
+      TrendSeries(
+        label: loc.categoryViolence,
+        color: SeverityColors.high,
+        values: categoryData[_TrendCategory.violence]!,
+        subtypeBySpot: subtypeCounts[_TrendCategory.violence]!,
+      ),
+      TrendSeries(
+        label: loc.categoryTheft,
+        color: SeverityColors.medium,
+        values: categoryData[_TrendCategory.property]!,
+        subtypeBySpot: subtypeCounts[_TrendCategory.property]!,
+      ),
+      TrendSeries(
+        label: loc.roadAccidentCategory,
+        color: const Color(0xFF1E88E5),
+        values: categoryData[_TrendCategory.roadSafety]!,
+        subtypeBySpot: subtypeCounts[_TrendCategory.roadSafety]!,
+      ),
+      TrendSeries(
+        label: loc.other,
+        color: BeeAwareTheme.textAux,
+        values: categoryData[_TrendCategory.other]!,
+        subtypeBySpot: subtypeCounts[_TrendCategory.other]!,
+      ),
+    ];
 
     _trendOverlay = OverlayEntry(
       builder: (overlayContext) {
@@ -3356,7 +3478,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 14),
-                      SafetyTrendChart(values: data, months: months),
+                      SafetyTrendChart(series: series, months: months),
+                      if (stateScore != null) ...[
+                        const SizedBox(height: 14),
+                        const Divider(height: 1, color: BeeAwareTheme.border),
+                        const SizedBox(height: 10),
+                        _StateScoreBadge(
+                          cityName: stateScore.cityName,
+                          stateCode: stateScore.stateCode,
+                          score: stateScore.score,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          loc.areaIntelligenceDisclaimer,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: BeeAwareTheme.textAux,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -3401,21 +3542,39 @@ class _HomeScreenState extends State<HomeScreen> {
     return monthly.map((e) => e.toDouble()).toList();
   }
 
-  List<double> _buildTrendDataAligned(LatLng center, List<DateTime> months) {
-    final monthly = List<int>.filled(months.length, 0);
-
-    // índice por mês (YYYY-MM)
+  // Uma série por categoria em vez de um total único — junta oficial
+  // (SEGUP-PA, PRF, ...) e comunidade, já que ambos carregam uma categoria
+  // classificável (officialEventCategory / category). Mesma janela de 12
+  // meses e raio de 1 milha do gráfico anterior, só quebrado por balde.
+  //
+  // subtypeCounts guarda, por categoria e por mês, uma contagem por
+  // incident.subcategory — que já é o campo que carrega original_category
+  // (o "especificação crime" real da SEGUP-PA, ex.: "Roubo a transeunte",
+  // não só o balde grosso "PROPERTY") tanto pra eventos oficiais quanto
+  // pins de notícia (ver BrazilSecurityApi/NewsPinsApi), e o subtipo
+  // escolhido pelo próprio usuário pra denúncias de comunidade. Usado só
+  // pra enriquecer o tooltip ao tocar um ponto do gráfico — a linha em si
+  // continua desenhada a partir de `counts`.
+  _CategoryTrendData _buildCategoryTrendData(
+    LatLng center,
+    List<DateTime> months,
+  ) {
     final indexByYm = <String, int>{};
     for (int i = 0; i < months.length; i++) {
       final m = months[i];
-      final key = '${m.year}-${m.month.toString().padLeft(2, '0')}';
-      indexByYm[key] = i;
+      indexByYm['${m.year}-${m.month.toString().padLeft(2, '0')}'] = i;
     }
 
-    for (final incident in _incidents) {
-      // ✅ só comunidade
-      if (incident.isOfficial) continue;
+    final counts = {
+      for (final c in _TrendCategory.values)
+        c: List<int>.filled(months.length, 0),
+    };
+    final subtypeCounts = {
+      for (final c in _TrendCategory.values)
+        c: List.generate(months.length, (_) => <String, int>{}),
+    };
 
+    for (final incident in _incidents) {
       final meters = _distanceCalc.as(
         LengthUnit.Meter,
         center,
@@ -3424,15 +3583,24 @@ class _HomeScreenState extends State<HomeScreen> {
       if (meters > 1609) continue;
 
       final dt = incident.dateTime;
-      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
-
-      final idx = indexByYm[key];
+      final idx = indexByYm['${dt.year}-${dt.month.toString().padLeft(2, '0')}'];
       if (idx == null) continue;
 
-      monthly[idx]++;
+      final trendCategory = _trendCategoryFor(incident);
+      counts[trendCategory]![idx]++;
+
+      final subtype = incident.subcategory.trim();
+      if (subtype.isEmpty) continue;
+      final bucket = subtypeCounts[trendCategory]![idx];
+      bucket[subtype] = (bucket[subtype] ?? 0) + 1;
     }
 
-    return monthly.map((e) => e.toDouble()).toList();
+    return _CategoryTrendData(
+      values: counts.map(
+        (k, v) => MapEntry(k, v.map((e) => e.toDouble()).toList()),
+      ),
+      subtypeCounts: subtypeCounts,
+    );
   }
 
   List<double> _buildCommunityTrendForMonths(
@@ -3833,6 +4001,85 @@ class _ZoomControlState extends State<_ZoomControl> {
 // Chip removível de filtro ativo, mostrado sobre o mapa (ver
 // _buildActiveFilterChips) — mesmo estilo pill branca já usado na legenda
 // de severidade e no badge de tokens da busca.
+// Compact version of AreaIntelligenceScreen's own _ScorePill for the
+// Safety Trend overlay — same score, same 0-100 scale and color bands
+// (historical_safety_within_state, via HistoricalSafetyApi.fetchForCity),
+// just inline with a city/state label instead of a full Safety Pulse row.
+// Not a new indicator: this already ships to users on Área Intelligence
+// with its own disclaimer (loc.areaIntelligenceDisclaimer, reused here
+// verbatim below) — this only adds a second place it's reachable from.
+class _StateScoreBadge extends StatelessWidget {
+  final String cityName;
+  final String stateCode;
+  final int score;
+
+  const _StateScoreBadge({
+    required this.cityName,
+    required this.stateCode,
+    required this.score,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final Color bg;
+    final Color fg;
+    if (score >= 66) {
+      bg = SemanticColors.successSoft;
+      fg = SemanticColors.successText;
+    } else if (score >= 33) {
+      bg = SemanticColors.alertSoft;
+      fg = SemanticColors.alertText;
+    } else {
+      bg = SemanticColors.errorSoft;
+      fg = SemanticColors.errorText;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                loc.areaIntelligenceHistorical,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: BeeAwareTheme.textPrimary,
+                ),
+              ),
+              Text(
+                loc.areaIntelligenceHistoricalCaption(stateCode),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: BeeAwareTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Text(
+            '$score',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: fg,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ActiveFilterChip extends StatelessWidget {
   final String label;
   final Color? color;
