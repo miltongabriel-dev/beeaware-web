@@ -420,6 +420,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only global baseline data is available here — that\'s not a guarantee of safety, just the best we have.';
 
   @override
+  String get coverageRegionalAggregateOnly =>
+      'Official data here only exists at the regional level (state/department/municipality), not exact addresses — that\'s why the map shows a colored area but no individual pins.';
+
+  @override
   String get choroplethLegendTooltip => 'Map legend';
 
   @override

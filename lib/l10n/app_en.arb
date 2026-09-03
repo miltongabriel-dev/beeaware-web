@@ -165,6 +165,7 @@
 
   "clusterNumbersExplained": "Cluster numbers explained",
   "coverageGlobalBaselineOnly": "Only global baseline data is available here — that's not a guarantee of safety, just the best we have.",
+  "coverageRegionalAggregateOnly": "Official data here only exists at the regional level (state/department/municipality), not exact addresses — that's why the map shows a colored area but no individual pins.",
   "choroplethLegendTooltip": "Map legend",
   "choroplethLegendTitle": "What the colors mean",
   "choroplethNoDataDisclaimer": "Areas with no color on the map have no public security data source. The absence of color doesn't mean the area is safe — only that police or local government haven't published that data yet.",

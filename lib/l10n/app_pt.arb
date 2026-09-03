@@ -126,6 +126,7 @@
 
   "clusterNumbersExplained": "Como funcionam os números dos agrupamentos",
   "coverageGlobalBaselineOnly": "Só há dado global de base aqui — isso não é garantia de segurança, é só o que temos disponível.",
+  "coverageRegionalAggregateOnly": "Os dados oficiais aqui existem só por região (estado/departamento/concelho), não por endereço exato — por isso o mapa mostra a área colorida, mas sem pontos individuais.",
   "choroplethLegendTooltip": "Legenda do mapa",
   "choroplethLegendTitle": "O que as cores mostram",
   "choroplethNoDataDisclaimer": "Áreas sem cor no mapa não têm fonte pública de dados de segurança. A ausência de cor não significa que o local é seguro — só que a polícia ou o governo local ainda não divulgam esses dados.",

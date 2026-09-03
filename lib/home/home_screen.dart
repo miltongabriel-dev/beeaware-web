@@ -1494,12 +1494,27 @@ class _HomeScreenState extends State<HomeScreen> {
                         // often just means BeeAware's only signal for this
                         // area is the coarse global baseline, not a local
                         // police feed. Say so rather than staying silent.
+                        // PT/DE/FR are a different case, though: their
+                        // official adapters only publish region-level
+                        // aggregates (see isAggregateOnlyCountry), which
+                        // location_coverage() can't attach a lat/lng to —
+                        // it reports them the same as "no data at all"
+                        // (COUNTRY/grade C), even though the choropleth is
+                        // showing real regional colour right there. Saying
+                        // "only global baseline" in that case would
+                        // undersell data that does exist, so those three
+                        // get their own, more accurate message instead.
                         if (_coverage.isNotEmpty &&
                             _coverage.every((c) => c.isCountryOnly)) ...[
                           const SizedBox(height: 6),
                           Text(
-                            AppLocalizations.of(context)!
-                                .coverageGlobalBaselineOnly,
+                            isAggregateOnlyCountry(preferredCountryCode(
+                                        _userCurrentLocation)
+                                    .toUpperCase())
+                                ? AppLocalizations.of(context)!
+                                    .coverageRegionalAggregateOnly
+                                : AppLocalizations.of(context)!
+                                    .coverageGlobalBaselineOnly,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 11,
@@ -2237,6 +2252,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(
                     fontSize: 13, color: BeeAwareTheme.textSecondary),
               ),
+              // Same reasoning as the "no incidents" empty state above:
+              // PT/DE/FR's official sources only publish region-level
+              // aggregates, so the colour here is real but there will
+              // never be individual pins on top of it in these three
+              // countries. Worth saying explicitly next to the legend,
+              // where someone is most likely to be wondering why.
+              if (isAggregateOnlyCountry(
+                  preferredCountryCode(_userCurrentLocation)
+                      .toUpperCase())) ...[
+                const SizedBox(height: 8),
+                Text(
+                  loc.coverageRegionalAggregateOnly,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 13, color: BeeAwareTheme.textSecondary),
+                ),
+              ],
               const SizedBox(height: 12),
             ],
           ),

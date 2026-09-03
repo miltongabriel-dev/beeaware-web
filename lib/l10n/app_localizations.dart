@@ -746,6 +746,12 @@ abstract class AppLocalizations {
   /// **'Only global baseline data is available here — that\'s not a guarantee of safety, just the best we have.'**
   String get coverageGlobalBaselineOnly;
 
+  /// No description provided for @coverageRegionalAggregateOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Official data here only exists at the regional level (state/department/municipality), not exact addresses — that\'s why the map shows a colored area but no individual pins.'**
+  String get coverageRegionalAggregateOnly;
+
   /// No description provided for @choroplethLegendTooltip.
   ///
   /// In en, this message translates to:

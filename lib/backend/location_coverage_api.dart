@@ -85,6 +85,24 @@ class LocationCoverageApi {
 /// lower index wins.
 const List<String> _gradeOrder = ['A+', 'A', 'B', 'C', 'D', 'U'];
 
+/// Countries whose only official ingestion is region-level aggregate
+/// statistics (Bundesland/département/concelho), never a real street
+/// address — DE's BKA, FR's SSMSI and PT's DGPJ all publish this way (see
+/// bundesland_de_crime_summary/departement_fr_crime_summary/
+/// concelho_crime_summary). The choropleth still paints real colour from
+/// that data; what's structurally impossible is an individual pin/hexagon,
+/// since nearby_security_events only ever returns EXACT/STREET rows and
+/// these countries' rows carry no lat/lng at all (tied to a geo_area_id
+/// instead). That's a different, better situation than isCountryOnly's
+/// "no data beyond the global baseline" — worth a distinct message rather
+/// than reusing coverageGlobalBaselineOnly, which would undersell the
+/// regional data that IS there.
+const Set<String> aggregateOnlyCountryCodes = {'PT', 'DE', 'FR'};
+
+bool isAggregateOnlyCountry(String? countryCode) =>
+    countryCode != null &&
+    aggregateOnlyCountryCodes.contains(countryCode.toUpperCase());
+
 String? bestCoverageGrade(List<LocationCoverage> coverage) {
   if (coverage.isEmpty) return null;
   return coverage

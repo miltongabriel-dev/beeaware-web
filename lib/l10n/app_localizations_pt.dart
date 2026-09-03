@@ -424,6 +424,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Só há dado global de base aqui — isso não é garantia de segurança, é só o que temos disponível.';
 
   @override
+  String get coverageRegionalAggregateOnly =>
+      'Os dados oficiais aqui existem só por região (estado/departamento/concelho), não por endereço exato — por isso o mapa mostra a área colorida, mas sem pontos individuais.';
+
+  @override
   String get choroplethLegendTooltip => 'Legenda do mapa';
 
   @override
