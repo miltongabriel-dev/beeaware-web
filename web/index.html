@@ -14,6 +14,18 @@
       margin: 0; padding: 0;
       width: 100%;
       height: 100%;
+      /* 100dvh (dynamic viewport height) is a progressive enhancement on
+         top of the 100% above: browsers that don't understand `dvh`
+         ignore the whole declaration and keep 100%, browsers that do
+         use it get an html/body box that tracks the REAL visible height
+         as an in-app browser's chrome (WhatsApp's own toolbar, not the
+         OS browser's) settles, instead of whatever height was true at
+         first layout. This doesn't replace the JS-side fix below —
+         Flutter's canvas is sized from window.innerWidth/innerHeight in
+         JS, not from this CSS box — but it keeps the background colored
+         page underneath the canvas correctly sized so any residual
+         mismatch doesn't show as a mismatched-color strip. */
+      height: 100dvh;
       /* No flex/centering here on purpose — centering the splash via
          html/body height was what caused it to render slightly
          off-center: any recalculation of the viewport height right
@@ -124,11 +136,65 @@
       // visualViewport's resize into a plain window resize makes Flutter
       // pick up the corrected height the same way it would on a manual
       // window resize.
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', function() {
-          window.dispatchEvent(new Event('resize'));
-        });
+      //
+      // This alone turned out NOT to be enough for WhatsApp's in-app
+      // browser specifically (still reported after this fix shipped).
+      // WhatsApp wraps its own native toolbar around a WebView — on
+      // Android/iOS that toolbar is known (from broader "100vh in in-app
+      // browsers" reports) to settle its size in ways that don't
+      // reliably fire ANY viewport-related event at all, unlike
+      // Safari/Chrome proper. A single event type is a bet on one
+      // browser's behavior, so below we bridge every plausible signal
+      // AND add a short polling fallback that catches a silent height
+      // change even when nothing fires an event for it — matching the
+      // pattern flutter/flutter users found worked (a later interaction
+      // forcing a repaint) without requiring the user to tap anything.
+      function fireResize() {
+        window.dispatchEvent(new Event('resize'));
       }
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', fireResize);
+      }
+      // orientationchange: some in-app browsers only re-settle chrome
+      // around a rotation-style event even without an actual rotation.
+      // pageshow: fires on bfcache restores, where innerHeight can be
+      // stale from before the tab was backgrounded.
+      // visibilitychange: WhatsApp can pause/resume the WebView (e.g.
+      // switching to it from the chat) in a way that re-settles its
+      // toolbar without firing resize/visualViewport at all.
+      window.addEventListener('orientationchange', fireResize);
+      window.addEventListener('pageshow', fireResize);
+      document.addEventListener('visibilitychange', fireResize);
+
+      // Belt-and-suspenders polling: for the first few seconds after
+      // load — the window in which an in-app browser's own toolbar
+      // typically settles — compare the actual viewport size against
+      // the last known one every 250ms and fire a resize if it changed,
+      // regardless of whether any event fired for it. Cheap (two number
+      // comparisons) and self-terminating, so it can't cost anything
+      // once the size has settled.
+      (function pollForSilentResize() {
+        var lastWidth = window.innerWidth;
+        var lastHeight = window.innerHeight;
+        var elapsed = 0;
+        var intervalMs = 250;
+        var maxMs = 6000;
+
+        var intervalId = setInterval(function() {
+          elapsed += intervalMs;
+          var w = window.innerWidth;
+          var h = window.innerHeight;
+          if (w !== lastWidth || h !== lastHeight) {
+            lastWidth = w;
+            lastHeight = h;
+            fireResize();
+          }
+          if (elapsed >= maxMs) {
+            clearInterval(intervalId);
+          }
+        }, intervalMs);
+      })();
     </script>
 
     <script src="flutter_bootstrap.js" async></script>
