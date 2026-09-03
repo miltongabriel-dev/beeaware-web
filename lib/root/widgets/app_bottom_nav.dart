@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
@@ -31,6 +32,26 @@ class AppBottomNav extends StatelessWidget {
     // clipBehavior is hardEdge.
     return SafeArea(
       top: false,
+      // `bottom` (default true) makes SafeArea reserve
+      // MediaQuery.viewPadding.bottom below the bar — needed on native
+      // Android/iOS to clear a real gesture nav bar / home indicator.
+      // On Flutter Web that inset instead comes from the browser's
+      // reported CSS env(safe-area-inset-bottom), which is unreliable
+      // across embeddings: opening a BeeAware link from WhatsApp on
+      // Android launches Chrome Custom Tabs, a distinct embedding from
+      // a normal browser tab, and CCT has been observed reporting a
+      // nonzero bottom inset here even though nothing on screen actually
+      // overlaps this bar. SafeArea then pads the bar up by that phantom
+      // amount, leaving a gap of the Scaffold's own background color
+      // between the pill bar and the true screen edge — while the rest
+      // of the app (no SafeArea(bottom: ...) wrapper) renders correctly,
+      // which matches what was reported: only this bar shifts. A normal
+      // browser tab doesn't hit this (its own chrome already occupies
+      // that space, so it reports 0), which is why the bug is
+      // WhatsApp/CCT-specific rather than a general mobile-web issue.
+      // Disabling the dynamic bottom inset on web sidesteps the
+      // unreliable signal entirely; native platforms are untouched.
+      bottom: !kIsWeb,
       child: SizedBox(
         height: 92,
         child: Stack(
