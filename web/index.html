@@ -125,6 +125,90 @@
         }
       });
 
+      // Decisive fix for the WhatsApp-launched-browser viewport bug, after
+      // every resize-event/scroll-nudge approach below (all still kept, as
+      // a secondary layer) failed to help. Two things the user confirmed
+      // pin the real mechanism down:
+      //   1. Even the SPLASH — pure CSS, `position: fixed; inset: 0`,
+      //      painted before any of our JS or any Flutter code has run —
+      //      renders shifted. That rules out anything Flutter/CanvasKit-
+      //      specific: the browser's own layout box is wrong from the
+      //      very first paint, for everything on the page, not just the
+      //      canvas.
+      //   2. Backgrounding the browser (switching to another app) and
+      //      returning to it fixes it, every time. `position: fixed` is
+      //      plain CSS that browsers always re-lay-out the instant their
+      //      real viewport genuinely changes — no JS involved. If the
+      //      splash stays wrong continuously until a real suspend/resume,
+      //      the number the engine would use (window.innerHeight /
+      //      visualViewport.height / whatever it reads internally) isn't
+      //      silently changing at some point we're failing to catch —
+      //      it's the SAME wrong number the whole time, and only a real
+      //      suspend/resume cycle makes the engine recompute it at all.
+      // That means dispatching a synthetic resize, or nudging a scroll,
+      // was never going to work here: both just tell listeners "go
+      // re-read the viewport now" — neither can force the engine to
+      // recompute a value it hasn't recomputed yet. A real page reload is
+      // one of the few things JS CAN trigger that forces a fresh layout
+      // pass from scratch against whatever the viewport actually is right
+      // now — functionally the same reset a backgrounding cycle causes.
+      //
+      // Guarded to fire at most once per fresh tab/session: WhatsApp
+      // opens a new tab/Custom-Tab session on every launch, so a fresh
+      // sessionStorage is exactly the boundary that gives one reload per
+      // real repro and zero reloads on later in-app navigation (which
+      // never re-runs this script anyway — usePathUrlStrategy() in
+      // main.dart routes via the History API, not full page loads).
+      //
+      // MUST NOT fire mid-auth-callback: Supabase finishes a Google/
+      // magic-link login by redirecting back to the site's root with a
+      // `?code=...` query param that lib/main.dart's
+      // exchangeCodeForSession(...) consumes exactly once, synchronously,
+      // during startup — see the `code` check in main()). Reloading that
+      // navigation away would drop the code before it's exchanged and
+      // break login. Anything that looks like an auth callback (or any
+      // param we don't specifically recognize as one, to be safe) skips
+      // the reload entirely; that load just falls back to the older
+      // resize/nudge fixes below, same as before this change existed.
+      // sessionStorage access is wrapped in try/catch — if it throws
+      // (some private-browsing modes), we fail safe by not reloading at
+      // all rather than risking a loop with no way to remember it
+      // already happened.
+      (function reloadOnceForStaleViewport() {
+        // Scoped to mobile: this bug is inherently about in-app-browser /
+        // mobile-chrome viewport quirks, which don't exist on desktop —
+        // no reason to pay a reload+flash cost on every desktop visit to
+        // fix a mobile-only symptom.
+        var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+        if (!isMobile) return;
+
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var looksLikeAuthCallback =
+            params.has('code') ||
+            params.has('error') ||
+            params.has('error_description') ||
+            params.has('access_token') ||
+            params.has('refresh_token') ||
+            params.has('type') || // e.g. Supabase password-recovery links
+            (window.location.hash && window.location.hash.indexOf('access_token') !== -1);
+          if (looksLikeAuthCallback) return;
+
+          if (sessionStorage.getItem('bw_vp_reloaded')) return;
+          sessionStorage.setItem('bw_vp_reloaded', '1');
+        } catch (e) {
+          return;
+        }
+
+        // Delay long enough for the splash to actually paint first — an
+        // instant reload would look like a broken flash with nothing
+        // shown; ~600ms reads as a normal brief loading moment before
+        // the (corrected) app appears.
+        setTimeout(function() {
+          window.location.reload();
+        }, 600);
+      })();
+
       // Flutter Web only relayouts its canvas on the window's own 'resize'
       // event — but when the page is opened from a link (Safari, or an
       // in-app browser like WhatsApp/Instagram), the address bar collapses
