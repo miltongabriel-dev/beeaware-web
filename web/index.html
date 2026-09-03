@@ -112,6 +112,23 @@
           setTimeout(() => loader.remove(), 500);
         }
       });
+
+      // Flutter Web only relayouts its canvas on the window's own 'resize'
+      // event — but when the page is opened from a link (Safari, or an
+      // in-app browser like WhatsApp/Instagram), the address bar collapses
+      // or settles right after first paint WITHOUT firing that event on
+      // some mobile browsers, only a visualViewport resize. Flutter never
+      // hears about it, so its canvas stays pinned at the pre-settle size
+      // while the browser reveals more real screen underneath — the blank
+      // strip at the bottom with the nav bar sitting above it. Bridging
+      // visualViewport's resize into a plain window resize makes Flutter
+      // pick up the corrected height the same way it would on a manual
+      // window resize.
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', function() {
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
     </script>
 
     <script src="flutter_bootstrap.js" async></script>
