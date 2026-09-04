@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../analytics/analytics.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey, KeyDownEvent;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -524,6 +525,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _routeLoading = false;
         _routeFormExpanded = false;
       });
+
+      trackEvent('route_search_success', {'route_count': routes.length});
 
       final bounds =
           LatLngBounds.fromPoints(routes.expand((r) => r.points).toList());

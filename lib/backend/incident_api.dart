@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../analytics/analytics.dart';
 import '../map/map_incident.dart';
 
 class IncidentApi {
@@ -48,6 +49,10 @@ class IncidentApi {
 
     await _client.from(_table).insert(data);
     _lastSubmit = DateTime.now();
+    trackEvent('report_submitted', {
+      'category': incident.category,
+      'severity': incident.severity.name,
+    });
   }
 
   /// 🔍 busca incidentes já visíveis (cross-device)

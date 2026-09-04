@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../analytics/analytics.dart';
 import '../backend/emergency_contact_api.dart';
 import '../config/emergency_numbers.dart';
 import '../l10n/app_localizations.dart';
@@ -64,6 +65,7 @@ void showEmergencySheet(
   LatLng? location,
 }) {
   final numbers = emergencyNumbersFor(countryCode);
+  trackEvent('sos_opened', {'country': countryCode});
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
@@ -94,6 +96,7 @@ void showEmergencySheet(
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
+                trackEvent('sos_call_emergency', {'country': countryCode});
                 final uri = Uri.parse('tel:${numbers.primary}');
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri);
@@ -106,6 +109,8 @@ void showEmergencySheet(
                 icon: const Icon(PhosphorIconsRegular.phone),
                 label: Text(loc.callNonEmergencyNumber(numbers.secondary!)),
                 onPressed: () async {
+                  trackEvent(
+                      'sos_call_non_emergency', {'country': countryCode});
                   final uri = Uri.parse('tel:${numbers.secondary}');
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri);
@@ -130,6 +135,7 @@ void showEmergencySheet(
                         style: const TextStyle(color: Color(0xFF25D366)),
                       ),
                       onPressed: () async {
+                        trackEvent('sos_notify_contact');
                         final mapsLink =
                             'https://maps.google.com/?q=${location.latitude},${location.longitude}';
                         final message = Uri.encodeComponent(
