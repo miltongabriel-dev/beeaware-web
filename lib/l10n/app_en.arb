@@ -368,6 +368,7 @@
   "routeAwarenessToHint": "Destination",
   "routeAwarenessUseMyLocation": "Use my location",
   "routeAwarenessSearchButton": "Find routes",
+  "routeAwarenessEditRoute": "Edit route",
   "routeAwarenessRouteLabel": "Route {letter}",
   "@routeAwarenessRouteLabel": {
     "placeholders": { "letter": { "type": "String" } }

@@ -843,6 +843,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routeAwarenessSearchButton => 'Find routes';
 
   @override
+  String get routeAwarenessEditRoute => 'Edit route';
+
+  @override
   String routeAwarenessRouteLabel(String letter) {
     return 'Route $letter';
   }

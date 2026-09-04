@@ -176,6 +176,14 @@ class _HomeScreenState extends State<HomeScreen> {
   // instead of a second, disconnected view. See _RouteSearchBar/
   // _RouteResultsCard below.
   bool _routeMode = false;
+  // Whether the editable From/To form (_buildRouteSearchBar) is showing, as
+  // opposed to the compact one-line summary (_buildRouteSummaryBar).
+  // Decoupled from _routeMode: that means "route flow is active", this
+  // means "which of the two top-slot cards is showing". Without this, a
+  // successful search left the full form AND _RouteResultsCard on screen
+  // at once, fighting for the same vertical space where the route itself
+  // draws.
+  bool _routeFormExpanded = true;
   final _routeFromController = TextEditingController();
   final _routeToController = TextEditingController();
   LatLng? _routeFromPoint;
@@ -359,6 +367,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _closeMenu();
     setState(() {
       _routeMode = true;
+      _routeFormExpanded = true;
       _suggestions = [];
       if (_filterOverlay != null) {
         _filterOverlay!.remove();
@@ -374,6 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _exitRouteMode() {
     setState(() {
       _routeMode = false;
+      _routeFormExpanded = true;
       _routeFromController.clear();
       _routeToController.clear();
       _routeFromPoint = null;
@@ -512,13 +522,28 @@ class _HomeScreenState extends State<HomeScreen> {
         _routeOptions = routes;
         _selectedRouteIndex = 0;
         _routeLoading = false;
+        _routeFormExpanded = false;
       });
 
       final bounds =
           LatLngBounds.fromPoints(routes.expand((r) => r.points).toList());
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mapController.fitCamera(
-          CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(64)),
+          CameraFit.bounds(
+            bounds: bounds,
+            // Matches the on-screen overlay footprint right after a
+            // successful search: collapsed summary bar pinned top
+            // (_buildRouteSummaryBar, ~118px) and _RouteResultsCard
+            // pinned bottom (~145-240px depending on 1 vs 2 routes) —
+            // see _buildRouteSummaryBar/_RouteResultsCard. Previously
+            // EdgeInsets.all(64) uniformly, sized for neither.
+            padding: const EdgeInsets.only(
+              top: 130,
+              bottom: 300,
+              left: 40,
+              right: 40,
+            ),
+          ),
         );
       });
     } catch (e) {
@@ -593,6 +618,70 @@ class _HomeScreenState extends State<HomeScreen> {
   // field (_RouteFieldSuggestions below) rather than a shared overlay —
   // simplest way to keep two independent lists (From/To) from fighting
   // over one Positioned slot.
+  // Collapsed replacement for _buildRouteSearchBar once a search has
+  // succeeded (_routeFormExpanded == false) — same Positioned slot, same
+  // 58px pill container as the plain (non-route) search bar so the
+  // top-of-screen silhouette barely changes between "not searching" and
+  // "route found". Frees the space the full From/To form used to hold
+  // onto indefinitely, which is what was fighting _RouteResultsCard for
+  // room. Tapping the pencil re-expands the form (e.g. to tweak an
+  // endpoint); tapping X fully exits route mode, same as the X inside the
+  // expanded form.
+  Widget _buildRouteSummaryBar() {
+    final loc = AppLocalizations.of(context)!;
+    final summary =
+        '${_routeFromController.text} → ${_routeToController.text}';
+
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(PhosphorIconsRegular.signpost,
+              size: 20, color: BeeAwareTheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              summary,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: BeeAwareTheme.textPrimary,
+              ),
+            ),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            tooltip: loc.routeAwarenessEditRoute,
+            icon: const Icon(PhosphorIconsRegular.pencilSimple,
+                color: BeeAwareTheme.textSecondary, size: 20),
+            onPressed: () => setState(() => _routeFormExpanded = true),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            tooltip: loc.close,
+            icon: const Icon(PhosphorIconsRegular.x,
+                color: BeeAwareTheme.textSecondary, size: 20),
+            onPressed: _exitRouteMode,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRouteSearchBar() {
     final loc = AppLocalizations.of(context)!;
 
@@ -1655,7 +1744,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context) {
                   final tokens = context.watch<TokenState>().tokens;
 
-                  if (_routeMode) return _buildRouteSearchBar();
+                  if (_routeMode) {
+                    return _routeFormExpanded
+                        ? _buildRouteSearchBar()
+                        : _buildRouteSummaryBar();
+                  }
 
                   return Container(
                     height: 58,
@@ -2072,8 +2165,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Route Awareness — comparação das rotas encontradas, acima da
           // bottom bar, só quando há resultado (roadmap 9.5's route list,
-          // integrada ao mapa em vez de uma tela própria).
-          if (_routeOptions.isNotEmpty)
+          // integrada ao mapa em vez de uma tela própria). Gated on
+          // !_routeFormExpanded too so this never shows at the same time
+          // as the full From/To form — the two used to render together
+          // and fight for vertical space (see _routeFormExpanded's own
+          // comment).
+          if (_routeOptions.isNotEmpty && !_routeFormExpanded)
             Positioned(
               left: 16,
               right: 16,

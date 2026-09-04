@@ -1426,6 +1426,12 @@ abstract class AppLocalizations {
   /// **'Find routes'**
   String get routeAwarenessSearchButton;
 
+  /// No description provided for @routeAwarenessEditRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit route'**
+  String get routeAwarenessEditRoute;
+
   /// No description provided for @routeAwarenessRouteLabel.
   ///
   /// In en, this message translates to:

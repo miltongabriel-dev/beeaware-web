@@ -849,6 +849,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get routeAwarenessSearchButton => 'Buscar rotas';
 
   @override
+  String get routeAwarenessEditRoute => 'Editar rota';
+
+  @override
   String routeAwarenessRouteLabel(String letter) {
     return 'Rota $letter';
   }
