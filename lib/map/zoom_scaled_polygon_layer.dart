@@ -78,9 +78,19 @@ class _ZoomScaledPolygonLayerState extends State<ZoomScaledPolygonLayer> {
 
     final t = ((_detailZoom - _zoom) / (_detailZoom - _macroZoom))
         .clamp(0.0, 1.0);
-    final fillAlpha = _lerp(0.28, 0.65, t);
-    final borderAlpha = _lerp(0.55, 0.85, t);
-    final borderWidth = _lerp(1.0, 2.5, t);
+    // Bumped from 0.28/0.55/1.0 at detail zoom — confirmed live that a
+    // "high severity" (red) polygon over a warm-toned base tile (dense
+    // parts of Berlin, central Paris) was reading as visually identical
+    // to no overlay at all: 28% alpha red blended into already-orange
+    // OSM tiles just isn't a perceptible colour shift, even though the
+    // fill is genuinely there and genuinely the right colour (same
+    // "highest tercile" data as areas that read clearly, e.g. Madrid).
+    // Areas over cooler/paler base tiles (Lisbon, Madrid) were fine
+    // already, so this had nothing to do with data or country — it's a
+    // contrast problem shared by every country using this layer.
+    final fillAlpha = _lerp(0.4, 0.72, t);
+    final borderAlpha = _lerp(0.65, 0.92, t);
+    final borderWidth = _lerp(1.3, 2.8, t);
 
     final polygons = <Polygon>[];
     for (final area in widget.areas) {
