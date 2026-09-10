@@ -86,7 +86,7 @@ class LocationCoverageApi {
 const List<String> _gradeOrder = ['A+', 'A', 'B', 'C', 'D', 'U'];
 
 /// Countries whose only official ingestion is region-level aggregate
-/// statistics (Bundesland/département/concelho), never a real street
+/// statistics (Bundesland/département/concelho/estado), never a real street
 /// address — DE's BKA, FR's SSMSI and PT's DGPJ all publish this way (see
 /// bundesland_de_crime_summary/departement_fr_crime_summary/
 /// concelho_crime_summary). The choropleth still paints real colour from
@@ -97,7 +97,20 @@ const List<String> _gradeOrder = ['A+', 'A', 'B', 'C', 'D', 'U'];
 /// "no data beyond the global baseline" — worth a distinct message rather
 /// than reusing coverageGlobalBaselineOnly, which would undersell the
 /// regional data that IS there.
-const Set<String> aggregateOnlyCountryCodes = {'PT', 'DE', 'FR'};
+///
+/// BR belongs here too, and for the same reason — its state SSPs
+/// (municipality_crime_summary) publish municipality-level aggregates only,
+/// same victim-privacy reasoning. The one nuance: PRF publishes real
+/// EXACT-precision accident coordinates nationwide, and SEGUP-PA/SESP-ES
+/// additionally have EXACT-precision non-accident data, so BR isn't
+/// *purely* pin-free like PT/DE/FR — someone in Belém or an ES city might
+/// see a non-accident pin too. Still: 24 of 27 states have nothing but the
+/// aggregate layer, so the generic message is far more honest here than
+/// staying silent (confirmed live 2026-09-10: nearby_security_events near
+/// Belo Horizonte returned 85/85 PRF-only results, while
+/// municipality_crime_summary correctly painted the SSP-MG choropleth —
+/// the user's "only PRF" report was this exact gap, unexplained in the UI).
+const Set<String> aggregateOnlyCountryCodes = {'PT', 'DE', 'FR', 'BR'};
 
 bool isAggregateOnlyCountry(String? countryCode) =>
     countryCode != null &&
