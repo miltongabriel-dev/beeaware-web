@@ -34,6 +34,12 @@
   "sendMagicLink": "Enviar link mágico",
   "privacyProtectedNotice": "Sua privacidade está protegida. Nenhum dado pessoal é necessário.",
   "checkEmailForLoginLink": "Verifique seu e-mail para o link de login",
+  "sendLoginCode": "Enviar código",
+  "enterLoginCode": "Digite o código de 6 dígitos",
+  "verifyCode": "Verificar",
+  "checkEmailForCode": "Enviamos um código de 6 dígitos para o seu e-mail",
+  "invalidCodeError": "Código inválido ou expirado. Tente novamente.",
+  "useDifferentEmail": "Usar outro e-mail",
 
   "buyTokensSubtitle": "Escolha um plano e explore qualquer área antes de ir.",
   "packageSearches": "{count, plural, one{{count} busca} other{{count} buscas}}",
@@ -307,6 +313,9 @@
 
   "homeGreeting": "Olá, {name}!",
   "homeGreetingGeneric": "Olá!",
+  "homeGreetingMorning": "Bom dia",
+  "homeGreetingAfternoon": "Boa tarde",
+  "homeGreetingEvening": "Boa noite",
   "homeSubtitle": "Fique bem informado e ajude sua comunidade.",
   "homeReportCta": "Compartilhe algo importante com a comunidade.",
   "mindThePathLabel": "Mind the Path",
@@ -319,10 +328,7 @@
   "distanceAway": "a {distance}",
   "bottomNavHome": "Início",
   "bottomNavMap": "Mapa",
-  "bottomNavAlerts": "Alertas",
   "bottomNavProfile": "Perfil",
-  "alertsComingSoonTitle": "Alertas em breve",
-  "alertsComingSoonBody": "Estamos construindo as notificações de novos incidentes perto de você. Volte em breve.",
   "profileTitle": "Perfil",
   "newsSectionTitle": "No noticiário — {state}",
   "@newsSectionTitle": {
@@ -331,5 +337,24 @@
   "newsSectionSubtitle": "Cobertura de uma área ampla, não da sua região exata.",
   "newsSectionEmpty": "Sem notícias recentes para esta região.",
   "newsReadArticle": "Ler matéria",
-  "unitedKingdomLabel": "Reino Unido"
+    "unitedKingdomLabel": "Reino Unido",
+
+  "reportContent": "Denunciar",
+  "reportContentDialogTitle": "Denunciar este relato",
+  "reportContentDialogBody": "Por que você está denunciando este conteúdo?",
+  "reportReasonFalse": "Informação falsa",
+  "reportReasonInappropriate": "Conteúdo impróprio ou ofensivo",
+  "reportReasonSpam": "Spam ou duplicado",
+  "reportReasonOther": "Outro motivo",
+  "reportContentSubmit": "Enviar denúncia",
+  "reportContentSuccess": "Denúncia enviada. Obrigado por ajudar a manter a comunidade segura.",
+  "reportContentError": "Não foi possível enviar a denúncia. Tente novamente.",
+
+  "deleteAccount": "Excluir minha conta",
+  "deleteAccountDialogTitle": "Excluir sua conta?",
+  "deleteAccountDialogBody": "Isso vai apagar permanentemente sua conta e os dados associados a ela (contato de emergência, tokens). Seus relatos de incidentes continuam anônimos e não são afetados. Essa ação não pode ser desfeita.",
+  "deleteAccountConfirm": "Excluir permanentemente",
+  "deleteAccountCancel": "Cancelar",
+  "deleteAccountSuccess": "Sua conta foi excluída.",
+  "deleteAccountError": "Não foi possível excluir sua conta agora. Tente novamente ou contate info@jagolabs.tech."
 }

@@ -7,7 +7,6 @@ import '../home/home_screen.dart';
 import '../report/report_category_screen.dart';
 import '../state/token_state.dart';
 import '../theme/beeaware_theme.dart';
-import 'alerts_screen.dart';
 import 'profile_screen.dart';
 import 'widgets/app_bottom_nav.dart';
 
@@ -81,6 +80,13 @@ class _RootScreenState extends State<RootScreen> {
     );
   }
 
+  void _openProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // IndexedStack keeps every tab mounted (map camera position, open
@@ -93,7 +99,7 @@ class _RootScreenState extends State<RootScreen> {
         index: _selectedIndex,
         children: [
           HomeDashboardScreen(
-            onOpenAlerts: () => _selectTab(2),
+            onOpenProfile: _openProfile,
             onOpenMap: _openMapAt,
             onOpenRoute: _openRouteMode,
           ),
@@ -101,8 +107,6 @@ class _RootScreenState extends State<RootScreen> {
             focusLocation: _mapFocusLocation,
             routeModeRequestId: _routeModeRequestId,
           ),
-          const AlertsScreen(),
-          const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: AppBottomNav(

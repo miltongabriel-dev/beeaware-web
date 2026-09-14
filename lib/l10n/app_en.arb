@@ -46,6 +46,12 @@
   "sendMagicLink": "Send magic link",
   "privacyProtectedNotice": "Your privacy is protected. No personal data required.",
   "checkEmailForLoginLink": "Check your email for the login link",
+  "sendLoginCode": "Send code",
+  "enterLoginCode": "Enter the 6-digit code",
+  "verifyCode": "Verify",
+  "checkEmailForCode": "We sent a 6-digit code to your email",
+  "invalidCodeError": "Invalid or expired code. Please try again.",
+  "useDifferentEmail": "Use a different email",
 
   "buyTokensSubtitle": "Choose a plan and explore any area before you go.",
   "packageSearches": "{count, plural, one{{count} search} other{{count} searches}}",
@@ -397,6 +403,9 @@
     "placeholders": { "name": { "type": "String" } }
   },
   "homeGreetingGeneric": "Hello!",
+  "homeGreetingMorning": "Good morning",
+  "homeGreetingAfternoon": "Good afternoon",
+  "homeGreetingEvening": "Good evening",
   "homeSubtitle": "Stay informed and help your community.",
   "homeReportCta": "Share something important with the community.",
   "mindThePathLabel": "Mind the Path",
@@ -412,10 +421,7 @@
   },
   "bottomNavHome": "Home",
   "bottomNavMap": "Map",
-  "bottomNavAlerts": "Alerts",
   "bottomNavProfile": "Profile",
-  "alertsComingSoonTitle": "Alerts are coming soon",
-  "alertsComingSoonBody": "We're building notifications for new incidents near you. Check back soon.",
   "profileTitle": "Profile",
   "newsSectionTitle": "In the news — {state}",
   "@newsSectionTitle": {
@@ -424,5 +430,24 @@
   "newsSectionSubtitle": "Wide-area news coverage, not your exact location.",
   "newsSectionEmpty": "No recent news for this area.",
   "newsReadArticle": "Read article",
-  "unitedKingdomLabel": "United Kingdom"
+    "unitedKingdomLabel": "United Kingdom",
+
+  "reportContent": "Report",
+  "reportContentDialogTitle": "Report this incident",
+  "reportContentDialogBody": "Why are you reporting this content?",
+  "reportReasonFalse": "False information",
+  "reportReasonInappropriate": "Inappropriate or offensive content",
+  "reportReasonSpam": "Spam or duplicate",
+  "reportReasonOther": "Other reason",
+  "reportContentSubmit": "Submit report",
+  "reportContentSuccess": "Report submitted. Thanks for helping keep the community safe.",
+  "reportContentError": "Couldn't submit the report. Please try again.",
+
+  "deleteAccount": "Delete my account",
+  "deleteAccountDialogTitle": "Delete your account?",
+  "deleteAccountDialogBody": "This will permanently delete your account and its associated data (emergency contact, tokens). Your incident reports remain anonymous and are not affected. This action cannot be undone.",
+  "deleteAccountConfirm": "Permanently delete",
+  "deleteAccountCancel": "Cancel",
+  "deleteAccountSuccess": "Your account has been deleted.",
+  "deleteAccountError": "Couldn't delete your account right now. Please try again or contact info@jagolabs.tech."
 }

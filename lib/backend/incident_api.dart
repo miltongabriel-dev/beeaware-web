@@ -25,6 +25,14 @@ class IncidentApi {
     return sha256.convert(utf8.encode(seed)).toString();
   }
 
+  /// Public entry point for the same anonymous-hash generation used
+  /// internally by createIncident. Callers that build the optimistic
+  /// local pin (ReportSummaryScreen) should generate the hash up front
+  /// and pass it into both the local pin and createIncident, so
+  /// IncidentStore can match the two by hash once the real row comes
+  /// back from Supabase with a different (server-assigned) id.
+  static String generateHash() => _generateAnonymousHash();
+
   /// 🚨 cria incidente (pronto para sync entre devices)
   static Future<void> createIncident(MapIncident incident) async {
     if (!canSubmit()) {
@@ -53,6 +61,17 @@ class IncidentApi {
       'category': incident.category,
       'severity': incident.severity.name,
     });
+  }
+
+  /// 🚩 denuncia um incidente (conteúdo gerado por usuário) — anônimo,
+  /// não requer login. Servidor auto-oculta o incidente após acumular
+  /// denúncias suficientes (ver função report_incident no Supabase).
+  static Future<void> reportIncident(String incidentId, {String? reason}) async {
+    await _client.rpc('report_incident', params: {
+      'p_incident_id': incidentId,
+      'p_reason': reason,
+    });
+    trackEvent('incident_reported', {'incident_id': incidentId});
   }
 
   /// 🔍 busca incidentes já visíveis (cross-device)

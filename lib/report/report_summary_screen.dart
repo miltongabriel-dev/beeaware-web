@@ -93,6 +93,13 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
         return;
       }
 
+      // Generated once here (rather than left to createIncident's own
+      // fallback) so the optimistic local pin and the real Supabase row
+      // share the same hash — IncidentStore.syncFromBackend uses it to
+      // recognize they're the same incident and swap the temporary pin
+      // for the synced one instead of showing both (see incident_store.dart).
+      final hash = IncidentApi.generateHash();
+
       final incident = MapIncident(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         location: LatLng(lat, lng),
@@ -105,6 +112,7 @@ class _ReportSummaryScreenState extends State<ReportSummaryScreen> {
         description: widget.draft.description ?? '',
         dateTime: DateTime.now(),
         visibleAt: _visibleAt,
+        hash: hash,
       );
 
       // 3. Envio para o Backend (O dado vai para o mapa)

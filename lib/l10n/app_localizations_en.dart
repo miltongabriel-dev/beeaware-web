@@ -133,6 +133,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checkEmailForLoginLink => 'Check your email for the login link';
 
   @override
+  String get sendLoginCode => 'Send code';
+
+  @override
+  String get enterLoginCode => 'Enter the 6-digit code';
+
+  @override
+  String get verifyCode => 'Verify';
+
+  @override
+  String get checkEmailForCode => 'We sent a 6-digit code to your email';
+
+  @override
+  String get invalidCodeError => 'Invalid or expired code. Please try again.';
+
+  @override
+  String get useDifferentEmail => 'Use a different email';
+
+  @override
   String get buyTokensSubtitle =>
       'Choose a plan and explore any area before you go.';
 
@@ -899,6 +917,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeGreetingGeneric => 'Hello!';
 
   @override
+  String get homeGreetingMorning => 'Good morning';
+
+  @override
+  String get homeGreetingAfternoon => 'Good afternoon';
+
+  @override
+  String get homeGreetingEvening => 'Good evening';
+
+  @override
   String get homeSubtitle => 'Stay informed and help your community.';
 
   @override
@@ -937,17 +964,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bottomNavMap => 'Map';
 
   @override
-  String get bottomNavAlerts => 'Alerts';
-
-  @override
   String get bottomNavProfile => 'Profile';
-
-  @override
-  String get alertsComingSoonTitle => 'Alerts are coming soon';
-
-  @override
-  String get alertsComingSoonBody =>
-      'We\'re building notifications for new incidents near you. Check back soon.';
 
   @override
   String get profileTitle => 'Profile';
@@ -969,4 +986,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unitedKingdomLabel => 'United Kingdom';
+
+  @override
+  String get reportContent => 'Report';
+
+  @override
+  String get reportContentDialogTitle => 'Report this incident';
+
+  @override
+  String get reportContentDialogBody => 'Why are you reporting this content?';
+
+  @override
+  String get reportReasonFalse => 'False information';
+
+  @override
+  String get reportReasonInappropriate => 'Inappropriate or offensive content';
+
+  @override
+  String get reportReasonSpam => 'Spam or duplicate';
+
+  @override
+  String get reportReasonOther => 'Other reason';
+
+  @override
+  String get reportContentSubmit => 'Submit report';
+
+  @override
+  String get reportContentSuccess =>
+      'Report submitted. Thanks for helping keep the community safe.';
+
+  @override
+  String get reportContentError =>
+      'Couldn\'t submit the report. Please try again.';
+
+  @override
+  String get deleteAccount => 'Delete my account';
+
+  @override
+  String get deleteAccountDialogTitle => 'Delete your account?';
+
+  @override
+  String get deleteAccountDialogBody =>
+      'This will permanently delete your account and its associated data (emergency contact, tokens). Your incident reports remain anonymous and are not affected. This action cannot be undone.';
+
+  @override
+  String get deleteAccountConfirm => 'Permanently delete';
+
+  @override
+  String get deleteAccountCancel => 'Cancel';
+
+  @override
+  String get deleteAccountSuccess => 'Your account has been deleted.';
+
+  @override
+  String get deleteAccountError =>
+      'Couldn\'t delete your account right now. Please try again or contact info@jagolabs.tech.';
 }

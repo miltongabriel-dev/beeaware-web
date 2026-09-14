@@ -5,11 +5,15 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/beeaware_theme.dart';
 
-/// Global bottom navigation shell: Início / Mapa / (Reportar) / Alertas /
-/// Perfil. Same pill-shaped bar + raised central button that used to live
-/// inside home_screen.dart's map-only `_BottomBar` — moved here since the
-/// bar is now app-wide (RootScreen.bottomNavigationBar) rather than a
-/// widget drawn on top of the map.
+/// Global bottom navigation shell: Início / (Reportar) / Mapa. Alertas and
+/// Perfil used to live here as tabs — Alertas was removed outright (it was
+/// a placeholder with no backend behind it), and Perfil moved to a
+/// top-right icon on the Início header (RootScreen._openProfile), pushed
+/// as its own screen rather than a persistent tab. Same pill-shaped bar +
+/// raised central button that used to live inside home_screen.dart's
+/// map-only `_BottomBar` — moved here since the bar is now app-wide
+/// (RootScreen.bottomNavigationBar) rather than a widget drawn on top of
+/// the map.
 class AppBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
@@ -74,44 +78,22 @@ class AppBottomNav extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      BarIcon(
-                        icon: PhosphorIconsRegular.house,
-                        activeIcon: PhosphorIconsFill.house,
-                        tooltip: loc.bottomNavHome,
-                        selected: currentIndex == 0,
-                        onTap: () => onTabSelected(0),
-                      ),
-                      BarIcon(
-                        icon: PhosphorIconsRegular.mapTrifold,
-                        activeIcon: PhosphorIconsFill.mapTrifold,
-                        tooltip: loc.bottomNavMap,
-                        selected: currentIndex == 1,
-                        onTap: () => onTabSelected(1),
-                      ),
-                    ],
+                  BarIcon(
+                    icon: PhosphorIconsRegular.house,
+                    activeIcon: PhosphorIconsFill.house,
+                    tooltip: loc.bottomNavHome,
+                    selected: currentIndex == 0,
+                    onTap: () => onTabSelected(0),
                   ),
                   // Empty middle — reserved for the raised central button
                   // positioned on top of this bar below.
                   const SizedBox(width: 56),
-                  Row(
-                    children: [
-                      BarIcon(
-                        icon: PhosphorIconsRegular.bell,
-                        activeIcon: PhosphorIconsFill.bell,
-                        tooltip: loc.bottomNavAlerts,
-                        selected: currentIndex == 2,
-                        onTap: () => onTabSelected(2),
-                      ),
-                      BarIcon(
-                        icon: PhosphorIconsRegular.user,
-                        activeIcon: PhosphorIconsFill.user,
-                        tooltip: loc.bottomNavProfile,
-                        selected: currentIndex == 3,
-                        onTap: () => onTabSelected(3),
-                      ),
-                    ],
+                  BarIcon(
+                    icon: PhosphorIconsRegular.mapTrifold,
+                    activeIcon: PhosphorIconsFill.mapTrifold,
+                    tooltip: loc.bottomNavMap,
+                    selected: currentIndex == 1,
+                    onTap: () => onTabSelected(1),
                   ),
                 ],
               ),

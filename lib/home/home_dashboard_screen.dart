@@ -33,13 +33,13 @@ import 'widgets/incident_bottom_sheet.dart';
 /// regardless of which tab is active, since both stay mounted via the
 /// IndexedStack in RootScreen).
 class HomeDashboardScreen extends StatefulWidget {
-  final VoidCallback onOpenAlerts;
+  final VoidCallback onOpenProfile;
   final void Function(LatLng? point) onOpenMap;
   final VoidCallback onOpenRoute;
 
   const HomeDashboardScreen({
     super.key,
-    required this.onOpenAlerts,
+    required this.onOpenProfile,
     required this.onOpenMap,
     required this.onOpenRoute,
   });
@@ -100,9 +100,25 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
       if (permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always) {
+        // A cold GPS fix on a real device can take well over 5s, and this
+        // screen's card/feed depend on _userLocation ever being set at
+        // all — a timeout here used to fall straight into the silent
+        // catch below with nothing shown as a result (map preview card,
+        // "Atividade Recente" distances, etc. all stayed blank/unsorted
+        // indefinitely). getLastKnownPosition() is near-instant (cached
+        // by the OS, no new fix needed) and gives the UI something to
+        // show immediately; getCurrentPosition() then still runs for a
+        // fresh, more accurate point, with a more realistic timeout.
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown != null && mounted) {
+          final cachedPoint = LatLng(lastKnown.latitude, lastKnown.longitude);
+          setState(() => _userLocation = cachedPoint);
+          _loadNews(cachedPoint);
+        }
+
         final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 5),
+          timeLimit: const Duration(seconds: 15),
         );
         final point = LatLng(position.latitude, position.longitude);
         if (!mounted) return;
@@ -117,11 +133,14 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         });
         return;
       }
-    } catch (_) {
+    } catch (e) {
       // Falls through to the "unavailable" state below — the Mapa tab is
       // where permission-denied/blocked get their own explicit messaging;
       // here it just means the activity feed sorts by recency instead of
-      // distance (see _nearestIncidents).
+      // distance (see _nearestIncidents). Logged (not surfaced to the
+      // user) since this used to fail completely silently, which made a
+      // GPS timeout indistinguishable from every other cause.
+      debugPrint('HomeDashboardScreen location fetch failed: $e');
     }
 
     if (mounted) setState(() => _locationLoading = false);
@@ -184,17 +203,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  String _displayName(AppLocalizations loc) {
-    final email = Supabase.instance.client.auth.currentUser?.email;
-    if (email == null || email.isEmpty) return loc.homeGreetingGeneric;
-
-    final localPart = email.split('@').first.replaceAll(RegExp(r'[._]'), ' ').trim();
-    final words = localPart.split(' ').where((w) => w.isNotEmpty).toList();
-    if (words.isEmpty) return loc.homeGreetingGeneric;
-    final firstWord = words.first;
-
-    final capitalized = firstWord[0].toUpperCase() + firstWord.substring(1);
-    return loc.homeGreeting(capitalized);
+  /// Plain time-of-day greeting — replaces the old "Olá, {name}" (derived
+  /// from the user's email local-part, which was often an ugly guess like
+  /// "joao123" and revealed the account's email even to someone glancing
+  /// at the screen over the user's shoulder).
+  String _timeGreeting(AppLocalizations loc) {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) return loc.homeGreetingMorning;
+    if (hour >= 12 && hour < 18) return loc.homeGreetingAfternoon;
+    return loc.homeGreetingEvening;
   }
 
   List<MapIncident> _nearestIncidents() {
@@ -300,20 +317,23 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       location: _userLocation),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                GestureDetector(
-                  onTap: widget.onOpenAlerts,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: BeeAwareTheme.surface,
-                      shape: BoxShape.circle,
-                      boxShadow: BeeAwareTheme.cardShadow,
-                    ),
-                    child: const Icon(
-                      PhosphorIconsRegular.bell,
-                      color: BeeAwareTheme.textPrimary,
-                      size: 20,
+                Tooltip(
+                  message: loc.bottomNavProfile,
+                  child: GestureDetector(
+                    onTap: widget.onOpenProfile,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: BeeAwareTheme.surface,
+                        shape: BoxShape.circle,
+                        boxShadow: BeeAwareTheme.cardShadow,
+                      ),
+                      child: const Icon(
+                        PhosphorIconsRegular.user,
+                        color: BeeAwareTheme.textPrimary,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -321,7 +341,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              _displayName(loc),
+              _timeGreeting(loc),
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -744,6 +764,14 @@ class _MapPreviewCard extends StatelessWidget {
           child: Image.network(
             'https://tile.openstreetmap.org/$_zoom/$wrappedCol/$row.png',
             fit: BoxFit.cover,
+            // OSM's tile usage policy requires a User-Agent identifying
+            // the app; requests without one are blocked/rate-limited,
+            // which is why this card was rendering blank while the Mapa
+            // tab (flutter_map, which sets userAgentPackageName itself)
+            // worked fine. Matches the identifier used there.
+            headers: const {
+              'User-Agent': 'io.beeaware.app (BeeAware iOS/Android app)',
+            },
             errorBuilder: (_, __, ___) =>
                 Container(color: BeeAwareTheme.background),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '/backend/incident_api.dart';
 import '/l10n/app_localizations.dart';
 import '/map/map_incident.dart';
 import '/report/report_icons.dart';
@@ -8,7 +9,7 @@ import '/report/report_labels.dart';
 import '/theme/beeaware_theme.dart';
 import '/utils/relative_time.dart';
 
-class IncidentBottomSheet extends StatelessWidget {
+class IncidentBottomSheet extends StatefulWidget {
   final MapIncident incident;
 
   const IncidentBottomSheet({
@@ -16,7 +17,99 @@ class IncidentBottomSheet extends StatelessWidget {
     required this.incident,
   });
 
+  @override
+  State<IncidentBottomSheet> createState() => _IncidentBottomSheetState();
+}
+
+class _IncidentBottomSheetState extends State<IncidentBottomSheet> {
+  static final RegExp _uuidPattern = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
+  MapIncident get incident => widget.incident;
+  bool _reporting = false;
+
+  // A freshly-submitted report is shown optimistically with a local,
+  // non-UUID placeholder id (see ReportSummaryScreen) until the map
+  // re-syncs with Supabase's real row. Reporting isn't meaningful yet
+  // for that placeholder (it isn't persisted under that id, and it's
+  // the user's own just-submitted content anyway), so the action is
+  // hidden until a real UUID is available.
+  bool get _canReport => _uuidPattern.hasMatch(incident.id);
+
   Color _severityColor() => SeverityColors.of(incident.severity);
+
+  Future<void> _showReportDialog() async {
+    final loc = AppLocalizations.of(context)!;
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        String? selected;
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Widget option(String label, String value) {
+              return RadioListTile<String>(
+                title: Text(label),
+                value: value,
+                groupValue: selected,
+                onChanged: (v) => setDialogState(() => selected = v),
+              );
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+              ),
+              title: Text(loc.reportContentDialogTitle),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(loc.reportContentDialogBody),
+                  const SizedBox(height: 8),
+                  option(loc.reportReasonFalse, 'false_information'),
+                  option(loc.reportReasonInappropriate, 'inappropriate'),
+                  option(loc.reportReasonSpam, 'spam'),
+                  option(loc.reportReasonOther, 'other'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(loc.deleteAccountCancel),
+                ),
+                FilledButton(
+                  onPressed: selected == null
+                      ? null
+                      : () => Navigator.pop(dialogContext, selected),
+                  child: Text(loc.reportContentSubmit),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (reason == null || !mounted) return;
+
+    setState(() => _reporting = true);
+    try {
+      await IncidentApi.reportIncident(incident.id, reason: reason);
+      if (!mounted) return;
+      Navigator.of(context).maybePop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.reportContentSuccess)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.reportContentError)),
+      );
+    } finally {
+      if (mounted) setState(() => _reporting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,6 +322,28 @@ class IncidentBottomSheet extends StatelessWidget {
                     color: BeeAwareTheme.textAux,
                   ),
             ),
+
+            // ---------------------------
+            // REPORT CONTENT (community reports only — official/news
+            // pins aren't user-generated, so flagging them doesn't apply)
+            // ---------------------------
+            if (!incident.isOfficial && !incident.isApproximate && _canReport) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _reporting ? null : _showReportDialog,
+                  icon: const Icon(Icons.flag_outlined, size: 16),
+                  label: Text(loc.reportContent),
+                  style: TextButton.styleFrom(
+                    foregroundColor: BeeAwareTheme.textSecondary,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

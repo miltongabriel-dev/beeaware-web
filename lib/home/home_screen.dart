@@ -3811,8 +3811,11 @@ class _HomeScreenState extends State<HomeScreen> {
         'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&limit=1&countrycodes=gb,br',
       );
 
-      final response = await http.get(url, headers: {
+      // Nominatim blocks/rate-limits requests with no User-Agent — same
+      // fix as HomeDashboardScreen's location pill (utils/geocoding.dart).
+      final response = await http.get(url, headers: const {
         'Accept': 'application/json',
+        'User-Agent': 'io.beeaware.app (BeeAware iOS/Android app)',
       });
 
       if (response.statusCode != 200) return null;

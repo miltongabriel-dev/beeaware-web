@@ -272,6 +272,42 @@ abstract class AppLocalizations {
   /// **'Check your email for the login link'**
   String get checkEmailForLoginLink;
 
+  /// No description provided for @sendLoginCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get sendLoginCode;
+
+  /// No description provided for @enterLoginCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code'**
+  String get enterLoginCode;
+
+  /// No description provided for @verifyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verifyCode;
+
+  /// No description provided for @checkEmailForCode.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to your email'**
+  String get checkEmailForCode;
+
+  /// No description provided for @invalidCodeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired code. Please try again.'**
+  String get invalidCodeError;
+
+  /// No description provided for @useDifferentEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a different email'**
+  String get useDifferentEmail;
+
   /// No description provided for @buyTokensSubtitle.
   ///
   /// In en, this message translates to:
@@ -1516,6 +1552,24 @@ abstract class AppLocalizations {
   /// **'Hello!'**
   String get homeGreetingGeneric;
 
+  /// No description provided for @homeGreetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get homeGreetingMorning;
+
+  /// No description provided for @homeGreetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get homeGreetingAfternoon;
+
+  /// No description provided for @homeGreetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get homeGreetingEvening;
+
   /// No description provided for @homeSubtitle.
   ///
   /// In en, this message translates to:
@@ -1588,29 +1642,11 @@ abstract class AppLocalizations {
   /// **'Map'**
   String get bottomNavMap;
 
-  /// No description provided for @bottomNavAlerts.
-  ///
-  /// In en, this message translates to:
-  /// **'Alerts'**
-  String get bottomNavAlerts;
-
   /// No description provided for @bottomNavProfile.
   ///
   /// In en, this message translates to:
   /// **'Profile'**
   String get bottomNavProfile;
-
-  /// No description provided for @alertsComingSoonTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Alerts are coming soon'**
-  String get alertsComingSoonTitle;
-
-  /// No description provided for @alertsComingSoonBody.
-  ///
-  /// In en, this message translates to:
-  /// **'We\'re building notifications for new incidents near you. Check back soon.'**
-  String get alertsComingSoonBody;
 
   /// No description provided for @profileTitle.
   ///
@@ -1647,6 +1683,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'United Kingdom'**
   String get unitedKingdomLabel;
+
+  /// No description provided for @reportContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get reportContent;
+
+  /// No description provided for @reportContentDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report this incident'**
+  String get reportContentDialogTitle;
+
+  /// No description provided for @reportContentDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Why are you reporting this content?'**
+  String get reportContentDialogBody;
+
+  /// No description provided for @reportReasonFalse.
+  ///
+  /// In en, this message translates to:
+  /// **'False information'**
+  String get reportReasonFalse;
+
+  /// No description provided for @reportReasonInappropriate.
+  ///
+  /// In en, this message translates to:
+  /// **'Inappropriate or offensive content'**
+  String get reportReasonInappropriate;
+
+  /// No description provided for @reportReasonSpam.
+  ///
+  /// In en, this message translates to:
+  /// **'Spam or duplicate'**
+  String get reportReasonSpam;
+
+  /// No description provided for @reportReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other reason'**
+  String get reportReasonOther;
+
+  /// No description provided for @reportContentSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit report'**
+  String get reportContentSubmit;
+
+  /// No description provided for @reportContentSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Report submitted. Thanks for helping keep the community safe.'**
+  String get reportContentSuccess;
+
+  /// No description provided for @reportContentError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t submit the report. Please try again.'**
+  String get reportContentError;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get deleteAccountDialogTitle;
+
+  /// No description provided for @deleteAccountDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete your account and its associated data (emergency contact, tokens). Your incident reports remain anonymous and are not affected. This action cannot be undone.'**
+  String get deleteAccountDialogBody;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @deleteAccountCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get deleteAccountCancel;
+
+  /// No description provided for @deleteAccountSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been deleted.'**
+  String get deleteAccountSuccess;
+
+  /// No description provided for @deleteAccountError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete your account right now. Please try again or contact info@jagolabs.tech.'**
+  String get deleteAccountError;
 }
 
 class _AppLocalizationsDelegate

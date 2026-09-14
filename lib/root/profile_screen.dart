@@ -5,6 +5,7 @@ import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:pwa_install/pwa_install.dart' as pwa;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/login_screen.dart';
 import '../config/app_config.dart';
@@ -34,6 +35,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _canInstall = false;
   Timer? _pwaTimer;
+  bool _deletingAccount = false;
 
   @override
   void initState() {
@@ -103,6 +105,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!context.mounted) return;
     context.read<TokenState>().clear();
     setState(() {});
+  }
+
+  Future<void> _deleteAccount(BuildContext context) async {
+    final loc = AppLocalizations.of(context)!;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Text(loc.deleteAccountDialogTitle),
+        content: Text(loc.deleteAccountDialogBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(loc.deleteAccountCancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(loc.deleteAccountConfirm),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    setState(() => _deletingAccount = true);
+    try {
+      // Runs server-side via the delete-account Edge Function (uses the
+      // service role to remove the auth user + related rows —
+      // emergency_contacts, user_tokens, token_transactions — none of
+      // which auth clients can do with just the user's own JWT). See
+      // Guideline 5.1.1(v): apps that support account creation must let
+      // the user delete their account from inside the app.
+      await Supabase.instance.client.functions.invoke('delete-account');
+      await Supabase.instance.client.auth.signOut();
+      if (!context.mounted) return;
+      context.read<TokenState>().clear();
+      setState(() => _deletingAccount = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.deleteAccountSuccess)),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      setState(() => _deletingAccount = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.deleteAccountError)),
+      );
+    }
   }
 
   @override
@@ -225,7 +279,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 label: loc.signOut,
                 onTap: () => _signOut(context),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              _ProfileItem(
+                icon: PhosphorIconsRegular.trash,
+                label: loc.deleteAccount,
+                onTap: _deletingAccount ? () {} : () => _deleteAccount(context),
+                destructive: true,
+              ),
             ],
+            const SizedBox(height: AppSpacing.xl),
+            Center(
+              child: GestureDetector(
+                onTap: () => launchUrl(
+                  Uri.parse('https://jagolabs.tech'),
+                  mode: LaunchMode.externalApplication,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/logo/jagolabs_symbol.png',
+                      width: 14,
+                      height: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'developed by jagolabs.tech',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: BeeAwareTheme.textAux,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -237,25 +325,32 @@ class _ProfileItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool destructive;
 
   const _ProfileItem({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.destructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final color = destructive ? Colors.red : BeeAwareTheme.textPrimary;
     return AppCard(
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, size: 20, color: BeeAwareTheme.textPrimary),
+          Icon(icon, size: 20, color: color),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: destructive ? Colors.red : null,
+              ),
             ),
           ),
           const Icon(PhosphorIconsRegular.caretRight,

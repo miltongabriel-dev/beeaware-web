@@ -3,6 +3,17 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+/// Nominatim's usage policy requires a User-Agent identifying the app —
+/// requests without one are blocked/rate-limited, which is exactly why
+/// reverseGeocode() and geocodeAddress() below were silently returning
+/// null (the location pill showing "Location Unavailable" even with a
+/// perfectly good GPS fix). Same fix as the map preview card's tile
+/// requests, same identifier.
+const Map<String, String> _nominatimHeaders = {
+  'Accept': 'application/json',
+  'User-Agent': 'io.beeaware.app (BeeAware iOS/Android app)',
+};
+
 /// One live-suggestions result — display text plus its already-known
 /// coordinate, so selecting a suggestion never needs a second geocoding
 /// round-trip (unlike HomeScreen's own suggestion list, which re-runs
@@ -84,9 +95,7 @@ Future<String?> reverseGeocode(LatLng point) async {
       '?lat=${point.latitude}&lon=${point.longitude}&format=json&countrycodes=gb,br',
     );
 
-    final response = await http.get(url, headers: {
-      'Accept': 'application/json',
-    });
+    final response = await http.get(url, headers: _nominatimHeaders);
 
     if (response.statusCode != 200) return null;
 
@@ -114,9 +123,7 @@ Future<LatLng?> geocodeAddress(String query) async {
       '?q=${Uri.encodeComponent(query)}&format=json&limit=1&countrycodes=gb,br',
     );
 
-    final response = await http.get(url, headers: {
-      'Accept': 'application/json',
-    });
+    final response = await http.get(url, headers: _nominatimHeaders);
 
     if (response.statusCode != 200) return null;
 

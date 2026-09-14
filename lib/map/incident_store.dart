@@ -42,7 +42,16 @@ class IncidentStore {
       bool changed = false;
 
       for (final r in remote) {
-        final index = _incidents.indexWhere((i) => i.id == r.id);
+        // Match by id first (an already-synced incident being refreshed),
+        // then fall back to hash: a just-submitted report is shown
+        // optimistically under a temporary local id (see addWithDelay)
+        // before this sync ever runs, so its id never equals the real
+        // Supabase row's id — matching by the shared hash instead lets
+        // this replace that temporary pin in place rather than adding
+        // the synced row as a second, duplicate pin.
+        final index = _incidents.indexWhere((i) =>
+            i.id == r.id ||
+            (r.hash != null && i.hash != null && i.hash == r.hash));
 
         if (index == -1) {
           // novo incidente
