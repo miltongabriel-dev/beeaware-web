@@ -1250,6 +1250,42 @@ abstract class AppLocalizations {
   /// **'Share a local safety report'**
   String get shareReportTooltip;
 
+  /// No description provided for @installBannerIosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get BeeAware on your iPhone'**
+  String get installBannerIosTitle;
+
+  /// No description provided for @installBannerIosBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Faster alerts and the SOS button right from your home screen.'**
+  String get installBannerIosBody;
+
+  /// No description provided for @installBannerIosCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Download on the App Store'**
+  String get installBannerIosCta;
+
+  /// No description provided for @installBannerAndroidTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Install BeeAware'**
+  String get installBannerAndroidTitle;
+
+  /// No description provided for @installBannerAndroidBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add it to your home screen for faster access and the SOS button one tap away.'**
+  String get installBannerAndroidBody;
+
+  /// No description provided for @installBannerAndroidCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Install'**
+  String get installBannerAndroidCta;
+
   /// No description provided for @policeReportCategory.
   ///
   /// In en, this message translates to:

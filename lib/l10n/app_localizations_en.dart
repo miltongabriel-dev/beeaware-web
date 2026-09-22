@@ -726,6 +726,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareReportTooltip => 'Share a local safety report';
 
   @override
+  String get installBannerIosTitle => 'Get BeeAware on your iPhone';
+
+  @override
+  String get installBannerIosBody =>
+      'Faster alerts and the SOS button right from your home screen.';
+
+  @override
+  String get installBannerIosCta => 'Download on the App Store';
+
+  @override
+  String get installBannerAndroidTitle => 'Install BeeAware';
+
+  @override
+  String get installBannerAndroidBody =>
+      'Add it to your home screen for faster access and the SOS button one tap away.';
+
+  @override
+  String get installBannerAndroidCta => 'Install';
+
+  @override
   String get policeReportCategory => 'Police report';
 
   @override
