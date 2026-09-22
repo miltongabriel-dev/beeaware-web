@@ -66,6 +66,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   // nearest one geographically.
   static const int _maxAgeDays = 60;
 
+  // "Nearest first, no cap" used to mean the section could surface
+  // whatever incident was closest in the ENTIRE globally-accumulated
+  // list (IncidentStore holds every community report worldwide —
+  // IncidentApi.fetchVisibleIncidents() has no location filter at all —
+  // plus every official region ever synced from any map viewport,
+  // cached indefinitely via IncidentPersistence). Confirmed live: a
+  // visitor outside Brazil with few/no real nearby reports was shown
+  // Brazilian incidents thousands of km away just because nothing
+  // closer existed. 75km keeps this a genuinely LOCAL feed — wide
+  // enough to cover a metro area/UK police force area, nowhere near
+  // wide enough to cross into another country/state — and an empty
+  // list (recentActivityEmpty) is the correct result when nothing real
+  // is that close, not a fallback to the nearest thing on Earth.
+  static const double _maxDistanceMeters = 75000;
+
   LatLng? _userLocation;
   String? _locationLabel;
   bool _locationLoading = true;
@@ -217,10 +232,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   List<MapIncident> _nearestIncidents() {
     final cutoff = DateTime.now().subtract(const Duration(days: _maxAgeDays));
-    final list = _incidents.where((i) => i.dateTime.isAfter(cutoff)).toList();
+    var list = _incidents.where((i) => i.dateTime.isAfter(cutoff)).toList();
     final origin = _userLocation;
 
     if (origin != null) {
+      list = list
+          .where((i) =>
+              _distanceCalc.as(LengthUnit.Meter, origin, i.location) <=
+              _maxDistanceMeters)
+          .toList();
       list.sort((a, b) => _distanceCalc
           .as(LengthUnit.Meter, origin, a.location)
           .compareTo(_distanceCalc.as(LengthUnit.Meter, origin, b.location)));
