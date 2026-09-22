@@ -6,3 +6,9 @@
 bool isPwaInstallable() => false;
 
 void triggerPwaInstall() {}
+
+bool isRunningStandalone() => false;
+
+bool isInstallBannerDismissed() => false;
+
+void dismissInstallBanner() {}

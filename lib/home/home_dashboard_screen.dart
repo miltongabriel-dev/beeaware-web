@@ -24,6 +24,7 @@ import '../utils/geocoding.dart';
 import '../utils/preferred_country_code.dart';
 import '../utils/relative_time.dart';
 import 'widgets/incident_bottom_sheet.dart';
+import 'widgets/install_app_banner.dart';
 
 /// The "Início" tab: greeting, current location, a full-width "Reportar"
 /// CTA, a short line on where the data comes from, and a "Atividade
@@ -340,6 +341,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
+            const InstallAppBanner(),
             Text(
               _timeGreeting(loc),
               style: const TextStyle(

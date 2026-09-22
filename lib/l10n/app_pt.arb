@@ -230,6 +230,13 @@
   "installAppTooltip": "Instalar App",
   "shareReportTooltip": "Compartilhar um relato de segurança local",
 
+  "installBannerIosTitle": "Tenha o BeeAware no seu iPhone",
+  "installBannerIosBody": "Alertas mais rápidos e o botão SOS direto na tela inicial.",
+  "installBannerIosCta": "Baixar na App Store",
+  "installBannerAndroidTitle": "Instale o BeeAware",
+  "installBannerAndroidBody": "Adicione à tela inicial para abrir mais rápido e ter o SOS a um toque.",
+  "installBannerAndroidCta": "Instalar",
+
   "policeReportCategory": "Relato da polícia",
   "roadAccidentCategory": "Acidente de trânsito",
   "newsApproxLocation": "Localização aproximada — nível da cidade, a partir de uma notícia",

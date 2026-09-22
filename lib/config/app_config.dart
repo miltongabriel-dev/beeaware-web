@@ -8,4 +8,10 @@ class AppConfig {
   /// — searches are unlimited while this is false. Flip back on once
   /// purchases actually charge something.
   static const bool tokensEnabled = false;
+
+  /// Public App Store listing — the iOS variant of the Início install
+  /// banner (lib/home/widgets/install_app_banner.dart) sends visitors
+  /// here directly, since iOS has no installable-PWA prompt equivalent
+  /// to Android's beforeinstallprompt.
+  static const String appStoreUrl = 'https://apps.apple.com/app/id6809385683';
 }
