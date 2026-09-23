@@ -120,6 +120,34 @@
 // for AM/AP/RN. Left unattempted pending either a retry from elsewhere
 // or someone finding the right SSP-SE URL manually.
 //
+// TO (Tocantins) was tried in a later pass (2026-09-23) and is a WAF-
+// style dead end, not a network-timeout one: the real stats page
+// (www.to.gov.br/ssp/estatisticas/37s2impwz72k — a "Painel de
+// Monitoramento da Incidência Criminal" the state's own press describes
+// as covering all 9 RISPs, updated monthly) is unreachable from TWO
+// independent paths tried the same day — this project's own egress
+// resets the TLS connection immediately after the Client Hello, and
+// Anthropic's separate WebFetch infrastructure gets a flat 503 — the
+// same practical outcome as CE/PB's explicit WAF block, just a
+// different vendor's rejection shape. A third-party republisher,
+// crimebrasil.com.br/estado/tocantins, does show real TO numbers
+// (municipality/neighbourhood/crime-type breakdowns) but has no CSV/
+// JSON export for the state specifically — only a paid risk-scoring API
+// and a generic "cite our Zenodo data" footer link that, checked
+// directly against Zenodo's own API, resolves to an unrelated RS
+// dataset, not anything Tocantins-specific. One real open-data lead DID
+// turn up in that search — Crime Brasil's own "Homicídios por
+// município no Brasil (2018–2024)" CSV (DOI 10.5281/zenodo.21402352,
+// CC-BY-4.0, sourced from DataSUS/SIM, no WAF gate since it's a plain
+// Zenodo file download) covers all 5,050 municipalities including
+// TO's — homicide-only and annual through 2024, not the live
+// multi-category feed the state's own panel would give, but a real
+// candidate for a NATIONAL baseline adapter across all 11 states
+// currently missing one, if that's ever prioritized over a live
+// per-state source. Left unimplemented for now; worth retrying the
+// official panel from a different network path before reaching for the
+// Zenodo fallback.
+//
 // Source page: https://www.sds.pe.gov.br/estatisticas/indicadores-criminais/
 // mortes-violentas-intencionais-mvi — links a single microdata file,
 // MICRODADOS_DE_MVI_{start}_A_{end}.xlsx (filename's end-month advances as
