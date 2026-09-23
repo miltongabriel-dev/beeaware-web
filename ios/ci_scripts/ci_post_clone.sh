@@ -29,6 +29,22 @@ echo "Installing Flutter..."
 # flutter/flutter's full history, which a plain `git clone` + `checkout
 # <sha>` would require.
 FLUTTER_PINNED_REVISION="$(grep 'revision:' "$CI_PRIMARY_REPOSITORY_PATH/.metadata" | head -1 | sed -E 's/.*"(.*)".*/\1/')"
+if [ -z "$FLUTTER_PINNED_REVISION" ]; then
+  echo "ERROR: could not read a Flutter revision out of $CI_PRIMARY_REPOSITORY_PATH/.metadata" >&2
+  exit 1
+fi
+echo "Pinning Flutter SDK to revision $FLUTTER_PINNED_REVISION"
+
+# rm -rf first: Xcode Cloud can carry $HOME over between builds via its
+# own dependency caching, so $HOME/flutter may already exist (and already
+# have an `origin` remote) from a previous run -- `git init` alone is a
+# harmless no-op on an existing repo, but the `remote add` right after it
+# is NOT idempotent and errors out ("remote origin already exists") on a
+# second run, which is exactly the kind of failure `set -e` turns into an
+# opaque "ci_post_clone.sh exited with code 1" with no line number shown
+# in Xcode Cloud's own summary. Wiping first guarantees a clean git init
+# every time regardless of what the runner carried over.
+rm -rf "$HOME/flutter"
 git init -q "$HOME/flutter"
 git -C "$HOME/flutter" remote add origin https://github.com/flutter/flutter.git
 git -C "$HOME/flutter" fetch --depth 1 origin "$FLUTTER_PINNED_REVISION"
