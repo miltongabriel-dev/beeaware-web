@@ -347,6 +347,15 @@
 // location signal, so they share a text-based state/city detector
 // (national_pt_news.ts) and simply skip an article when no state can be
 // named, rather than writing an unlocatable row nothing would ever show.
+// RoSepogAdapter (added 2026-09-23) turns RO from a documented dead end
+// (see pe_sds.ts's header — the dashboard's own API always returned an
+// empty result) into a real municipality×crime-type source: the actual
+// bug was an unsent "Todos" (value "0") sentinel the filter dropdowns
+// require, not a broken endpoint. Real per-municipality, per-crime-type
+// counts, no auth/session needed. See ro_sepog.ts's own header for the
+// full re-investigation and a real scope limitation found while mapping
+// categories: this source's own taxonomy has no "Homicídio Doloso" at
+// all, only negligent-homicide and robbery-resulting-in-death variants.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { IbgeAdapter } from "../_shared/adapters/br/ibge.ts";
@@ -373,6 +382,7 @@ import { MaSspAdapter } from "../_shared/adapters/br/ma_ssp.ts";
 import { MsSejuspAdapter } from "../_shared/adapters/br/ms_sejusp.ts";
 import { PrSespAdapter } from "../_shared/adapters/br/pr_sesp.ts";
 import { RrPcrrAdapter } from "../_shared/adapters/br/rr_pcrr.ts";
+import { RoSepogAdapter } from "../_shared/adapters/br/ro_sepog.ts";
 // BaAdapter (ba_ssp.ts) is built and correct but not registered — the
 // source server's TLS certificate chain is genuinely broken, see the
 // file's own header for the openssl-verified detail. CE (SSPDS/SUPESP)
@@ -447,6 +457,7 @@ const eventAdapters: Record<string, SecuritySourceAdapter> = {
   MsSejuspAdapter: new MsSejuspAdapter(),
   PrSespAdapter: new PrSespAdapter(),
   RrPcrrAdapter: new RrPcrrAdapter(),
+  RoSepogAdapter: new RoSepogAdapter(),
   G1NewsAdapter: new G1NewsAdapter(),
   DiarioOnlineAdapter: new DiarioOnlineAdapter(),
   CnnBrasilAdapter: new CnnBrasilAdapter(),
