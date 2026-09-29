@@ -21,3 +21,9 @@ enabled = true
 # than the reserved SUPABASE_SERVICE_ROLE_KEY env var.
 verify_jwt = true
 entrypoint = "./functions/ingest-security-sources/index.ts"
+
+[functions.geocode]
+enabled = true
+# Public on purpose: the app's search boxes call it without an auth
+# header (including before login), and it only proxies public OSM data.
+verify_jwt = false

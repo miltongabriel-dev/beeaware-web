@@ -156,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Map<String, dynamic>> _suggestions = [];
   Timer? _debounce;
+  int _suggestionsRequest = 0;
 
   // Last focusLocation actually applied (see HomeScreen.focusLocation) —
   // non-null means "an explicit address is active", which the automatic
@@ -193,6 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<AddressSuggestion> _routeToSuggestions = [];
   Timer? _routeFromDebounce;
   Timer? _routeToDebounce;
+  int _routeFromRequest = 0;
+  int _routeToRequest = 0;
   List<RouteOption> _routeOptions = [];
   int _selectedRouteIndex = 0;
   bool _routeLoading = false;
@@ -401,12 +404,17 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _selectedRouteIndex = index);
   }
 
+  // Each field only applies the response to its latest request — the
+  // debounce alone doesn't stop a slow earlier response (the geocode
+  // function takes 1-2s) landing after a newer one and replacing it.
   void _onRouteFromChanged(String value) {
     _routeFromPoint = null;
     _routeFromDebounce?.cancel();
     _routeFromDebounce = Timer(const Duration(milliseconds: 300), () async {
-      final results = await fetchAddressSuggestions(value);
-      if (!mounted) return;
+      final request = ++_routeFromRequest;
+      final results =
+          await fetchAddressSuggestions(value, near: _userCurrentLocation);
+      if (!mounted || request != _routeFromRequest) return;
       setState(() => _routeFromSuggestions = results);
     });
   }
@@ -415,8 +423,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _routeToPoint = null;
     _routeToDebounce?.cancel();
     _routeToDebounce = Timer(const Duration(milliseconds: 300), () async {
-      final results = await fetchAddressSuggestions(value);
-      if (!mounted) return;
+      final request = ++_routeToRequest;
+      final results =
+          await fetchAddressSuggestions(value, near: _userCurrentLocation);
+      if (!mounted || request != _routeToRequest) return;
       setState(() => _routeToSuggestions = results);
     });
   }
@@ -1004,6 +1014,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchSuggestions(String query) async {
+    // Bumped even for short queries, so a slower in-flight response for
+    // an earlier, longer query can't reopen the dropdown after the user
+    // has deleted back below 3 characters.
+    final request = ++_suggestionsRequest;
+
     if (query.length < 3) {
       setState(() => _suggestions = []);
       return;
@@ -1012,11 +1027,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isSearching = true);
 
     try {
-      final url = Uri.parse(
-        'https://brjzkdtkmewbodpqjhkj.supabase.co/functions/v1/geocode?q=${Uri.encodeComponent(query)}&limit=5',
-      );
+      final url = geocodeSuggestionsUri(query, near: _userCurrentLocation);
 
       final response = await http.get(url);
+      if (!mounted || request != _suggestionsRequest) return;
 
       if (response.statusCode != 200) {
         setState(() => _isSearching = false);
@@ -1027,14 +1041,13 @@ class _HomeScreenState extends State<HomeScreen> {
         json.decode(response.body),
       );
 
-      if (!mounted) return;
-
       setState(() {
         _isSearching = false;
         _suggestions = results;
       });
     } catch (e) {
       debugPrint('Autocomplete error: $e');
+      if (!mounted || request != _suggestionsRequest) return;
       setState(() => _isSearching = false);
     }
   }
