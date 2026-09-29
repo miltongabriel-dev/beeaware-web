@@ -14,6 +14,22 @@ const Map<String, String> _nominatimHeaders = {
   'User-Agent': 'io.beeaware.app (BeeAware iOS/Android app)',
 };
 
+/// URL for the `geocode` Edge Function (supabase/functions/geocode) —
+/// shared by fetchAddressSuggestions below and HomeScreen's own
+/// _fetchSuggestions, so both send the same location bias.
+Uri geocodeSuggestionsUri(String query, {LatLng? near, int limit = 5}) {
+  return Uri.https(
+    'brjzkdtkmewbodpqjhkj.supabase.co',
+    '/functions/v1/geocode',
+    {
+      'q': query,
+      'limit': '$limit',
+      if (near != null) 'lat': '${near.latitude}',
+      if (near != null) 'lon': '${near.longitude}',
+    },
+  );
+}
+
 /// One live-suggestions result — display text plus its already-known
 /// coordinate, so selecting a suggestion never needs a second geocoding
 /// round-trip (unlike HomeScreen's own suggestion list, which re-runs
@@ -41,14 +57,18 @@ class AddressSuggestion {
 /// reused here rather than re-implemented, and already unrestricted by
 /// country (unlike geocodeAddress above), so it works for Brazil out of
 /// the box.
-Future<List<AddressSuggestion>> fetchAddressSuggestions(String query) async {
+///
+/// [near] biases results toward that point (the function forwards it to
+/// Photon) — without it a short query like "Copacaba" also returns
+/// Colombian and Bolivian places ahead of the one in Rio.
+Future<List<AddressSuggestion>> fetchAddressSuggestions(
+  String query, {
+  LatLng? near,
+}) async {
   if (query.trim().length < 3) return [];
 
   try {
-    final url = Uri.parse(
-      'https://brjzkdtkmewbodpqjhkj.supabase.co/functions/v1/geocode'
-      '?q=${Uri.encodeComponent(query)}&limit=5',
-    );
+    final url = geocodeSuggestionsUri(query, near: near);
 
     final response = await http.get(url);
     if (response.statusCode != 200) return [];

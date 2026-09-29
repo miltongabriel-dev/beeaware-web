@@ -178,7 +178,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
-      builder: (_) => const _AddressPickerSheet(),
+      builder: (_) => _AddressPickerSheet(near: _userLocation),
     );
     if (selected == null || !mounted) return;
 
@@ -941,7 +941,10 @@ class _NewsCard extends StatelessWidget {
 /// Brazil-and-UK-aware live-suggestions endpoint the Mapa tab's search box
 /// already calls — rather than introducing a second geocoding path.
 class _AddressPickerSheet extends StatefulWidget {
-  const _AddressPickerSheet();
+  /// Biases suggestions toward the user's current position, if known.
+  final LatLng? near;
+
+  const _AddressPickerSheet({this.near});
 
   @override
   State<_AddressPickerSheet> createState() => _AddressPickerSheetState();
@@ -952,6 +955,9 @@ class _AddressPickerSheetState extends State<_AddressPickerSheet> {
   Timer? _debounce;
   List<AddressSuggestion> _suggestions = const [];
   bool _loading = false;
+  // Only the latest request's response is applied — see HomeScreen's
+  // _onRouteFromChanged for why the debounce alone isn't enough.
+  int _request = 0;
 
   @override
   void dispose() {
@@ -962,14 +968,18 @@ class _AddressPickerSheetState extends State<_AddressPickerSheet> {
 
   void _onChanged(String value) {
     _debounce?.cancel();
+    final request = ++_request;
     if (value.trim().length < 3) {
-      setState(() => _suggestions = const []);
+      setState(() {
+        _suggestions = const [];
+        _loading = false;
+      });
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 300), () async {
       setState(() => _loading = true);
-      final results = await fetchAddressSuggestions(value);
-      if (!mounted) return;
+      final results = await fetchAddressSuggestions(value, near: widget.near);
+      if (!mounted || request != _request) return;
       setState(() {
         _suggestions = results;
         _loading = false;
