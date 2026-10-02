@@ -99,6 +99,11 @@ class _ReportLocationScreenState extends State<ReportLocationScreen> {
                   options: MapOptions(
                     initialCenter: const LatLng(51.3305, -0.2708),
                     initialZoom: 15,
+                    // Norte sempre para cima — mesma trava do mapa
+                    // principal (home_screen.dart): pinça faz zoom, não gira.
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                    ),
                     onTap: _onMapTap,
                   ),
                   children: [

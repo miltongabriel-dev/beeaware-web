@@ -1333,6 +1333,13 @@ class _HomeScreenState extends State<HomeScreen> {
               // ✅ FIX: initial center uses _initialCenter (not only user or Epsom)
               initialCenter: _initialCenter ?? _mapCenter,
               initialZoom: 15,
+              // Norte sempre para cima: flutter_map liga a rotação por
+              // padrão, e o gesto de pinça para zoom acabava girando o
+              // mapa (até de cabeça para baixo) sem o usuário querer.
+              // Zoom e arrastar continuam iguais.
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
               // Só uma superfície flutuante aberta por vez: tocar no mapa
               // fecha as sugestões de busca, como tocar fora fecharia
               // qualquer outro painel.
