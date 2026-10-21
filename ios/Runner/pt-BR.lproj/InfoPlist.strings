@@ -1,0 +1,6 @@
+/* Brazilian Portuguese devices see the app as VêAí (the Brazilian brand
+   of BeeAware) — see lib/config/app_brand.dart. */
+"CFBundleDisplayName" = "VêAí";
+"CFBundleName" = "VêAí";
+"NSLocationWhenInUseUsageDescription" = "O VêAí usa sua localização para mostrar relatos de segurança próximos e centralizar o mapa na sua região.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "O VêAí usa sua localização para mostrar relatos de segurança próximos e centralizar o mapa na sua região.";

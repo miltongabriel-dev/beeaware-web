@@ -25,6 +25,7 @@ import '../utils/preferred_country_code.dart';
 import '../utils/relative_time.dart';
 import 'widgets/incident_bottom_sheet.dart';
 import 'widgets/install_app_banner.dart';
+import '../config/app_brand.dart';
 
 /// The "Início" tab: greeting, current location, a full-width "Reportar"
 /// CTA, a short line on where the data comes from, and a "Atividade
@@ -313,15 +314,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           children: [
             Row(
               children: [
-                SvgPicture.asset(
-                  'assets/logo/beeaware_symbol.svg',
-                  width: 32,
-                  height: 32,
-                ),
+                AppBrand.symbol(context, width: 32, height: 32),
                 const SizedBox(width: AppSpacing.sm),
-                const Text(
-                  'BeeAware',
-                  style: TextStyle(
+                Text(
+                  loc.appTitle,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: BeeAwareTheme.primary,

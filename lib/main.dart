@@ -13,6 +13,7 @@ import 'state/locale_state.dart';
 import 'report/buy_tokens_screen.dart';
 import 'report/search_address_screen.dart';
 import 'theme/beeaware_theme.dart';
+import 'config/app_brand.dart';
 import 'package:flutter/foundation.dart';
 
 bool _bonusChecked = false;
@@ -109,17 +110,19 @@ class _BeeAwareAppState extends State<BeeAwareApp> {
     final localeOverride = context.watch<LocaleState>().locale;
 
     return MaterialApp(
-      title: 'BeeAware',
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
       theme: BeeAwareTheme.light,
-      locale: localeOverride,
+      locale: AppBrand.resolveOverride(localeOverride),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('pt'), Locale('en')],
+      // pt stays first: it's the fallback for unsupported device languages,
+      // which shouldn't get the Brazil-only VêAí brand (see AppBrand).
+      supportedLocales: const [Locale('pt'), Locale('pt', 'BR'), Locale('en')],
       home: const RootScreen(),
       routes: {
         '/buyTokens': (_) => const BuyTokensScreen(),

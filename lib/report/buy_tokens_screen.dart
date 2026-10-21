@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../state/token_state.dart';
 import '../theme/beeaware_theme.dart';
+import '../config/app_brand.dart';
 
 enum _PackageBadge { mostPopular, bestValue }
 
@@ -42,10 +43,9 @@ class _Content extends StatelessWidget {
           child: Column(
             children: [
               Image.asset(
-                Localizations.localeOf(context).languageCode == 'pt'
-                    ? 'assets/logo/beeaware_wordmark_pt.png'
-                    : 'assets/logo/beeaware_wordmark_en.png',
+                AppBrand.wordmarkAsset(context),
                 width: 160,
+                height: AppBrand.isVeAi(context) ? 120 : null,
               ),
               const SizedBox(height: 10),
               Text(

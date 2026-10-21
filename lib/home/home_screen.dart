@@ -58,6 +58,7 @@ import '../backend/historical_safety_api.dart';
 import '../backend/route_awareness_api.dart';
 import '../utils/geocoding.dart';
 import '../utils/preferred_country_code.dart';
+import '../config/app_brand.dart';
 
 enum IncidentTimeFilter {
   lastHour,
@@ -1737,10 +1738,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 Opacity(
                   opacity: 0.7,
                   child: Image.asset(
-                    Localizations.localeOf(context).languageCode == 'pt'
-                        ? 'assets/logo/beeaware_wordmark_pt.png'
-                        : 'assets/logo/beeaware_wordmark_en.png',
+                    AppBrand.wordmarkAsset(context),
                     width: 120,
+                    // VêAí's logo is stacked, not a wide wordmark — capped
+                    // so it doesn't run into the search bar below.
+                    height: 40,
                     fit: BoxFit.contain,
                     alignment: Alignment.centerLeft,
                   ),
