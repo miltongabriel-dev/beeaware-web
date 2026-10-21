@@ -1,0 +1,14 @@
+{
+  "@@locale": "pt_BR",
+  "appTitle": "VêAí",
+  "aboutBeeAware": "Sobre o VêAí",
+  "emergencyDisclaimer": "VêAí não é um serviço de emergência.\nSe você estiver em perigo imediato, contate os serviços de emergência diretamente.",
+  "aboutBodyText": "VêAí é uma plataforma comunitária de conscientização sobre segurança, feita para ajudar pessoas a se manterem informadas sobre incidentes não emergenciais na sua região.\n\nO app combina relatos da comunidade e dados oficiais publicamente disponíveis para melhorar a percepção situacional e apoiar decisões mais seguras no dia a dia.\n\nAs informações exibidas podem estar atrasadas, incompletas ou não verificadas, e não devem ser usadas como substituto dos serviços de emergência.\n\nO VêAí não oferece monitoramento em tempo real e não é um sistema de resposta a emergências.",
+  "aboutDataSourcesBody": "O VêAí exibe informações de segurança a partir de duas fontes principais:\n\n• Relatos anônimos enviados pela comunidade\n• Dados públicos abertos oficiais — fontes governamentais do Reino Unido e do Brasil (polícia, segurança viária e órgãos de segurança pública), além de uma base global mais genérica onde ainda não há dado local\n\nEssas fontes são usadas para melhorar a percepção situacional e não representam alertas em tempo real.",
+  "privacyAnonymityBody": "O VêAí é projetado com privacidade por padrão.\nNenhuma informação de identificação pessoal é necessária.\nOs relatos são anônimos e os dados de localização se limitam ao necessário para exibir os incidentes no mapa.",
+  "copyrightBeeAware": "© VêAí",
+  "officialLegendBody": "O VêAí mostra dois tipos de relato:\n\n• Relatos da comunidade (envios anônimos de usuários)\n• Dados abertos oficiais — registros de segurança pública de fontes governamentais do Reino Unido e do Brasil (polícia, segurança viária e órgãos de segurança pública), além de uma base global mais genérica onde ainda não há dado local\n\nItens oficiais são exibidos com um pino distinto. Eles são incluídos para percepção situacional e não são alertas de emergência em tempo real.",
+  "signInToBeeAware": "Entrar no VêAí",
+  "installBannerIosTitle": "Tenha o VêAí no seu iPhone",
+  "installBannerAndroidTitle": "Instale o VêAí"
+}

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brazilian Portuguese devices see the app as VêAí (the Brazilian
+         brand of BeeAware) — see lib/config/app_brand.dart. -->
+    <string name="app_name">VêAí</string>
+</resources>

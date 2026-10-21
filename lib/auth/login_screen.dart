@@ -15,6 +15,7 @@ import '../state/token_state.dart';
 import '../theme/beeaware_theme.dart';
 import '../theme/bee_loader.dart';
 import '../theme/fade_in.dart';
+import '../config/app_brand.dart';
 
 /// Random bytes for the Apple Sign In nonce (the plaintext half; Apple gets
 /// the sha256 hash, Supabase verifies the ID token against the plaintext).
@@ -104,10 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // LOGO
                 FadeInUp(
-                  child: SvgPicture.asset(
-                    'assets/logo/beeaware_symbol.svg',
-                    width: 70,
-                  ),
+                  child: AppBrand.symbol(context, width: 70),
                 ),
 
                 const SizedBox(height: 20),

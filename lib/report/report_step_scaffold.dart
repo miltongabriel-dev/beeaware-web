@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'report_step_indicator.dart';
 import '../theme/beeaware_theme.dart';
+import '../config/app_brand.dart';
 
 /// Shared scaffold for every "choice" step of the report flow (category,
 /// subcategory, severity, description, date/time) — AppBar, step indicator,
@@ -41,10 +41,8 @@ class ReportStepScaffold extends StatelessWidget {
                 Center(
                   child: Opacity(
                     opacity: 0.05,
-                    child: SvgPicture.asset(
-                      'assets/logo/beeaware_symbol.svg',
-                      width: MediaQuery.of(context).size.width * 0.9,
-                    ),
+                    child: AppBrand.symbol(context,
+                        width: MediaQuery.of(context).size.width * 0.9),
                   ),
                 ),
                 Center(

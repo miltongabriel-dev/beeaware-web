@@ -1,0 +1,6 @@
+/* Exists so European Portuguese devices keep the BeeAware name instead of
+   iOS falling back to the closest Portuguese variant (pt-BR → VêAí). */
+"CFBundleDisplayName" = "BeeAware";
+"CFBundleName" = "BeeAware";
+"NSLocationWhenInUseUsageDescription" = "O BeeAware usa a sua localização para mostrar relatos de segurança próximos e centrar o mapa na sua zona.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "O BeeAware usa a sua localização para mostrar relatos de segurança próximos e centrar o mapa na sua zona.";
