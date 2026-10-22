@@ -1,13 +1,28 @@
+import 'dart:ui' show Locale, PlatformDispatcher;
+
 import 'package:latlong2/latlong.dart';
+
+/// Countries this guess can otherwise return from a coordinate.
+const _regionFallbacks = {'br', 'pt', 'es', 'fr', 'de', 'gb'};
 
 /// Coarse country guess from a coordinate, used to pick which emergency
 /// numbers to show (see emergency_numbers.dart) and which geocoding
 /// country bias to apply. Shared between the Início dashboard and the
 /// Mapa screen — both need the same guess from whatever location each one
-/// currently has, so this stays a pure function of a nullable point rather
+/// currently has, so this stays a function of a nullable point rather
 /// than living on either screen's own state.
-String preferredCountryCode(LatLng? location) {
-  if (location == null) return 'gb';
+///
+/// With no location (permission denied, GPS timeout, web without a fix)
+/// the device's region decides instead — a Brazilian without location
+/// must still see 190 on the SOS pill, not the UK's 999. [deviceLocale]
+/// is only overridable for tests.
+String preferredCountryCode(LatLng? location, {Locale? deviceLocale}) {
+  if (location == null) {
+    final region = (deviceLocale ?? PlatformDispatcher.instance.locale)
+        .countryCode
+        ?.toLowerCase();
+    return _regionFallbacks.contains(region) ? region! : 'gb';
+  }
 
   final lat = location.latitude;
   final lng = location.longitude;

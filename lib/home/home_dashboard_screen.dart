@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
@@ -126,7 +127,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         // by the OS, no new fix needed) and gives the UI something to
         // show immediately; getCurrentPosition() then still runs for a
         // fresh, more accurate point, with a more realistic timeout.
-        final lastKnown = await Geolocator.getLastKnownPosition();
+        // Not supported on web — it throws there, which used to skip the
+        // getCurrentPosition() below too and leave Início stuck on
+        // "Localização indisponível" (and the SOS pill on the UK 999).
+        final lastKnown =
+            kIsWeb ? null : await Geolocator.getLastKnownPosition();
         if (lastKnown != null && mounted) {
           final cachedPoint = LatLng(lastKnown.latitude, lastKnown.longitude);
           setState(() => _userLocation = cachedPoint);

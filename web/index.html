@@ -102,7 +102,7 @@
   </style>
   <body>
     <div id="loading-logo">
-      <img src="beeaware_badge.png" class="logo-img" alt="BeeAware">
+      <img id="loading-badge" src="beeaware_badge.png" class="logo-img" alt="BeeAware">
       <div id="loading-message"></div>
     </div>
 
@@ -111,6 +111,17 @@
       // frame) — mesma checagem simples de idioma que o resto do app usa
       // para decidir PT vs EN.
       var isPt = (navigator.language || '').toLowerCase().startsWith('pt');
+
+      // pt-BR é a marca VêAí (ver lib/config/app_brand.dart) — mesma regra
+      // do app, para a abertura não mostrar a abelha do BeeAware.
+      if ((navigator.language || '').toLowerCase() === 'pt-br') {
+        document.title = 'VêAí';
+        var badge = document.getElementById('loading-badge');
+        if (badge) {
+          badge.src = 'veai_badge.png';
+          badge.alt = 'VêAí';
+        }
+      }
       var messages = isPt
         ? ['Preparando seu mapa de segurança...', 'Verificando fontes de dados...', 'Quase lá...']
         : ['Preparing your safety map...', 'Checking data sources...', 'Almost there...'];
