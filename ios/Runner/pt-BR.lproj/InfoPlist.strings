@@ -4,3 +4,6 @@
 "CFBundleName" = "VêAí";
 "NSLocationWhenInUseUsageDescription" = "O VêAí usa sua localização para mostrar relatos de segurança próximos e centralizar o mapa na sua região.";
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "O VêAí usa sua localização para mostrar relatos de segurança próximos e centralizar o mapa na sua região.";
+/* Same splash as LaunchScreen.storyboard, with the VêAí bee instead of
+   BeeAware's (LaunchImageVeAi in Assets.xcassets). */
+"UILaunchStoryboardName" = "LaunchScreenVeAi";
