@@ -432,6 +432,7 @@ import type {
   TravelAdvisory,
   TravelAdvisoryAdapter,
 } from "../_shared/adapters/types.ts";
+import type { SourceType } from "../_shared/taxonomy.ts";
 
 const territorialAdapters: Record<string, TerritorialSourceAdapter> = {
   IbgeAdapter: new IbgeAdapter(),
@@ -562,9 +563,27 @@ async function persistRawEvents(
   supabase: SupabaseClient,
   sourceId: string | null,
   adapterName: string,
+  sourceType: SourceType,
   records: RawSecurityRecord[],
 ): Promise<void> {
   if (records.length === 0) return;
+
+  // News/RSS feeds (G1's 27 state feeds every 4h, Notícias ao Minuto,
+  // CNN Brasil, etc.) churned raw_events to ~2.5GB of logical payload in
+  // a single rolling 30-day retention window, confirmed live — G1NewsAdapter
+  // and NoticiasAoMinutoAdapter alone were 77% of that, because this
+  // persists the ENTIRE feed XML again on every run even though most of
+  // a feed's items are unchanged from the previous fetch a few hours
+  // earlier. Unlike an official government source (the reason this table
+  // exists at all — replaying a state SSP's exact file matters if a
+  // parsing bug is found later), a news feed's real output is already
+  // durable in security_events/news pins once normalize() runs; the raw
+  // XML blob itself has no independent value once parsed, and the live
+  // feed is trivially re-fetchable if it ever were needed. Skipping
+  // persistence here, rather than shortening retention or deduping
+  // near-identical fetches, removes the actual waste instead of just
+  // slowing its accumulation.
+  if (sourceType === "news") return;
 
   // toHex() itself is cheap (linear, pre-sized buffer — see its own
   // comment), but for a genuinely large payload the hex string it
@@ -618,7 +637,7 @@ async function runTerritorialAdapter(supabase: SupabaseClient, adapter: Territor
   }
 
   const records = await adapter.fetch();
-  await persistRawEvents(supabase, sourceId, source.adapterName, records);
+  await persistRawEvents(supabase, sourceId, source.adapterName, source.sourceType, records);
   let written = 0;
   for (const record of records) {
     const areas = await adapter.normalize(record);
@@ -668,7 +687,7 @@ async function runAdvisoryAdapter(supabase: SupabaseClient, adapter: TravelAdvis
   }
 
   const records = await adapter.fetch();
-  await persistRawEvents(supabase, sourceId, source.adapterName, records);
+  await persistRawEvents(supabase, sourceId, source.adapterName, source.sourceType, records);
 
   if (debug) {
     const normalized: TravelAdvisory[] = [];
@@ -760,7 +779,7 @@ async function runEventAdapter(supabase: SupabaseClient, adapter: SecuritySource
   }
 
   const records = await adapter.fetch();
-  await persistRawEvents(supabase, sourceId, source.adapterName, records);
+  await persistRawEvents(supabase, sourceId, source.adapterName, source.sourceType, records);
   // debug:true runs fetch() + normalize() but skips the DB write, and
   // returns a small sample instead of every event (a full binary
   // payload or tens of thousands of rows echoed as JSON is its own way
