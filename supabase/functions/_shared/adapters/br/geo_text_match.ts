@@ -37,12 +37,32 @@ export interface IbgeMunicipio {
 // there already, one call per UF.
 const IBGE_MUNICIPIOS_URL = "https://servicodados.ibge.gov.br/api/v1/localidades/estados";
 
+// Confirmed live 2026-11-02: a bare `fetch()` here can hang well past
+// two minutes with a raw TCP-level "Connection timed out" (not a slow
+// HTTP response — the connection itself never established), observed
+// simultaneously across ALL 27 states when prefetchMunicipios() below
+// ran them concurrently. Whatever the real cause (IBGE-side throttling
+// of concurrent/bursty connections, or an egress-path issue specific
+// to this runtime), an unbounded fetch has no way to recover from it.
+// An explicit abort timeout bounds the damage to one adapter run
+// degrading to STATE-tier geoPrecision for that UF (the existing,
+// already-documented fallback every caller already has for a failed
+// IBGE fetch) instead of the whole run hanging until the Edge
+// Function's own ~150s platform limit kills it outright.
+const MUNICIPIOS_FETCH_TIMEOUT_MS = 8000;
+
 export async function fetchMunicipiosForUf(uf: string): Promise<IbgeMunicipio[]> {
-  const res = await fetch(`${IBGE_MUNICIPIOS_URL}/${uf}/municipios`);
-  if (!res.ok) {
-    throw new Error(`IBGE municipios request failed for ${uf}: ${res.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MUNICIPIOS_FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${IBGE_MUNICIPIOS_URL}/${uf}/municipios`, { signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(`IBGE municipios request failed for ${uf}: ${res.status}`);
+    }
+    return await res.json();
+  } finally {
+    clearTimeout(timeout);
   }
-  return await res.json();
 }
 
 // Module-level cache, shared by every caller in this isolate. Before
