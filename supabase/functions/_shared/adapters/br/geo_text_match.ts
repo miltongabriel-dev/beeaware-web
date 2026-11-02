@@ -45,6 +45,43 @@ export async function fetchMunicipiosForUf(uf: string): Promise<IbgeMunicipio[]>
   return await res.json();
 }
 
+// Module-level cache, shared by every caller in this isolate. Before
+// this existed, G1NewsAdapter and DiarioOnlineAdapter each kept their
+// OWN per-normalize()-call cache, which only ever helped within a
+// single call — G1NewsAdapter normalizes one record per state (27
+// calls per run), so that still meant up to 27 sequential, uncached
+// real IBGE round trips every single run. Confirmed live 2026-11-02:
+// this was the dominant cost behind both adapters' scheduled runs
+// consistently exceeding the Edge Function's ~150s hard limit (exact
+// same ~150.4-150.9s duration every single cycle — a deterministic
+// wall-clock ceiling, not network flakiness). A failed fetch caches an
+// empty array rather than retrying on every subsequent call in the
+// same run, matching every caller's own prior fallback-to-[] behavior.
+const municipiosCache = new Map<string, Promise<IbgeMunicipio[]>>();
+
+export function getMunicipiosForUf(uf: string): Promise<IbgeMunicipio[]> {
+  let cached = municipiosCache.get(uf);
+  if (!cached) {
+    cached = fetchMunicipiosForUf(uf).catch((e) => {
+      console.error(`geo_text_match: municipios fetch failed for ${uf}:`, e);
+      return [];
+    });
+    municipiosCache.set(uf, cached);
+  }
+  return cached;
+}
+
+// Fetches several UFs' municipality lists concurrently. The actual
+// fix for the sequential-fetch cost above: a caller that knows every
+// UF it'll need up front (G1NewsAdapter: all 27, right away) should
+// call this before its own per-record loop, so every
+// getMunicipiosForUf() call inside that loop is a cache hit against
+// an already-in-flight (or resolved) promise instead of a fresh round
+// trip.
+export async function prefetchMunicipios(ufs: string[]): Promise<void> {
+  await Promise.allSettled(ufs.map((uf) => getMunicipiosForUf(uf)));
+}
+
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -78,15 +115,47 @@ function isPrecededByStreetPrefix(text: string, matchIndex: number): boolean {
 // unrelated longer word. Every occurrence of a candidate name is
 // checked (not just the first) so a street-prefixed false hit doesn't
 // block a real, separate mention of the same name elsewhere in the text.
+interface CompiledMunicipio {
+  municipio: IbgeMunicipio;
+  regex: RegExp;
+}
+
+// Keyed on the municipios ARRAY ITSELF (not a UF string) — findCity
+// has always taken the array directly, and every caller now gets it
+// from getMunicipiosForUf()'s own cache above, so the same array
+// instance is reused across every call in a run. Without this, every
+// findCity() call re-sorted the full list and rebuilt a fresh RegExp
+// per candidate municipality from scratch — for a state like SP (645)
+// or MG (853), that's hundreds of regex compilations repeated for
+// every classified article, confirmed live 2026-11-02 as the other
+// half (alongside the uncached IBGE fetch above) of G1NewsAdapter's
+// and DiarioOnlineAdapter's scheduled runs reliably exceeding the Edge
+// Function's ~150s limit. A WeakMap lets an array that's no longer
+// referenced (a failed/empty fetch result) be garbage-collected
+// normally.
+const compiledCache = new WeakMap<IbgeMunicipio[], CompiledMunicipio[]>();
+
+function compiledFor(municipios: IbgeMunicipio[]): CompiledMunicipio[] {
+  let compiled = compiledCache.get(municipios);
+  if (!compiled) {
+    compiled = [...municipios]
+      .sort((a, b) => b.nome.length - a.nome.length)
+      .map((municipio) => ({
+        municipio,
+        regex: new RegExp(`(^|[^a-z0-9])${escapeRegExp(stripAccentsLower(municipio.nome))}([^a-z0-9]|$)`, "g"),
+      }));
+    compiledCache.set(municipios, compiled);
+  }
+  return compiled;
+}
+
 export function findCity(normalizedText: string, municipios: IbgeMunicipio[]): IbgeMunicipio | undefined {
-  const sorted = [...municipios].sort((a, b) => b.nome.length - a.nome.length);
-  for (const m of sorted) {
-    const normalizedName = stripAccentsLower(m.nome);
-    const re = new RegExp(`(^|[^a-z0-9])${escapeRegExp(normalizedName)}([^a-z0-9]|$)`, "g");
+  for (const { municipio, regex } of compiledFor(municipios)) {
+    regex.lastIndex = 0; // the same RegExp object is now reused across calls — reset its "g" state first.
     let match: RegExpExecArray | null;
-    while ((match = re.exec(normalizedText))) {
+    while ((match = regex.exec(normalizedText))) {
       const nameStart = match.index + match[1].length;
-      if (!isPrecededByStreetPrefix(normalizedText, nameStart)) return m;
+      if (!isPrecededByStreetPrefix(normalizedText, nameStart)) return municipio;
     }
   }
   return undefined;
@@ -105,12 +174,17 @@ const BR_STATE_NAMES: [string, string][] = [
   ["TO", "tocantins"],
 ];
 
+// Only 26 fixed entries (unlike a state's own municipios list), so
+// this is compiled once at module load rather than lazily cached.
+const COMPILED_STATE_NAMES = [...BR_STATE_NAMES]
+  .sort((a, b) => b[1].length - a[1].length)
+  .map(([uf, name]) => ({ uf, regex: new RegExp(`(^|[^a-z0-9])${escapeRegExp(name)}([^a-z0-9]|$)`, "g") }));
+
 export function findState(normalizedText: string): string | undefined {
-  const sorted = [...BR_STATE_NAMES].sort((a, b) => b[1].length - a[1].length);
-  for (const [uf, name] of sorted) {
-    const re = new RegExp(`(^|[^a-z0-9])${escapeRegExp(name)}([^a-z0-9]|$)`, "g");
+  for (const { uf, regex } of COMPILED_STATE_NAMES) {
+    regex.lastIndex = 0;
     let match: RegExpExecArray | null;
-    while ((match = re.exec(normalizedText))) {
+    while ((match = regex.exec(normalizedText))) {
       const nameStart = match.index + match[1].length;
       if (!isPrecededByStreetPrefix(normalizedText, nameStart)) return uf;
     }

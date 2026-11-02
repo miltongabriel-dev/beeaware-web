@@ -37,8 +37,8 @@
 // for that reason (classification still runs on the untruncated text).
 
 import { classifyPtBrNews, stripAccentsLower } from "./pt_news_classifier.ts";
-import { parseFeedItems } from "../../rss.ts";
-import { fetchMunicipiosForUf, findCity, findState, IbgeMunicipio } from "./geo_text_match.ts";
+import { parseFeedItems, type RssFeedItem } from "../../rss.ts";
+import { findCity, findState, getMunicipiosForUf, prefetchMunicipios } from "./geo_text_match.ts";
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import type {
   RawSecurityRecord,
@@ -91,22 +91,30 @@ export class DiarioOnlineAdapter implements SecuritySourceAdapter {
     const stateLocationConfidence = defaultLocationConfidence("STATE");
     const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
 
-    const municipiosByUf = new Map<string, IbgeMunicipio[]>();
-    async function municipiosFor(uf: string): Promise<IbgeMunicipio[]> {
-      const cached = municipiosByUf.get(uf);
-      if (cached) return cached;
-      let list: IbgeMunicipio[];
-      try {
-        list = await fetchMunicipiosForUf(uf);
-      } catch (e) {
-        console.error(`DiarioOnlineAdapter: municipios fetch failed for ${uf}:`, e);
-        list = [];
-      }
-      municipiosByUf.set(uf, list);
-      return list;
+    interface Candidate {
+      item: RssFeedItem;
+      eventCategory: string;
+      eventType: string;
+      severity: string;
+      occurredAt: Date;
+      normalizedText: string;
+      fallbackUf?: string;
     }
 
-    const events: SecurityEvent[] = [];
+    // First pass: classify, and run findState() (pure regex, no IBGE
+    // call) up front for every item — purely to learn, before any
+    // network call, the full SET of states this pull could possibly
+    // need. This feed is NOT Pará-only (see header) and can mix in
+    // any of the other 26 states across its ~100 items; visiting them
+    // in feed order and fetching each newly-seen state's municipios
+    // one at a time (the old behaviour) is what made this adapter's
+    // scheduled runs consistently exceed the Edge Function's ~150s
+    // limit (confirmed live 2026-11-02, same root cause as
+    // G1NewsAdapter's — see that adapter's own fix and
+    // geo_text_match.ts's comment). Collecting the full set first lets
+    // every municipios fetch below go out concurrently instead.
+    const candidates: Candidate[] = [];
+    const neededUfs = new Set<string>(["PA"]);
     for (const item of items) {
       const mapped = classifyPtBrNews(item.title, item.subtitle);
       if (!mapped) continue;
@@ -116,15 +124,23 @@ export class DiarioOnlineAdapter implements SecuritySourceAdapter {
       if (!occurredAt || Number.isNaN(occurredAt.getTime())) continue;
 
       const normalizedText = stripAccentsLower(`${item.title} ${item.subtitle}`);
+      const fallbackUf = findState(normalizedText);
+      if (fallbackUf) neededUfs.add(fallbackUf);
+      candidates.push({ item, eventCategory, eventType, severity, occurredAt, normalizedText, fallbackUf });
+    }
 
+    await prefetchMunicipios([...neededUfs]);
+
+    const events: SecurityEvent[] = [];
+    for (const c of candidates) {
       // Pará first (this outlet's own home turf, most likely to be
       // named only by city — see header), then the generic detector.
-      let uf: string | undefined = "PA";
-      let city = findCity(normalizedText, await municipiosFor("PA"));
+      let uf = "PA";
+      let city = findCity(c.normalizedText, await getMunicipiosForUf("PA"));
       if (!city) {
-        uf = findState(normalizedText);
-        if (!uf) continue; // no location signal at all — skip, same as every other adapter here.
-        city = findCity(normalizedText, await municipiosFor(uf));
+        if (!c.fallbackUf) continue; // no location signal at all — skip, same as every other adapter here.
+        uf = c.fallbackUf;
+        city = findCity(c.normalizedText, await getMunicipiosForUf(uf));
       }
 
       const geoPrecision = city ? "MUNICIPALITY" : "STATE";
@@ -133,27 +149,27 @@ export class DiarioOnlineAdapter implements SecuritySourceAdapter {
       events.push({
         countryCode: "BR",
         stateCode: uf,
-        sourceRecordId: item.guid,
+        sourceRecordId: c.item.guid,
         sourceType: "news",
-        eventCategory: eventCategory as SecurityEvent["eventCategory"],
-        eventType,
-        occurredAt: occurredAt.toISOString(),
-        publishedAt: occurredAt.toISOString(),
+        eventCategory: c.eventCategory as SecurityEvent["eventCategory"],
+        eventType: c.eventType,
+        occurredAt: c.occurredAt.toISOString(),
+        publishedAt: c.occurredAt.toISOString(),
         geoPrecision,
         locationConfidence,
         state: uf,
         city: city?.nome,
         cityIbgeCode: city ? String(city.id) : undefined,
         occurrenceCount: 1,
-        severity,
+        severity: c.severity,
         confidenceScore: computeConfidenceScore({
           reliabilityGrade: "established_local_journalism",
           locationConfidence,
         }),
         rawPayload: {
-          title: item.title,
-          subtitle: truncateForDisplay(item.subtitle),
-          link: item.link,
+          title: c.item.title,
+          subtitle: truncateForDisplay(c.item.subtitle),
+          link: c.item.link,
         },
       });
     }

@@ -52,7 +52,7 @@
 
 import { classifyPtBrNews, stripAccentsLower } from "./pt_news_classifier.ts";
 import { decodeXmlBytes, parseFeedItems } from "../../rss.ts";
-import { fetchMunicipiosForUf, findCity, IbgeMunicipio } from "./geo_text_match.ts";
+import { findCity, getMunicipiosForUf, prefetchMunicipios } from "./geo_text_match.ts";
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import type {
   RawSecurityRecord,
@@ -123,6 +123,15 @@ export class G1NewsAdapter implements SecuritySourceAdapter {
   // seconds wall-clock cost on every 4-hourly run.
   async fetch(_since?: Date): Promise<RawSecurityRecord[]> {
     const fetchedAt = new Date().toISOString();
+    // Fired here, not awaited: starts all 27 states' real IBGE
+    // municipios round trips CONCURRENTLY with the 27 feed fetches
+    // below, instead of normalize() discovering each one sequentially
+    // later (confirmed live 2026-11-02 as the dominant cost behind
+    // this adapter's scheduled runs reliably exceeding the Edge
+    // Function's ~150s limit — see geo_text_match.ts's own comment).
+    // By the time the per-record normalize() loop runs, every
+    // getMunicipiosForUf() call below is a cache hit.
+    void prefetchMunicipios(Object.keys(UF_SLUGS));
     const settled = await Promise.allSettled(
       Object.keys(UF_SLUGS).map(async (uf) => {
         const res = await fetch(feedUrlForUf(uf));
@@ -156,28 +165,6 @@ export class G1NewsAdapter implements SecuritySourceAdapter {
     const stateLocationConfidence = defaultLocationConfidence("STATE");
     const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
 
-    // A single state's regional feed overwhelmingly carries that one
-    // state's own articles (confirmed live), so this cache typically
-    // ends up doing exactly one IBGE fetch per normalize() call — kept
-    // as a map (not a single value) purely to stay correct on the rare
-    // cross-linked item from a different UF, at no extra cost in the
-    // common case. A failed IBGE fetch for one UF just degrades that
-    // UF's articles back to the STATE tier rather than failing the run.
-    const municipiosByUf = new Map<string, IbgeMunicipio[]>();
-    async function municipiosFor(uf: string): Promise<IbgeMunicipio[]> {
-      const cached = municipiosByUf.get(uf);
-      if (cached) return cached;
-      let list: IbgeMunicipio[];
-      try {
-        list = await fetchMunicipiosForUf(uf);
-      } catch (e) {
-        console.error(`G1NewsAdapter: municipios fetch failed for ${uf}:`, e);
-        list = [];
-      }
-      municipiosByUf.set(uf, list);
-      return list;
-    }
-
     const events: SecurityEvent[] = [];
     for (const item of items) {
       const uf = ufFromLink(item.link);
@@ -191,7 +178,7 @@ export class G1NewsAdapter implements SecuritySourceAdapter {
       if (!occurredAt || Number.isNaN(occurredAt.getTime())) continue;
 
       const normalizedText = stripAccentsLower(`${item.title} ${item.subtitle}`);
-      const city = findCity(normalizedText, await municipiosFor(uf));
+      const city = findCity(normalizedText, await getMunicipiosForUf(uf));
       const geoPrecision = city ? "MUNICIPALITY" : "STATE";
       const locationConfidence = city ? municipalityLocationConfidence : stateLocationConfidence;
 

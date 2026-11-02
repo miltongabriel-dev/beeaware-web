@@ -22,30 +22,38 @@
 
 import { classifyPtBrNews, stripAccentsLower } from "./pt_news_classifier.ts";
 import { parsePossiblyPtBrDate, stripHtmlTags, type RssFeedItem } from "../../rss.ts";
-import { fetchMunicipiosForUf, findCity, findState, IbgeMunicipio } from "./geo_text_match.ts";
+import { findCity, findState, getMunicipiosForUf, prefetchMunicipios } from "./geo_text_match.ts";
 import { computeConfidenceScore, defaultLocationConfidence } from "../../confidence.ts";
 import type { SecurityEvent } from "../types.ts";
+
+interface Candidate {
+  item: RssFeedItem;
+  subtitle: string;
+  eventCategory: string;
+  eventType: string;
+  severity: string;
+  occurredAt: Date;
+  normalizedText: string;
+  uf: string;
+}
 
 export async function eventsFromNationalPtBrItems(items: RssFeedItem[]): Promise<SecurityEvent[]> {
   const stateLocationConfidence = defaultLocationConfidence("STATE");
   const municipalityLocationConfidence = defaultLocationConfidence("MUNICIPALITY");
-  const municipiosByUf = new Map<string, IbgeMunicipio[]>();
 
-  async function municipiosFor(uf: string): Promise<IbgeMunicipio[]> {
-    const cached = municipiosByUf.get(uf);
-    if (cached) return cached;
-    let list: IbgeMunicipio[];
-    try {
-      list = await fetchMunicipiosForUf(uf);
-    } catch (e) {
-      console.error(`national_pt_news: municipios fetch failed for ${uf}:`, e);
-      list = [];
-    }
-    municipiosByUf.set(uf, list);
-    return list;
-  }
-
-  const events: SecurityEvent[] = [];
+  // First pass: classify and name each item's state via findState()
+  // (pure regex, no IBGE call) before fetching anything, so every
+  // distinct state this pull needs can be prefetched CONCURRENTLY
+  // below instead of one state at a time as items are visited in feed
+  // order — a feed naming several different states (CNN Brasil,
+  // Metrópoles, UOL, Agência Brasil, Folha all share this function)
+  // otherwise means that many sequential, uncached-across-runs real
+  // IBGE round trips. Confirmed live 2026-11-02: Folha and ES-news
+  // (also routed through here) were already landing within ~15s of
+  // the Edge Function's ~150s hard limit, the same root cause that
+  // pushed G1NewsAdapter and DiarioOnlineAdapter past it outright.
+  const candidates: Candidate[] = [];
+  const neededUfs = new Set<string>();
   for (const item of items) {
     const subtitle = stripHtmlTags(item.subtitle);
     const mapped = classifyPtBrNews(item.title, subtitle);
@@ -58,31 +66,39 @@ export async function eventsFromNationalPtBrItems(items: RssFeedItem[]): Promise
     const normalizedText = stripAccentsLower(`${item.title} ${subtitle}`);
     const uf = findState(normalizedText);
     if (!uf) continue;
-    const city = findCity(normalizedText, await municipiosFor(uf));
+    neededUfs.add(uf);
+    candidates.push({ item, subtitle, eventCategory, eventType, severity, occurredAt, normalizedText, uf });
+  }
+
+  await prefetchMunicipios([...neededUfs]);
+
+  const events: SecurityEvent[] = [];
+  for (const c of candidates) {
+    const city = findCity(c.normalizedText, await getMunicipiosForUf(c.uf));
     const geoPrecision = city ? "MUNICIPALITY" : "STATE";
     const locationConfidence = city ? municipalityLocationConfidence : stateLocationConfidence;
 
     events.push({
       countryCode: "BR",
-      stateCode: uf,
-      sourceRecordId: item.guid,
+      stateCode: c.uf,
+      sourceRecordId: c.item.guid,
       sourceType: "news",
-      eventCategory: eventCategory as SecurityEvent["eventCategory"],
-      eventType,
-      occurredAt: occurredAt.toISOString(),
-      publishedAt: occurredAt.toISOString(),
+      eventCategory: c.eventCategory as SecurityEvent["eventCategory"],
+      eventType: c.eventType,
+      occurredAt: c.occurredAt.toISOString(),
+      publishedAt: c.occurredAt.toISOString(),
       geoPrecision,
       locationConfidence,
-      state: uf,
+      state: c.uf,
       city: city?.nome,
       cityIbgeCode: city ? String(city.id) : undefined,
       occurrenceCount: 1,
-      severity,
+      severity: c.severity,
       confidenceScore: computeConfidenceScore({
         reliabilityGrade: "established_local_journalism",
         locationConfidence,
       }),
-      rawPayload: { title: item.title, subtitle, link: item.link },
+      rawPayload: { title: c.item.title, subtitle: c.subtitle, link: c.item.link },
     });
   }
   return events;
