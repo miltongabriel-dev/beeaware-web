@@ -104,11 +104,50 @@ Future<List<AddressSuggestion>> fetchAddressSuggestions(
 /// for the main search box (unchanged, out of scope here) — this is a
 /// second, Brazil-aware geocoder for Route Awareness, not a replacement
 /// for it.
-/// Reverse geocode a point into a short "City, State" label — used by the
-/// Início dashboard's location card. Same Nominatim host and
-/// UK/Brazil-only scoping as [geocodeAddress] above; falls back through
-/// city/town/village since Nominatim doesn't always populate `city`.
-Future<String?> reverseGeocode(LatLng point) async {
+/// Where a point is, as [reverseGeocode] resolves it. [label] is what the
+/// Início location card shows; [state] is kept separate because the news
+/// section needs the state on its own (see NewsApi.fetchNearby), and the
+/// label no longer always ends in it.
+class PlaceName {
+  final String label;
+  final String? state;
+
+  const PlaceName({required this.label, this.state});
+}
+
+/// Reverse geocode a point for the Início location card — "Bairro,
+/// Cidade" (e.g. "Bela Vista, São Paulo") from the `geocode` Edge
+/// Function's reverse mode (Photon). Calling Nominatim straight from the
+/// app got 429-rate-limited, leaving the card on "Localização
+/// indisponível" even with a good GPS fix; Nominatim stays only as a
+/// fallback for while the function update isn't deployed.
+Future<PlaceName?> reverseGeocode(LatLng point) async {
+  try {
+    final response = await http.get(Uri.https(
+      'brjzkdtkmewbodpqjhkj.supabase.co',
+      '/functions/v1/geocode',
+      {'lat': '${point.latitude}', 'lon': '${point.longitude}'},
+    ));
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        final label = decoded['label'];
+        final state = decoded['state'];
+        if (label is String && label.isNotEmpty) {
+          return PlaceName(label: label, state: state is String ? state : null);
+        }
+      }
+    }
+  } catch (_) {
+    // Falls through to Nominatim below.
+  }
+  return _nominatimReverseGeocode(point);
+}
+
+/// "City, State" from Nominatim, scoped to UK/Brazil like [geocodeAddress]
+/// above; falls back through city/town/village since Nominatim doesn't
+/// always populate `city`.
+Future<PlaceName?> _nominatimReverseGeocode(LatLng point) async {
   try {
     final url = Uri.parse(
       'https://nominatim.openstreetmap.org/reverse'
@@ -129,8 +168,10 @@ Future<String?> reverseGeocode(LatLng point) async {
     final state = address['state'];
 
     if (city == null && state == null) return null;
-    if (city != null && state != null) return '$city, $state';
-    return (city ?? state) as String;
+    return PlaceName(
+      label: city != null && state != null ? '$city, $state' : '${city ?? state}',
+      state: state is String ? state : null,
+    );
   } catch (_) {
     return null;
   }

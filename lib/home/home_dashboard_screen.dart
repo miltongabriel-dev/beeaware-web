@@ -85,6 +85,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   LatLng? _userLocation;
   String? _locationLabel;
+  // State of the point the news section is showing, resolved by
+  // _loadNews — not parsed out of _locationLabel, which is "Bairro,
+  // Cidade" (or a picked address) and doesn't end in the state.
+  String? _locationState;
   bool _locationLoading = true;
 
   List<MapIncident> _incidents = List.unmodifiable(const []);
@@ -147,10 +151,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         setState(() => _userLocation = point);
         _loadNews(point);
 
-        final label = await reverseGeocode(point);
+        final place = await reverseGeocode(point);
         if (!mounted) return;
         setState(() {
-          _locationLabel = label;
+          _locationLabel = place?.label;
           _locationLoading = false;
         });
         return;
@@ -197,19 +201,16 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   // Resolves its own state name via reverseGeocode rather than trusting
-  // whatever _locationLabel already holds — a picked address's own label
-  // (AddressSuggestion.full) isn't in the same "City, State" shape
-  // reverseGeocode produces, and this hint has to be right for it to be
+  // whatever _locationLabel already holds — neither a picked address's
+  // label (AddressSuggestion.full) nor the "Bairro, Cidade" label ends in
+  // the state, and this hint has to be right for it to be
   // useful at all (see NewsApi.fetchNearby's own doc comment for why it
   // exists: some Brazilian states, e.g. Rondônia, have zero backfilled
   // municipality geometry, so this external geocode is the only thing
   // that can place a point in them).
   Future<void> _loadNews(LatLng point) async {
-    final label = await reverseGeocode(point);
-    final stateHint =
-        label != null && label.contains(',')
-            ? label.substring(label.lastIndexOf(',') + 1).trim()
-            : null;
+    final stateHint = (await reverseGeocode(point))?.state;
+    if (mounted) setState(() => _locationState = stateHint);
 
     final items = await NewsApi.fetchNearby(point, stateNameHint: stateHint);
     if (!mounted) return;
@@ -263,8 +264,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   /// Kingdom"/"Reino Unido" — never the UK city/county Nominatim resolved
   /// for the location pill, which would overstate the precision this
   /// source actually has. For Brazil, prefers the free-text state
-  /// Nominatim already resolved (the part after the last comma in "City,
-  /// State") — available as soon as reverseGeocode() returns, whether or
+  /// reverseGeocode() already resolved for the news fetch ([_locationState])
+  /// — available as soon as reverseGeocode() returns, whether or
   /// not any news exists yet for that state — falling back to the state
   /// code carried by an actual news row for the rare case the news fetch
   /// resolves first; empty only when nothing has resolved yet.
@@ -273,10 +274,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       return AppLocalizations.of(context)!.unitedKingdomLabel;
     }
 
-    final label = _locationLabel;
-    if (label != null && label.contains(',')) {
-      return label.substring(label.lastIndexOf(',') + 1).trim();
-    }
+    final state = _locationState;
+    if (state != null) return state;
     if (_news.isNotEmpty) {
       final stateCode = _news.first.stateCode;
       if (stateCode != null) return brazilianStateNames[stateCode] ?? stateCode;
