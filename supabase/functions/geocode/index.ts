@@ -15,8 +15,17 @@
 // already-shipped iOS/Android builds without a new app release.
 //
 // Optional `lat`/`lon` query params bias results toward the user.
+//
+// Reverse mode: `lat`/`lon` with no `q` returns { label, state } — a
+// short "Bairro, Cidade" for the Início location card (e.g. "Bela Vista,
+// São Paulo") plus the state on its own, which the app uses to place news
+// (the label used to be "City, State" and the state was read off its
+// end). Both are null when Photon has nothing there. Replaces the app
+// calling Nominatim directly, which rate-limits (429) shared IPs and
+// left the card on "Localização indisponível" with a perfectly good fix.
 
 const PHOTON_URL = "https://photon.komoot.io/api/";
+const PHOTON_REVERSE_URL = "https://photon.komoot.io/reverse";
 const MAX_LIMIT = 10;
 
 const corsHeaders = {
@@ -76,12 +85,59 @@ function displayName(p: PhotonProps): string {
   return parts.filter((s, i) => parts.indexOf(s) === i).join(", ");
 }
 
+// Neighbourhood first (Photon's `district` is the bairro in Brazil and
+// e.g. Covent Garden in London), then the city; state only when there's
+// no neighbourhood to pair the city with.
+function shortLabel(p: PhotonProps): string | null {
+  const area = p.district ?? p.locality;
+  const city = p.city ?? p.county;
+  const parts = area ? [area, city] : [city, p.state];
+  const clean = parts.filter((s): s is string => !!s && s.trim().length > 0);
+  const unique = clean.filter((s, i) => clean.indexOf(s) === i);
+  return unique.length ? unique.join(", ") : null;
+}
+
+async function reverse(lat: number, lon: number): Promise<Response> {
+  const photon = new URL(PHOTON_REVERSE_URL);
+  photon.searchParams.set("lat", String(lat));
+  photon.searchParams.set("lon", String(lon));
+  photon.searchParams.set("limit", "1");
+
+  try {
+    const res = await fetch(photon, {
+      headers: { "User-Agent": "io.beeaware.app (BeeAware geocode function)" },
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!res.ok) {
+      console.error(`photon reverse ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      return json({ label: null, state: null }, 502);
+    }
+
+    const data = await res.json();
+    const props: PhotonProps | undefined = data?.features?.[0]?.properties;
+    return json(
+      { label: props ? shortLabel(props) : null, state: props?.state ?? null },
+      200,
+      { "Cache-Control": "public, max-age=86400" },
+    );
+  } catch (e) {
+    console.error("reverse geocode error:", e);
+    return json({ label: null, state: null }, 502);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const url = new URL(req.url);
   const query = url.searchParams.get("q")?.trim();
-  if (!query) return json({ error: "Missing query" }, 400);
+  if (!query) {
+    const lat = parseFloat(url.searchParams.get("lat") ?? "");
+    const lon = parseFloat(url.searchParams.get("lon") ?? "");
+    if (Number.isFinite(lat) && Number.isFinite(lon)) return reverse(lat, lon);
+    return json({ error: "Missing query" }, 400);
+  }
 
   const limit = Math.min(
     Math.max(parseInt(url.searchParams.get("limit") ?? "5", 10) || 5, 1),
